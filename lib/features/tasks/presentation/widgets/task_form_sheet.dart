@@ -1,0 +1,410 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_to_do_list_app/core/theme/app_colors.dart';
+import 'package:flutter_to_do_list_app/core/widgets/glass_panel.dart';
+import 'package:flutter_to_do_list_app/features/tasks/domain/entities/recurrence_rule.dart';
+import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task.dart';
+import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task_enums.dart';
+
+class TaskFormSheet extends StatefulWidget {
+  const TaskFormSheet({
+    super.key,
+    this.initialTask,
+    this.initialDate,
+    this.initialTime,
+    required this.onSubmit,
+  });
+
+  final Task? initialTask;
+  final DateTime? initialDate;
+  final TimeOfDay? initialTime;
+  final Future<void> Function(TaskFormValue value) onSubmit;
+
+  @override
+  State<TaskFormSheet> createState() => _TaskFormSheetState();
+}
+
+class _TaskFormSheetState extends State<TaskFormSheet> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
+  late DateTime _date;
+  late TimeOfDay _time;
+  late TaskPriority _priority;
+  late EnergyLevel _energy;
+  late bool _reminderEnabled;
+  late RecurrenceType _recurrenceType;
+  late final List<TimeOfDay> _timesOfDay;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final task = widget.initialTask;
+    _titleController = TextEditingController(text: task?.title ?? '');
+    _descriptionController = TextEditingController(
+      text: task?.description ?? '',
+    );
+    _date = task?.dueDate ?? widget.initialDate ?? DateTime.now();
+    _time = task?.dueTime ?? widget.initialTime ?? TimeOfDay.now();
+    _priority = task?.priority ?? TaskPriority.medium;
+    _energy = task?.energyLevel ?? EnergyLevel.medium;
+    _reminderEnabled = task?.reminders.isNotEmpty ?? true;
+    _recurrenceType = task?.recurrenceRule.type ?? RecurrenceType.none;
+    _timesOfDay = <TimeOfDay>[...?task?.recurrenceRule.timesOfDay];
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(12, 0, 12, bottom + 12),
+      child: GlassPanel(
+        borderRadius: 32,
+        padding: const EdgeInsets.all(18),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      widget.initialTask == null
+                          ? 'Новая задача'
+                          : 'Изменить задачу',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    onPressed: _saving ? null : _submit,
+                    icon: _saving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.check_rounded),
+                    label: const Text('ОК'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _titleController,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(labelText: 'Название'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _descriptionController,
+                minLines: 2,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'Описание'),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: _PickerButton(
+                      icon: Icons.calendar_today_rounded,
+                      label:
+                          '${_date.day.toString().padLeft(2, '0')}.${_date.month.toString().padLeft(2, '0')}.${_date.year}',
+                      onTap: _pickDate,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _PickerButton(
+                      icon: Icons.schedule_rounded,
+                      label: _time.format(context),
+                      onTap: _pickTime,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _Segment<TaskPriority>(
+                label: 'Приоритет',
+                value: _priority,
+                values: TaskPriority.values,
+                itemLabel: (value) => value.label,
+                onChanged: (value) => setState(() => _priority = value),
+              ),
+              const SizedBox(height: 14),
+              _Segment<EnergyLevel>(
+                label: 'Энергия',
+                value: _energy,
+                values: EnergyLevel.values,
+                itemLabel: (value) => value.label,
+                onChanged: (value) => setState(() => _energy = value),
+              ),
+              const SizedBox(height: 14),
+              SwitchListTile.adaptive(
+                value: _reminderEnabled,
+                onChanged: (value) => setState(() => _reminderEnabled = value),
+                title: const Text('Напоминание'),
+                subtitle: const Text(
+                  'Запланировать локальное уведомление для этой задачи',
+                ),
+              ),
+              const SizedBox(height: 8),
+              _Segment<RecurrenceType>(
+                label: 'Повтор',
+                value: _recurrenceType,
+                values: RecurrenceType.values,
+                itemLabel: (value) =>
+                    value == RecurrenceType.none ? 'Выкл.' : value.label,
+                onChanged: (value) => setState(() => _recurrenceType = value),
+              ),
+              if (_recurrenceType != RecurrenceType.none) ...<Widget>[
+                const SizedBox(height: 12),
+                _MultipleTimesEditor(
+                  times: _timesOfDay,
+                  onAdd: _addRepeatTime,
+                  onRemove: (time) => setState(() => _timesOfDay.remove(time)),
+                ),
+              ],
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _saving ? null : _submit,
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.done_rounded),
+                  label: Text(
+                    widget.initialTask == null ? 'Создать задачу' : 'Сохранить',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 4)),
+    );
+    if (picked != null) {
+      setState(() => _date = picked);
+    }
+  }
+
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(context: context, initialTime: _time);
+    if (picked != null) {
+      setState(() => _time = picked);
+    }
+  }
+
+  Future<void> _addRepeatTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (picked != null) {
+      setState(() => _timesOfDay.add(picked));
+    }
+  }
+
+  Future<void> _submit() async {
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Введите название задачи')));
+      return;
+    }
+    setState(() => _saving = true);
+    final dueDateTime = DateTime(
+      _date.year,
+      _date.month,
+      _date.day,
+      _time.hour,
+      _time.minute,
+    );
+    await widget.onSubmit(
+      TaskFormValue(
+        title: _titleController.text,
+        description: _descriptionController.text,
+        dueDate: _date,
+        dueTime: _time,
+        priority: _priority,
+        energyLevel: _energy,
+        recurrenceRule: RecurrenceRule(
+          type: _recurrenceType,
+          interval: 1,
+          intervalUnit: RecurrenceIntervalUnit.days,
+          timesOfDay: List<TimeOfDay>.unmodifiable(_timesOfDay),
+          startDate: _date,
+          isEnabled: _recurrenceType != RecurrenceType.none,
+        ),
+        reminderTimes: _reminderEnabled
+            ? <DateTime>[dueDateTime]
+            : const <DateTime>[],
+      ),
+    );
+    if (mounted) {
+      Navigator.pop(context);
+    }
+  }
+}
+
+class TaskFormValue {
+  const TaskFormValue({
+    required this.title,
+    this.description,
+    required this.dueDate,
+    required this.dueTime,
+    required this.priority,
+    required this.energyLevel,
+    required this.recurrenceRule,
+    required this.reminderTimes,
+  });
+
+  final String title;
+  final String? description;
+  final DateTime dueDate;
+  final TimeOfDay dueTime;
+  final TaskPriority priority;
+  final EnergyLevel energyLevel;
+  final RecurrenceRule recurrenceRule;
+  final List<DateTime> reminderTimes;
+}
+
+class _PickerButton extends StatelessWidget {
+  const _PickerButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon),
+      label: Text(label, overflow: TextOverflow.ellipsis),
+    );
+  }
+}
+
+class _Segment<T> extends StatelessWidget {
+  const _Segment({
+    required this.label,
+    required this.value,
+    required this.values,
+    required this.itemLabel,
+    required this.onChanged,
+  });
+
+  final String label;
+  final T value;
+  final List<T> values;
+  final String Function(T value) itemLabel;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          label,
+          style: Theme.of(
+            context,
+          ).textTheme.labelLarge?.copyWith(color: AppColors.turquoise),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: values
+              .map(
+                (item) => ChoiceChip(
+                  selected: item == value,
+                  label: Text(itemLabel(item)),
+                  onSelected: (_) => onChanged(item),
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _MultipleTimesEditor extends StatelessWidget {
+  const _MultipleTimesEditor({
+    required this.times,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  final List<TimeOfDay> times;
+  final VoidCallback onAdd;
+  final ValueChanged<TimeOfDay> onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                'Время в течение дня',
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(color: AppColors.turquoise),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Добавить время'),
+            ),
+          ],
+        ),
+        Wrap(
+          spacing: 8,
+          children: times
+              .map(
+                (time) => InputChip(
+                  label: Text(time.format(context)),
+                  onDeleted: () => onRemove(time),
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    );
+  }
+}
