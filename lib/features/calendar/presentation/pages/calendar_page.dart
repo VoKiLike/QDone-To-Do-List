@@ -177,23 +177,11 @@ class _CalendarHeader extends StatelessWidget {
     return Row(
       children: <Widget>[
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                strings.text('calendar'),
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Планирование по датам, задачи дня и быстрые действия',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.turquoise),
-              ),
-            ],
+          child: Text(
+            strings.text('calendar'),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
           ),
         ),
         FilledButton.tonalIcon(
@@ -419,6 +407,11 @@ Future<void> _openTaskForm(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    barrierColor: Colors.black.withValues(alpha: 0.62),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+    ),
     builder: (context) {
       return TaskFormSheet(
         initialTask: task,
@@ -436,6 +429,7 @@ Future<void> _openTaskForm(
                   dueDate: value.dueDate,
                   dueTime: value.dueTime,
                   priority: value.priority,
+                  category: value.category,
                   energyLevel: value.energyLevel,
                   recurrenceRule: value.recurrenceRule,
                   reminderTimes: value.reminderTimes,
@@ -450,6 +444,7 @@ Future<void> _openTaskForm(
                   dueDate: value.dueDate,
                   dueTime: value.dueTime,
                   priority: value.priority,
+                  category: value.category,
                   energyLevel: value.energyLevel,
                   recurrenceRule: value.recurrenceRule,
                   reminderTimes: value.reminderTimes,

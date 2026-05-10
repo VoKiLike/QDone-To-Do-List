@@ -5,7 +5,7 @@
 Clean Architecture, local storage, recurring tasks, reminders, a liquid
 glass-inspired interface, and Android home widget groundwork.
 
-Version: **0.2.4**.
+Version: **0.3.0**.
 
 Русская версия ниже.
 
@@ -81,7 +81,7 @@ This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md).
 для задач и календаря: Clean Architecture, локальное хранение, повторяющиеся
 задачи, напоминания, интерфейс в стиле liquid glass и основа Android-виджета.
 
-Версия: **0.2.4**.
+Версия: **0.3.0**.
 
 ## Возможности
 

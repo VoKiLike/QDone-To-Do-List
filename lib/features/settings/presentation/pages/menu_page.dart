@@ -37,13 +37,6 @@ class MenuPage extends ConsumerWidget {
               context,
             ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
           ),
-          const SizedBox(height: 4),
-          Text(
-            AppConstants.studioName,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: AppColors.turquoise),
-          ),
           const SizedBox(height: 16),
           _SettingsSection(
             children: <Widget>[
@@ -405,6 +398,11 @@ class _HistorySettings extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      barrierColor: Colors.black.withValues(alpha: 0.62),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
       builder: (context) => _CompletedTasksSheet(tasks: tasks),
     );
   }
@@ -440,6 +438,11 @@ class _KnowledgeBaseSettings extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      barrierColor: Colors.black.withValues(alpha: 0.62),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
       builder: (context) => const _KnowledgeBaseSheet(),
     );
   }
@@ -584,9 +587,10 @@ class _KnowledgeBaseSheet extends StatelessWidget {
       minChildSize: 0.55,
       maxChildSize: 0.96,
       builder: (context, scrollController) {
+        final bottomPadding = MediaQuery.paddingOf(context).bottom + 112;
         return ListView(
           controller: scrollController,
-          padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
+          padding: EdgeInsets.fromLTRB(18, 12, 18, bottomPadding),
           children: <Widget>[
             Row(
               children: <Widget>[
@@ -939,6 +943,8 @@ class _SettingsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassPanel(
       borderRadius: 28,
+      opacity: 0.24,
+      borderOpacity: 0.18,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: children,

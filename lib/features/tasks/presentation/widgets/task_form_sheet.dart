@@ -3,6 +3,7 @@ import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/core/widgets/glass_panel.dart';
 import 'package:qdone/features/tasks/domain/entities/recurrence_rule.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
+import 'package:qdone/features/tasks/domain/entities/task_category.dart';
 import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
 import 'package:qdone/features/tasks/domain/services/reminder_time_factory.dart';
 
@@ -31,10 +32,13 @@ class TaskFormSheet extends StatefulWidget {
 class _TaskFormSheetState extends State<TaskFormSheet> {
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
+  late final TextEditingController _customCategoryController;
   late DateTime _date;
   late TimeOfDay _time;
   late TaskPriority _priority;
   late EnergyLevel _energy;
+  late TaskCategory _category;
+  late bool _customCategoryEnabled;
   late bool _reminderEnabled;
   late RecurrenceType _recurrenceType;
   late final List<TimeOfDay> _timesOfDay;
@@ -52,6 +56,11 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
     _time = task?.dueTime ?? widget.initialTime ?? TimeOfDay.now();
     _priority = task?.priority ?? TaskPriority.medium;
     _energy = task?.energyLevel ?? EnergyLevel.medium;
+    _category = task?.category ?? _TaskFormCategories.personal;
+    _customCategoryEnabled = !_TaskFormCategories.isPreset(_category);
+    _customCategoryController = TextEditingController(
+      text: _customCategoryEnabled ? _category.name : '',
+    );
     _reminderEnabled =
         task?.reminders.isNotEmpty ?? widget.notificationsEnabled;
     _recurrenceType = task?.recurrenceRule.type ?? RecurrenceType.none;
@@ -62,6 +71,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _customCategoryController.dispose();
     super.dispose();
   }
 
@@ -73,6 +83,9 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
       child: GlassPanel(
         borderRadius: 32,
         padding: const EdgeInsets.all(18),
+        opacity: 0.92,
+        blurSigma: 8,
+        borderOpacity: 0.26,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -156,6 +169,25 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
                 values: EnergyLevel.values,
                 itemLabel: (value) => value.label,
                 onChanged: (value) => setState(() => _energy = value),
+              ),
+              const SizedBox(height: 14),
+              _CategorySelector(
+                selected: _category,
+                customEnabled: _customCategoryEnabled,
+                customController: _customCategoryController,
+                onPresetSelected: (category) => setState(() {
+                  _category = category;
+                  _customCategoryEnabled = false;
+                }),
+                onCustomSelected: () => setState(() {
+                  _customCategoryEnabled = true;
+                  _category = _customCategory();
+                }),
+                onCustomChanged: (_) => setState(() {
+                  if (_customCategoryEnabled) {
+                    _category = _customCategory();
+                  }
+                }),
               ),
               const SizedBox(height: 14),
               SwitchListTile.adaptive(
@@ -258,6 +290,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
         dueDate: _date,
         dueTime: _time,
         priority: _priority,
+        category: _customCategoryEnabled ? _customCategory() : _category,
         energyLevel: _energy,
         recurrenceRule: RecurrenceRule(
           type: _recurrenceType,
@@ -278,6 +311,20 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
       Navigator.pop(context);
     }
   }
+
+  TaskCategory _customCategory() {
+    final name = _customCategoryController.text.trim();
+    final safeName = name.isEmpty ? 'Своя' : name;
+    final slug = safeName
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-zа-яё0-9]+', unicode: true), '-')
+        .replaceAll(RegExp(r'^-|-$'), '');
+    return TaskCategory(
+      id: 'custom-${slug.isEmpty ? safeName.hashCode.abs() : slug}',
+      name: safeName,
+      colorValue: 0xFF2DD4BF,
+    );
+  }
 }
 
 class TaskFormValue {
@@ -287,6 +334,7 @@ class TaskFormValue {
     required this.dueDate,
     required this.dueTime,
     required this.priority,
+    required this.category,
     required this.energyLevel,
     required this.recurrenceRule,
     required this.reminderTimes,
@@ -297,6 +345,7 @@ class TaskFormValue {
   final DateTime dueDate;
   final TimeOfDay dueTime;
   final TaskPriority priority;
+  final TaskCategory category;
   final EnergyLevel energyLevel;
   final RecurrenceRule recurrenceRule;
   final List<DateTime> reminderTimes;
@@ -368,6 +417,68 @@ class _Segment<T> extends StatelessWidget {
   }
 }
 
+class _CategorySelector extends StatelessWidget {
+  const _CategorySelector({
+    required this.selected,
+    required this.customEnabled,
+    required this.customController,
+    required this.onPresetSelected,
+    required this.onCustomSelected,
+    required this.onCustomChanged,
+  });
+
+  final TaskCategory selected;
+  final bool customEnabled;
+  final TextEditingController customController;
+  final ValueChanged<TaskCategory> onPresetSelected;
+  final VoidCallback onCustomSelected;
+  final ValueChanged<String> onCustomChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          'Для чего задача',
+          style: Theme.of(
+            context,
+          ).textTheme.labelLarge?.copyWith(color: AppColors.turquoise),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: <Widget>[
+            for (final category in _TaskFormCategories.presets)
+              ChoiceChip(
+                selected: !customEnabled && selected.id == category.id,
+                label: Text(category.name),
+                onSelected: (_) => onPresetSelected(category),
+              ),
+            ChoiceChip(
+              selected: customEnabled,
+              label: const Text('Своя'),
+              onSelected: (_) => onCustomSelected(),
+            ),
+          ],
+        ),
+        if (customEnabled) ...<Widget>[
+          const SizedBox(height: 10),
+          TextField(
+            controller: customController,
+            onChanged: onCustomChanged,
+            decoration: const InputDecoration(
+              labelText: 'Название категории',
+              prefixIcon: Icon(Icons.edit_note_rounded),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class _MultipleTimesEditor extends StatelessWidget {
   const _MultipleTimesEditor({
     required this.times,
@@ -414,5 +525,31 @@ class _MultipleTimesEditor extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class _TaskFormCategories {
+  const _TaskFormCategories._();
+
+  static const personal = TaskCategory(
+    id: 'personal',
+    name: 'Личное',
+    colorValue: 0xFF8B5CF6,
+  );
+  static const work = TaskCategory(
+    id: 'work',
+    name: 'Работа',
+    colorValue: 0xFF38BDF8,
+  );
+  static const study = TaskCategory(
+    id: 'learning',
+    name: 'Учёба',
+    colorValue: 0xFFA78BFA,
+  );
+
+  static const presets = <TaskCategory>[personal, work, study];
+
+  static bool isPreset(TaskCategory category) {
+    return presets.any((preset) => preset.id == category.id);
   }
 }

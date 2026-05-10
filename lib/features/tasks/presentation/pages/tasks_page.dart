@@ -117,33 +117,26 @@ class _Header extends StatelessWidget {
     return Row(
       children: <Widget>[
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                'QDone',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Обзор задач. Планирование находится в календаре.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.turquoise),
-              ),
-            ],
+          child: Text(
+            'QDone',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
           ),
         ),
         Container(
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            gradient: AppColors.liquidGradient,
+            color: Colors.white.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
           ),
-          child: const Icon(Icons.done_all_rounded, color: Colors.white),
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Image.asset('assets/images/qdone_logo.png'),
+          ),
         ),
       ],
     );
@@ -225,6 +218,11 @@ Future<void> _openTaskForm(BuildContext context, WidgetRef ref, {Task? task}) {
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    barrierColor: Colors.black.withValues(alpha: 0.62),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+    ),
     builder: (context) {
       return TaskFormSheet(
         initialTask: task,
@@ -240,6 +238,7 @@ Future<void> _openTaskForm(BuildContext context, WidgetRef ref, {Task? task}) {
                   dueDate: value.dueDate,
                   dueTime: value.dueTime,
                   priority: value.priority,
+                  category: value.category,
                   energyLevel: value.energyLevel,
                   recurrenceRule: value.recurrenceRule,
                   reminderTimes: value.reminderTimes,
@@ -254,6 +253,7 @@ Future<void> _openTaskForm(BuildContext context, WidgetRef ref, {Task? task}) {
                   dueDate: value.dueDate,
                   dueTime: value.dueTime,
                   priority: value.priority,
+                  category: value.category,
                   energyLevel: value.energyLevel,
                   recurrenceRule: value.recurrenceRule,
                   reminderTimes: value.reminderTimes,
