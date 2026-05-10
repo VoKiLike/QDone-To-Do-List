@@ -1,7 +1,7 @@
-name: flutter_to_do_list_app
-description: "QDone, a premium cross-platform personal planning app by volkoweb studio."
+name: qdone
+description: "QDone, a premium cross-platform personal planning app by 'VolkoWeb studio'."
 publish_to: 'none'
-version: 0.1.0
+version: 0.2.4
 
 environment:
   sdk: ^3.10.3

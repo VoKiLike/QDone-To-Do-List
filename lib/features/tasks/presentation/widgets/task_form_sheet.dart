@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_to_do_list_app/core/theme/app_colors.dart';
-import 'package:flutter_to_do_list_app/core/widgets/glass_panel.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/recurrence_rule.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task_enums.dart';
+import 'package:qdone/core/theme/app_colors.dart';
+import 'package:qdone/core/widgets/glass_panel.dart';
+import 'package:qdone/features/tasks/domain/entities/recurrence_rule.dart';
+import 'package:qdone/features/tasks/domain/entities/task.dart';
+import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
+import 'package:qdone/features/tasks/domain/services/reminder_time_factory.dart';
 
 class TaskFormSheet extends StatefulWidget {
   const TaskFormSheet({
@@ -11,12 +12,16 @@ class TaskFormSheet extends StatefulWidget {
     this.initialTask,
     this.initialDate,
     this.initialTime,
+    this.defaultReminderMinutes = 15,
+    this.notificationsEnabled = true,
     required this.onSubmit,
   });
 
   final Task? initialTask;
   final DateTime? initialDate;
   final TimeOfDay? initialTime;
+  final int defaultReminderMinutes;
+  final bool notificationsEnabled;
   final Future<void> Function(TaskFormValue value) onSubmit;
 
   @override
@@ -47,7 +52,8 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
     _time = task?.dueTime ?? widget.initialTime ?? TimeOfDay.now();
     _priority = task?.priority ?? TaskPriority.medium;
     _energy = task?.energyLevel ?? EnergyLevel.medium;
-    _reminderEnabled = task?.reminders.isNotEmpty ?? true;
+    _reminderEnabled =
+        task?.reminders.isNotEmpty ?? widget.notificationsEnabled;
     _recurrenceType = task?.recurrenceRule.type ?? RecurrenceType.none;
     _timesOfDay = <TimeOfDay>[...?task?.recurrenceRule.timesOfDay];
   }
@@ -261,9 +267,11 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
           startDate: _date,
           isEnabled: _recurrenceType != RecurrenceType.none,
         ),
-        reminderTimes: _reminderEnabled
-            ? <DateTime>[dueDateTime]
-            : const <DateTime>[],
+        reminderTimes: buildDefaultReminderTimes(
+          dueDateTime: dueDateTime,
+          enabled: _reminderEnabled,
+          defaultReminderMinutes: widget.defaultReminderMinutes,
+        ),
       ),
     );
     if (mounted) {

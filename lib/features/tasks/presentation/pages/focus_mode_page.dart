@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_to_do_list_app/core/theme/app_colors.dart';
-import 'package:flutter_to_do_list_app/core/widgets/glass_panel.dart';
-import 'package:flutter_to_do_list_app/core/widgets/liquid_background.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task.dart';
-import 'package:flutter_to_do_list_app/features/tasks/presentation/controllers/tasks_controller.dart';
+import 'package:qdone/core/theme/app_colors.dart';
+import 'package:qdone/core/widgets/glass_panel.dart';
+import 'package:qdone/core/widgets/liquid_background.dart';
+import 'package:qdone/features/tasks/domain/entities/task.dart';
+import 'package:qdone/features/tasks/presentation/controllers/tasks_controller.dart';
 
 class FocusModePage extends ConsumerWidget {
   const FocusModePage({super.key, required this.taskId});

@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_to_do_list_app/core/localization/qdone_localizations.dart';
-import 'package:flutter_to_do_list_app/core/theme/app_colors.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task_enums.dart';
-import 'package:flutter_to_do_list_app/features/tasks/presentation/controllers/tasks_controller.dart';
-import 'package:flutter_to_do_list_app/features/tasks/presentation/widgets/daily_pulse_card.dart';
-import 'package:flutter_to_do_list_app/features/tasks/presentation/widgets/task_form_sheet.dart';
-import 'package:flutter_to_do_list_app/features/tasks/presentation/widgets/task_section.dart';
+import 'package:qdone/core/localization/qdone_localizations.dart';
+import 'package:qdone/core/theme/app_colors.dart';
+import 'package:qdone/features/settings/domain/user_settings.dart';
+import 'package:qdone/features/settings/presentation/controllers/settings_controller.dart';
+import 'package:qdone/features/tasks/domain/entities/task.dart';
+import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
+import 'package:qdone/features/tasks/presentation/controllers/tasks_controller.dart';
+import 'package:qdone/features/tasks/presentation/widgets/daily_pulse_card.dart';
+import 'package:qdone/features/tasks/presentation/widgets/task_form_sheet.dart';
+import 'package:qdone/features/tasks/presentation/widgets/task_section.dart';
 
 class TasksPage extends ConsumerWidget {
   const TasksPage({super.key});
@@ -217,6 +219,8 @@ class _ErrorState extends StatelessWidget {
 }
 
 Future<void> _openTaskForm(BuildContext context, WidgetRef ref, {Task? task}) {
+  final settings =
+      ref.read(settingsControllerProvider).valueOrNull ?? const UserSettings();
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -224,6 +228,8 @@ Future<void> _openTaskForm(BuildContext context, WidgetRef ref, {Task? task}) {
     builder: (context) {
       return TaskFormSheet(
         initialTask: task,
+        defaultReminderMinutes: settings.defaultReminderMinutes,
+        notificationsEnabled: settings.notificationsEnabled,
         onSubmit: (value) async {
           if (task == null) {
             await ref
@@ -241,16 +247,16 @@ Future<void> _openTaskForm(BuildContext context, WidgetRef ref, {Task? task}) {
           } else {
             await ref
                 .read(tasksControllerProvider.notifier)
-                .updateTask(
-                  task.copyWith(
-                    title: value.title,
-                    description: value.description,
-                    dueDate: value.dueDate,
-                    dueTime: value.dueTime,
-                    priority: value.priority,
-                    energyLevel: value.energyLevel,
-                    recurrenceRule: value.recurrenceRule,
-                  ),
+                .editTask(
+                  task: task,
+                  title: value.title,
+                  description: value.description,
+                  dueDate: value.dueDate,
+                  dueTime: value.dueTime,
+                  priority: value.priority,
+                  energyLevel: value.energyLevel,
+                  recurrenceRule: value.recurrenceRule,
+                  reminderTimes: value.reminderTimes,
                 );
           }
         },

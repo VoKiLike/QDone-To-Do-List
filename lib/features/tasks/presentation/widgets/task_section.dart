@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_to_do_list_app/core/theme/app_colors.dart';
-import 'package:flutter_to_do_list_app/core/widgets/glass_panel.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task.dart';
-import 'package:flutter_to_do_list_app/features/tasks/presentation/widgets/task_card.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:qdone/core/theme/app_colors.dart';
+import 'package:qdone/core/widgets/glass_panel.dart';
+import 'package:qdone/features/tasks/domain/entities/task.dart';
+import 'package:qdone/features/tasks/presentation/widgets/task_card.dart';
 
 class TaskSection extends StatefulWidget {
   const TaskSection({

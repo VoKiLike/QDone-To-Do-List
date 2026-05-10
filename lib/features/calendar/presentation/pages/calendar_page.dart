@@ -1,14 +1,16 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_to_do_list_app/core/localization/qdone_localizations.dart';
-import 'package:flutter_to_do_list_app/core/theme/app_colors.dart';
-import 'package:flutter_to_do_list_app/core/widgets/glass_panel.dart';
-import 'package:flutter_to_do_list_app/features/calendar/presentation/controllers/calendar_controller.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task_enums.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/services/recurrence_service.dart';
-import 'package:flutter_to_do_list_app/features/tasks/presentation/controllers/tasks_controller.dart';
-import 'package:flutter_to_do_list_app/features/tasks/presentation/widgets/task_form_sheet.dart';
+import 'package:qdone/core/localization/qdone_localizations.dart';
+import 'package:qdone/core/theme/app_colors.dart';
+import 'package:qdone/core/widgets/glass_panel.dart';
+import 'package:qdone/features/calendar/presentation/controllers/calendar_controller.dart';
+import 'package:qdone/features/settings/domain/user_settings.dart';
+import 'package:qdone/features/settings/presentation/controllers/settings_controller.dart';
+import 'package:qdone/features/tasks/domain/entities/task.dart';
+import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
+import 'package:qdone/features/tasks/domain/services/recurrence_service.dart';
+import 'package:qdone/features/tasks/presentation/controllers/tasks_controller.dart';
+import 'package:qdone/features/tasks/presentation/widgets/task_form_sheet.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class CalendarPage extends ConsumerWidget {
@@ -19,6 +21,9 @@ class CalendarPage extends ConsumerWidget {
     final selectedDay = ref.watch(selectedCalendarDayProvider);
     final tasks =
         ref.watch(tasksControllerProvider).valueOrNull ?? const <Task>[];
+    final settings =
+        ref.watch(settingsControllerProvider).valueOrNull ??
+        const UserSettings();
     final selectedTasks = _tasksForDay(tasks, selectedDay)
       ..sort((a, b) => a.dueDateTime.compareTo(b.dueDateTime));
 
@@ -54,7 +59,8 @@ class CalendarPage extends ConsumerWidget {
               firstDay: DateTime.now().subtract(const Duration(days: 365)),
               lastDay: DateTime.now().add(const Duration(days: 365 * 3)),
               selectedDayPredicate: (day) => isSameDay(day, selectedDay),
-              eventLoader: (day) => _tasksForDay(tasks, day),
+              eventLoader: (day) =>
+                  _indicatorTasks(_tasksForDay(tasks, day), settings),
               onDaySelected: (selected, focused) {
                 ref.read(selectedCalendarDayProvider.notifier).state = DateTime(
                   selected.year,
@@ -85,21 +91,22 @@ class CalendarPage extends ConsumerWidget {
               ),
               calendarBuilders: CalendarBuilders<Task>(
                 markerBuilder: (context, day, events) {
-                  if (events.isEmpty) {
+                  final markers = _calendarMarkers(events);
+                  if (markers.isEmpty) {
                     return null;
                   }
                   return Positioned(
                     bottom: 6,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: events.take(4).map((task) {
+                      children: markers.map((marker) {
                         return Container(
                           width: 5,
                           height: 5,
                           margin: const EdgeInsets.symmetric(horizontal: 1.5),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: _indicatorColor(task),
+                            color: marker.color,
                           ),
                         );
                       }).toList(),
@@ -133,17 +140,29 @@ class CalendarPage extends ConsumerWidget {
     );
   }
 
-  Color _indicatorColor(Task task) {
-    if (task.status == TaskStatus.completed) {
-      return AppColors.success;
+  List<_CalendarMarker> _calendarMarkers(List<Task> events) {
+    final buckets = <_CalendarMarkerType, List<Task>>{
+      _CalendarMarkerType.overdue: <Task>[],
+      _CalendarMarkerType.completed: <Task>[],
+      _CalendarMarkerType.active: <Task>[],
+      _CalendarMarkerType.recurring: <Task>[],
+    };
+    for (final task in events) {
+      buckets[_markerTypeFor(task)]!.add(task);
     }
-    if (task.status == TaskStatus.overdue) {
-      return AppColors.warning;
+
+    final markers = <_CalendarMarker>[];
+    for (final type in _CalendarMarkerType.priorityOrder) {
+      final tasks = buckets[type]!;
+      if (tasks.isEmpty) {
+        continue;
+      }
+      markers.add(_CalendarMarker(type: type));
+      if (markers.length == 4) {
+        break;
+      }
     }
-    if (task.recurrenceRule.isEnabled) {
-      return AppColors.neonPurple;
-    }
-    return AppColors.cyan;
+    return markers;
   }
 }
 
@@ -394,6 +413,8 @@ Future<void> _openTaskForm(
   required DateTime selectedDay,
   Task? task,
 }) {
+  final settings =
+      ref.read(settingsControllerProvider).valueOrNull ?? const UserSettings();
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -403,6 +424,8 @@ Future<void> _openTaskForm(
         initialTask: task,
         initialDate: selectedDay,
         initialTime: const TimeOfDay(hour: 9, minute: 0),
+        defaultReminderMinutes: settings.defaultReminderMinutes,
+        notificationsEnabled: settings.notificationsEnabled,
         onSubmit: (value) async {
           if (task == null) {
             await ref
@@ -420,22 +443,79 @@ Future<void> _openTaskForm(
           } else {
             await ref
                 .read(tasksControllerProvider.notifier)
-                .updateTask(
-                  task.copyWith(
-                    title: value.title,
-                    description: value.description,
-                    dueDate: value.dueDate,
-                    dueTime: value.dueTime,
-                    priority: value.priority,
-                    energyLevel: value.energyLevel,
-                    recurrenceRule: value.recurrenceRule,
-                  ),
+                .editTask(
+                  task: task,
+                  title: value.title,
+                  description: value.description,
+                  dueDate: value.dueDate,
+                  dueTime: value.dueTime,
+                  priority: value.priority,
+                  energyLevel: value.energyLevel,
+                  recurrenceRule: value.recurrenceRule,
+                  reminderTimes: value.reminderTimes,
                 );
           }
         },
       );
     },
   );
+}
+
+List<Task> _indicatorTasks(List<Task> tasks, UserSettings settings) {
+  return tasks.where((task) {
+    if (task.status == TaskStatus.completed) {
+      return settings.calendarShowCompleted;
+    }
+    if (task.status == TaskStatus.overdue) {
+      return settings.calendarShowOverdue;
+    }
+    if (task.recurrenceRule.isEnabled) {
+      return settings.calendarShowRecurring;
+    }
+    return true;
+  }).toList();
+}
+
+_CalendarMarkerType _markerTypeFor(Task task) {
+  if (task.status == TaskStatus.overdue) {
+    return _CalendarMarkerType.overdue;
+  }
+  if (task.status == TaskStatus.completed) {
+    return _CalendarMarkerType.completed;
+  }
+  if (task.recurrenceRule.isEnabled) {
+    return _CalendarMarkerType.recurring;
+  }
+  return _CalendarMarkerType.active;
+}
+
+enum _CalendarMarkerType {
+  overdue,
+  completed,
+  active,
+  recurring;
+
+  static const priorityOrder = <_CalendarMarkerType>[
+    _CalendarMarkerType.overdue,
+    _CalendarMarkerType.active,
+    _CalendarMarkerType.completed,
+    _CalendarMarkerType.recurring,
+  ];
+
+  Color get color => switch (this) {
+    _CalendarMarkerType.overdue => AppColors.warning,
+    _CalendarMarkerType.completed => AppColors.success,
+    _CalendarMarkerType.active => AppColors.cyan,
+    _CalendarMarkerType.recurring => AppColors.neonPurple,
+  };
+}
+
+class _CalendarMarker {
+  const _CalendarMarker({required this.type});
+
+  final _CalendarMarkerType type;
+
+  Color get color => type.color;
 }
 
 List<Task> _tasksForDay(List<Task> tasks, DateTime day) {

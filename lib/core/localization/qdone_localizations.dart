@@ -53,6 +53,6 @@ const _localizedValues = <String, Map<String, String>>{
     'completed': 'Архив выполненных',
     'quickCapture': 'Быстрый ввод',
     'settings': 'Настройки',
-    'createdBy': 'Создано volkoweb studio',
+    'createdBy': 'Создано VolkoWeb studio',
   },
 };

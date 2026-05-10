@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/recurrence_rule.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/reminder.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task_category.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task_enums.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:qdone/features/tasks/domain/entities/recurrence_rule.dart';
+import 'package:qdone/features/tasks/domain/entities/reminder.dart';
+import 'package:qdone/features/tasks/domain/entities/task_category.dart';
+import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
 
 class Task {
   const Task({

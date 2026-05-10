@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_to_do_list_app/app/app_providers.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/recurrence_rule.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/reminder.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task_category.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task_enums.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/repositories/task_repository.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/services/recurrence_service.dart';
+import 'package:qdone/app/app_providers.dart';
+import 'package:qdone/features/tasks/domain/entities/recurrence_rule.dart';
+import 'package:qdone/features/tasks/domain/entities/reminder.dart';
+import 'package:qdone/features/tasks/domain/entities/task.dart';
+import 'package:qdone/features/tasks/domain/entities/task_category.dart';
+import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
+import 'package:qdone/features/tasks/domain/repositories/task_repository.dart';
+import 'package:qdone/features/tasks/domain/services/recurrence_service.dart';
 import 'package:uuid/uuid.dart';
 
 final tasksControllerProvider =
@@ -88,6 +88,37 @@ class TasksController extends StateNotifier<AsyncValue<List<Task>>> {
   Future<void> updateTask(Task task) async {
     await _repository.upsert(task);
     await load();
+  }
+
+  Future<void> editTask({
+    required Task task,
+    required String title,
+    String? description,
+    required DateTime dueDate,
+    required TimeOfDay dueTime,
+    required TaskPriority priority,
+    required EnergyLevel energyLevel,
+    required RecurrenceRule recurrenceRule,
+    required List<DateTime> reminderTimes,
+  }) async {
+    await updateTask(
+      task.copyWith(
+        title: title,
+        description: description,
+        dueDate: dueDate,
+        dueTime: dueTime,
+        priority: priority,
+        energyLevel: energyLevel,
+        recurrenceRule: recurrenceRule,
+        reminders: reminderTimes
+            .map(
+              (dateTime) =>
+                  Reminder(id: _uuid.v4(), taskId: task.id, dateTime: dateTime),
+            )
+            .toList(),
+        notificationIds: const <int>[],
+      ),
+    );
   }
 
   Future<void> complete(Task task) async {

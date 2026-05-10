@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/recurrence_rule.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task_category.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task_enums.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/services/recurrence_service.dart';
+import 'package:qdone/features/tasks/domain/entities/recurrence_rule.dart';
+import 'package:qdone/features/tasks/domain/entities/task.dart';
+import 'package:qdone/features/tasks/domain/entities/task_category.dart';
+import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
+import 'package:qdone/features/tasks/domain/services/recurrence_service.dart';
 
 void main() {
   const service = RecurrenceService();

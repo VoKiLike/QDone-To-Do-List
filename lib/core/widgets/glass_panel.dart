@@ -1,7 +1,7 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_to_do_list_app/core/theme/app_colors.dart';
+import 'package:qdone/core/theme/app_colors.dart';
 
 class GlassPanel extends StatelessWidget {
   const GlassPanel({
@@ -11,6 +11,8 @@ class GlassPanel extends StatelessWidget {
     this.borderRadius = 28,
     this.opacity = 0.12,
     this.borderOpacity = 0.16,
+    this.blurSigma = 18,
+    this.shadowBlurRadius = 24,
     this.onTap,
   });
 
@@ -19,6 +21,8 @@ class GlassPanel extends StatelessWidget {
   final double borderRadius;
   final double opacity;
   final double borderOpacity;
+  final double blurSigma;
+  final double shadowBlurRadius;
   final VoidCallback? onTap;
 
   @override
@@ -28,7 +32,7 @@ class GlassPanel extends StatelessWidget {
     final panel = ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: surfaceColor.withValues(alpha: isLight ? 0.72 : opacity),
@@ -43,7 +47,7 @@ class GlassPanel extends StatelessWidget {
                 color: AppColors.violet.withValues(
                   alpha: isLight ? 0.08 : 0.18,
                 ),
-                blurRadius: 24,
+                blurRadius: shadowBlurRadius,
                 offset: const Offset(0, 18),
               ),
             ],

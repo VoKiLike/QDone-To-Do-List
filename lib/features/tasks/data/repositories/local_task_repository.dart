@@ -1,7 +1,7 @@
-import 'package:flutter_to_do_list_app/features/tasks/data/datasources/task_local_data_source.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task_enums.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/repositories/task_repository.dart';
+﻿import 'package:qdone/features/tasks/data/datasources/task_local_data_source.dart';
+import 'package:qdone/features/tasks/domain/entities/task.dart';
+import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
+import 'package:qdone/features/tasks/domain/repositories/task_repository.dart';
 
 class LocalTaskRepository implements TaskRepository {
   const LocalTaskRepository(this._dataSource);

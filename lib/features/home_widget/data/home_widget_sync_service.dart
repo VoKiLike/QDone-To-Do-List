@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_to_do_list_app/features/settings/domain/user_settings.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task_enums.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:qdone/features/settings/domain/user_settings.dart';
+import 'package:qdone/features/tasks/domain/entities/task.dart';
+import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
 import 'package:home_widget/home_widget.dart';
 
 class HomeWidgetSyncService {
@@ -41,6 +41,10 @@ class HomeWidgetSyncService {
     await HomeWidget.saveWidgetData<double>(
       'widget_transparency',
       settings.widgetTransparency,
+    );
+    await HomeWidget.saveWidgetData<bool>(
+      'widget_compact',
+      settings.compactWidget,
     );
     await HomeWidget.updateWidget(
       androidName: 'QDoneWidgetProvider',

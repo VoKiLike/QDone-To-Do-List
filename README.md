@@ -1,9 +1,11 @@
 # QDone
 
 **QDone** is a premium cross-platform Flutter personal planning app by
-**volkoweb studio**. It is built as a modern to-do and calendar foundation with
+**VolkoWeb studio**. It is built as a modern to-do and calendar foundation with
 Clean Architecture, local storage, recurring tasks, reminders, a liquid
 glass-inspired interface, and Android home widget groundwork.
+
+Version: **0.2.4**.
 
 Русская версия ниже.
 
@@ -21,6 +23,7 @@ glass-inspired interface, and Android home widget groundwork.
 - Local notification service foundation using `flutter_local_notifications` and `timezone`.
 - Android transparent home screen widget foundation using `home_widget`.
 - Focus Mode foundation for distraction-free task actions.
+- Settings knowledge base that explains the app icons and their actions.
 
 ## Architecture
 
@@ -74,9 +77,11 @@ This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md).
 # QDone на русском
 
 **QDone** - премиальное кроссплатформенное Flutter-приложение для личного
-планирования от **volkoweb studio**. Проект построен как современная основа
+планирования от **VolkoWeb studio**. Проект построен как современная основа
 для задач и календаря: Clean Architecture, локальное хранение, повторяющиеся
 задачи, напоминания, интерфейс в стиле liquid glass и основа Android-виджета.
+
+Версия: **0.2.4**.
 
 ## Возможности
 
@@ -92,6 +97,7 @@ This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md).
 - Основа локальных уведомлений через `flutter_local_notifications` и `timezone`.
 - Основа прозрачного Android home screen widget через `home_widget`.
 - Основа Focus Mode для работы с одной задачей без лишних отвлечений.
+- Библиотека знаний в настройках с объяснением значков и действий приложения.
 
 ## Архитектура
 

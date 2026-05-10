@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_to_do_list_app/app/app_providers.dart';
-import 'package:flutter_to_do_list_app/features/settings/domain/settings_repository.dart';
-import 'package:flutter_to_do_list_app/features/settings/domain/user_settings.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task_enums.dart';
+import 'package:qdone/app/app_providers.dart';
+import 'package:qdone/features/settings/domain/settings_repository.dart';
+import 'package:qdone/features/settings/domain/user_settings.dart';
+import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
 
 final settingsControllerProvider =
     StateNotifierProvider<SettingsController, AsyncValue<UserSettings>>((ref) {
@@ -41,6 +41,51 @@ class SettingsController extends StateNotifier<AsyncValue<UserSettings>> {
   Future<void> setThemeMode(AppThemeMode mode) async {
     final current = state.valueOrNull ?? const UserSettings();
     await update(current.copyWith(themeMode: mode));
+  }
+
+  Future<void> setNotificationsEnabled(bool enabled) async {
+    final current = state.valueOrNull ?? const UserSettings();
+    await update(current.copyWith(notificationsEnabled: enabled));
+  }
+
+  Future<void> setDefaultReminderMinutes(int minutes) async {
+    final current = state.valueOrNull ?? const UserSettings();
+    await update(current.copyWith(defaultReminderMinutes: minutes));
+  }
+
+  Future<void> setCalendarShowCompleted(bool value) async {
+    final current = state.valueOrNull ?? const UserSettings();
+    await update(current.copyWith(calendarShowCompleted: value));
+  }
+
+  Future<void> setCalendarShowOverdue(bool value) async {
+    final current = state.valueOrNull ?? const UserSettings();
+    await update(current.copyWith(calendarShowOverdue: value));
+  }
+
+  Future<void> setCalendarShowRecurring(bool value) async {
+    final current = state.valueOrNull ?? const UserSettings();
+    await update(current.copyWith(calendarShowRecurring: value));
+  }
+
+  Future<void> setWidgetTransparency(double value) async {
+    final current = state.valueOrNull ?? const UserSettings();
+    await update(current.copyWith(widgetTransparency: value));
+  }
+
+  Future<void> setWidgetShowsCompleted(bool value) async {
+    final current = state.valueOrNull ?? const UserSettings();
+    await update(current.copyWith(widgetShowsCompleted: value));
+  }
+
+  Future<void> setWidgetTaskLimit(int value) async {
+    final current = state.valueOrNull ?? const UserSettings();
+    await update(current.copyWith(widgetTaskLimit: value.clamp(1, 10)));
+  }
+
+  Future<void> setCompactWidget(bool value) async {
+    final current = state.valueOrNull ?? const UserSettings();
+    await update(current.copyWith(compactWidget: value));
   }
 
   Future<void> setLanguage(String languageCode) async {

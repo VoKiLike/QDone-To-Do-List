@@ -1,6 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/reminder.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task.dart';
+import 'package:qdone/features/tasks/domain/entities/reminder.dart';
+import 'package:qdone/features/tasks/domain/entities/task.dart';
 import 'package:timezone/data/latest.dart' as timezone_data;
 import 'package:timezone/timezone.dart' as tz;
 

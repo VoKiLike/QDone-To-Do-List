@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task_enums.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
 
 class RecurrenceRule {
   const RecurrenceRule({

@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_to_do_list_app/features/calendar/presentation/pages/calendar_page.dart';
-import 'package:flutter_to_do_list_app/features/settings/presentation/pages/menu_page.dart';
-import 'package:flutter_to_do_list_app/features/tasks/presentation/pages/focus_mode_page.dart';
-import 'package:flutter_to_do_list_app/features/tasks/presentation/pages/tasks_page.dart';
-import 'package:flutter_to_do_list_app/shared/components/qdone_shell.dart';
+import 'package:qdone/features/calendar/presentation/pages/calendar_page.dart';
+import 'package:qdone/features/settings/presentation/pages/menu_page.dart';
+import 'package:qdone/features/tasks/presentation/pages/focus_mode_page.dart';
+import 'package:qdone/features/tasks/presentation/pages/tasks_page.dart';
+import 'package:qdone/shared/components/qdone_shell.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/tasks',

@@ -1,6 +1,6 @@
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/recurrence_rule.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task.dart';
-import 'package:flutter_to_do_list_app/features/tasks/domain/entities/task_enums.dart';
+﻿import 'package:qdone/features/tasks/domain/entities/recurrence_rule.dart';
+import 'package:qdone/features/tasks/domain/entities/task.dart';
+import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
 
 class RecurrenceService {
   const RecurrenceService();

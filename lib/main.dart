@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_to_do_list_app/app/app_providers.dart';
-import 'package:flutter_to_do_list_app/app/qdone_app.dart';
+import 'package:qdone/app/app_providers.dart';
+import 'package:qdone/app/qdone_app.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
