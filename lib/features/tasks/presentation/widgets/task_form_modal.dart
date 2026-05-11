@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:qdone/core/widgets/qdone_modal_presenter.dart';
 import 'package:qdone/features/settings/domain/user_settings.dart';
 import 'package:qdone/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
@@ -19,13 +20,8 @@ class TaskFormModal {
     final settings =
         ref.read(settingsControllerProvider).valueOrNull ??
         const UserSettings();
-    return showModalBottomSheet<void>(
+    return QDoneModalPresenter.showSheet<void>(
       context: context,
-      useRootNavigator: true,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.78),
       builder: (_) {
         return TaskFormSheet(
           initialTask: task,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qdone/core/localization/qdone_localizations.dart';
 import 'package:qdone/core/theme/app_colors.dart';
+import 'package:qdone/core/theme/app_fonts.dart';
 import 'package:qdone/core/widgets/liquid_background.dart';
 
 const double _navCurveSpan = 0.2;
@@ -212,9 +213,11 @@ class _CurvedLiquidNavigationBarState extends State<_CurvedLiquidNavigationBar>
         : Colors.white.withValues(alpha: 0.74);
     final labelStyle = TextStyle(
       color: inactiveColor,
+      fontFamily: AppFonts.text,
       fontSize: 11,
       height: 1,
       fontWeight: FontWeight.w800,
+      letterSpacing: 0,
     );
     final barColor = widget.isLight
         ? const Color(0xFFE4E6EE).withValues(alpha: 0.88)

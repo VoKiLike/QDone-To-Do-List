@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/core/widgets/modal_glass_surface.dart';
+import 'package:qdone/core/widgets/qdone_modal_presenter.dart';
 import 'package:qdone/features/tasks/domain/entities/recurrence_rule.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
 import 'package:qdone/features/tasks/domain/entities/task_category.dart';
 import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
 import 'package:qdone/features/tasks/domain/services/reminder_time_factory.dart';
+import 'package:qdone/features/tasks/presentation/widgets/task_form_controls.dart';
 
 class TaskFormSheet extends StatefulWidget {
   const TaskFormSheet({
@@ -56,8 +58,8 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
     _time = task?.dueTime ?? widget.initialTime ?? TimeOfDay.now();
     _priority = task?.priority ?? TaskPriority.medium;
     _energy = task?.energyLevel ?? EnergyLevel.medium;
-    _category = task?.category ?? _TaskFormCategories.personal;
-    _customCategoryEnabled = !_TaskFormCategories.isPreset(_category);
+    _category = task?.category ?? TaskFormCategories.personal;
+    _customCategoryEnabled = !TaskFormCategories.isPreset(_category);
     _customCategoryController = TextEditingController(
       text: _customCategoryEnabled ? _category.name : '',
     );
@@ -77,156 +79,202 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bottom = MediaQuery.viewInsetsOf(context).bottom;
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottom),
-      child: ModalGlassSurface(
-        borderRadius: 32,
-        padding: const EdgeInsets.all(18),
-        child: SingleChildScrollView(
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.92;
+    final title = widget.initialTask == null
+        ? 'Новая задача'
+        : 'Изменить задачу';
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    return ModalGlassSurface(
+      borderRadius: 34,
+      padding: EdgeInsets.zero,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        child: Padding(
+          padding: EdgeInsets.only(bottom: bottomInset),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: Text(
-                      widget.initialTask == null
-                          ? 'Новая задача'
-                          : 'Изменить задачу',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () =>
-                        Navigator.of(context, rootNavigator: true).pop(),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton.icon(
-                    onPressed: _saving ? null : _submit,
-                    icon: _saving
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.check_rounded),
-                    label: const Text('ОК'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _titleController,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(labelText: 'Название'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _descriptionController,
-                minLines: 2,
-                maxLines: 3,
-                decoration: const InputDecoration(labelText: 'Описание'),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: _PickerButton(
-                      icon: Icons.calendar_today_rounded,
-                      label:
-                          '${_date.day.toString().padLeft(2, '0')}.${_date.month.toString().padLeft(2, '0')}.${_date.year}',
-                      onTap: _pickDate,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _PickerButton(
-                      icon: Icons.schedule_rounded,
-                      label: _time.format(context),
-                      onTap: _pickTime,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              _Segment<TaskPriority>(
-                label: 'Приоритет',
-                value: _priority,
-                values: TaskPriority.values,
-                itemLabel: (value) => value.label,
-                onChanged: (value) => setState(() => _priority = value),
-              ),
-              const SizedBox(height: 14),
-              _Segment<EnergyLevel>(
-                label: 'Энергия',
-                value: _energy,
-                values: EnergyLevel.values,
-                itemLabel: (value) => value.label,
-                onChanged: (value) => setState(() => _energy = value),
-              ),
-              const SizedBox(height: 14),
-              _CategorySelector(
-                selected: _category,
-                customEnabled: _customCategoryEnabled,
-                customController: _customCategoryController,
-                onPresetSelected: (category) => setState(() {
-                  _category = category;
-                  _customCategoryEnabled = false;
-                }),
-                onCustomSelected: () => setState(() {
-                  _customCategoryEnabled = true;
-                  _category = _customCategory();
-                }),
-                onCustomChanged: (_) => setState(() {
-                  if (_customCategoryEnabled) {
-                    _category = _customCategory();
-                  }
-                }),
-              ),
-              const SizedBox(height: 14),
-              SwitchListTile.adaptive(
-                value: _reminderEnabled,
-                onChanged: (value) => setState(() => _reminderEnabled = value),
-                title: const Text('Напоминание'),
-                subtitle: const Text(
-                  'Запланировать локальное уведомление для этой задачи',
+              const SizedBox(height: 10),
+              Container(
+                width: 44,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: (isLight ? AppColors.violet : Colors.white)
+                      .withValues(alpha: isLight ? 0.24 : 0.24),
+                  borderRadius: BorderRadius.circular(99),
                 ),
               ),
-              const SizedBox(height: 8),
-              _Segment<RecurrenceType>(
-                label: 'Повтор',
-                value: _recurrenceType,
-                values: RecurrenceType.values,
-                itemLabel: (value) =>
-                    value == RecurrenceType.none ? 'Выкл.' : value.label,
-                onChanged: (value) => setState(() => _recurrenceType = value),
-              ),
-              if (_recurrenceType != RecurrenceType.none) ...<Widget>[
-                const SizedBox(height: 12),
-                _MultipleTimesEditor(
-                  times: _timesOfDay,
-                  onAdd: _addRepeatTime,
-                  onRemove: (time) => setState(() => _timesOfDay.remove(time)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+                child: _SheetHeader(
+                  title: title,
+                  isSaving: _saving,
+                  onClose: () => QDoneModalPresenter.close(context),
+                  onSubmit: _submit,
                 ),
-              ],
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _saving ? null : _submit,
-                  icon: _saving
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.done_rounded),
-                  label: Text(
-                    widget.initialTask == null ? 'Создать задачу' : 'Сохранить',
+              ),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+                  child: SafeArea(
+                    top: false,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        _FormPanel(
+                          icon: Icons.edit_note_rounded,
+                          title: 'Содержание',
+                          child: Column(
+                            children: <Widget>[
+                              _TaskTextField(
+                                controller: _titleController,
+                                label: 'Название',
+                                icon: Icons.title_rounded,
+                                textInputAction: TextInputAction.next,
+                              ),
+                              const SizedBox(height: 12),
+                              _TaskTextField(
+                                controller: _descriptionController,
+                                label: 'Описание',
+                                icon: Icons.notes_rounded,
+                                minLines: 3,
+                                maxLines: 5,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _FormPanel(
+                          icon: Icons.event_available_rounded,
+                          title: 'Срок',
+                          child: Row(
+                            children: <Widget>[
+                              Expanded(
+                                child: TaskFormPickerButton(
+                                  icon: Icons.calendar_today_rounded,
+                                  label:
+                                      '${_date.day.toString().padLeft(2, '0')}.${_date.month.toString().padLeft(2, '0')}.${_date.year}',
+                                  onTap: _pickDate,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: TaskFormPickerButton(
+                                  icon: Icons.schedule_rounded,
+                                  label: _time.format(context),
+                                  onTap: _pickTime,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _FormPanel(
+                          icon: Icons.tune_rounded,
+                          title: 'Параметры',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              TaskFormSegment<TaskPriority>(
+                                label: 'Приоритет',
+                                value: _priority,
+                                values: TaskPriority.values,
+                                itemLabel: (value) => value.label,
+                                onChanged: (value) =>
+                                    setState(() => _priority = value),
+                              ),
+                              const SizedBox(height: 16),
+                              TaskFormSegment<EnergyLevel>(
+                                label: 'Энергия',
+                                value: _energy,
+                                values: EnergyLevel.values,
+                                itemLabel: (value) => value.label,
+                                onChanged: (value) =>
+                                    setState(() => _energy = value),
+                              ),
+                              const SizedBox(height: 16),
+                              TaskFormCategorySelector(
+                                selected: _category,
+                                customEnabled: _customCategoryEnabled,
+                                customController: _customCategoryController,
+                                onPresetSelected: (category) => setState(() {
+                                  _category = category;
+                                  _customCategoryEnabled = false;
+                                }),
+                                onCustomSelected: () => setState(() {
+                                  _customCategoryEnabled = true;
+                                  _category = _customCategory();
+                                }),
+                                onCustomChanged: (_) => setState(() {
+                                  if (_customCategoryEnabled) {
+                                    _category = _customCategory();
+                                  }
+                                }),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _FormPanel(
+                          icon: Icons.notifications_active_rounded,
+                          title: 'Автоматизация',
+                          child: Column(
+                            children: <Widget>[
+                              _ReminderSwitch(
+                                value: _reminderEnabled,
+                                onChanged: (value) =>
+                                    setState(() => _reminderEnabled = value),
+                              ),
+                              const SizedBox(height: 16),
+                              TaskFormSegment<RecurrenceType>(
+                                label: 'Повтор',
+                                value: _recurrenceType,
+                                values: RecurrenceType.values,
+                                itemLabel: (value) => value ==
+                                        RecurrenceType.none
+                                    ? 'Выкл.'
+                                    : value.label,
+                                onChanged: (value) =>
+                                    setState(() => _recurrenceType = value),
+                              ),
+                              if (_recurrenceType !=
+                                  RecurrenceType.none) ...<Widget>[
+                                const SizedBox(height: 14),
+                                TaskFormMultipleTimesEditor(
+                                  times: _timesOfDay,
+                                  onAdd: _addRepeatTime,
+                                  onRemove: (time) =>
+                                      setState(() => _timesOfDay.remove(time)),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: FilledButton.icon(
+                            onPressed: _saving ? null : _submit,
+                            icon: _saving
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.done_rounded),
+                            label: Text(
+                              widget.initialTask == null
+                                  ? 'Создать задачу'
+                                  : 'Сохранить изменения',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -240,7 +288,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
-      useRootNavigator: true,
+      useRootNavigator: false,
       initialDate: _date,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 4)),
@@ -253,7 +301,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
   Future<void> _pickTime() async {
     final picked = await showTimePicker(
       context: context,
-      useRootNavigator: true,
+      useRootNavigator: false,
       initialTime: _time,
     );
     if (picked != null && mounted) {
@@ -264,7 +312,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
   Future<void> _addRepeatTime() async {
     final picked = await showTimePicker(
       context: context,
-      useRootNavigator: true,
+      useRootNavigator: false,
       initialTime: TimeOfDay.now(),
     );
     if (picked != null && mounted) {
@@ -316,7 +364,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
         ),
       );
       if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
+        QDoneModalPresenter.close(context);
       }
     } catch (_) {
       if (mounted) {
@@ -343,6 +391,212 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
   }
 }
 
+class _SheetHeader extends StatelessWidget {
+  const _SheetHeader({
+    required this.title,
+    required this.isSaving,
+    required this.onClose,
+    required this.onSubmit,
+  });
+
+  final String title;
+  final bool isSaving;
+  final VoidCallback onClose;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            gradient: AppColors.liquidGradient,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: AppColors.cyan.withValues(alpha: 0.24),
+                blurRadius: 22,
+              ),
+            ],
+          ),
+          child: const Icon(Icons.task_alt_rounded, color: Colors.white),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0,
+            ),
+          ),
+        ),
+        IconButton.filledTonal(
+          tooltip: 'Закрыть',
+          onPressed: onClose,
+          icon: const Icon(Icons.close_rounded),
+        ),
+        const SizedBox(width: 8),
+        FilledButton(
+          onPressed: isSaving ? null : onSubmit,
+          child: isSaving
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.check_rounded),
+        ),
+      ],
+    );
+  }
+}
+
+class _FormPanel extends StatelessWidget {
+  const _FormPanel({
+    required this.icon,
+    required this.title,
+    required this.child,
+  });
+
+  final IconData icon;
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: isLight
+            ? Colors.white.withValues(alpha: 0.70)
+            : Colors.white.withValues(alpha: 0.055),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isLight
+              ? Colors.white.withValues(alpha: 0.78)
+              : Colors.white.withValues(alpha: 0.12),
+        ),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.16),
+            blurRadius: 20,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Icon(icon, size: 18, color: AppColors.cyan),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: AppColors.turquoise,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TaskTextField extends StatelessWidget {
+  const _TaskTextField({
+    required this.controller,
+    required this.label,
+    required this.icon,
+    this.textInputAction,
+    this.minLines = 1,
+    this.maxLines = 1,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final IconData icon;
+  final TextInputAction? textInputAction;
+  final int minLines;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    return TextField(
+      controller: controller,
+      textInputAction: textInputAction,
+      minLines: minLines,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon),
+        filled: true,
+        fillColor: isLight
+            ? Colors.white.withValues(alpha: 0.82)
+            : Colors.white.withValues(alpha: 0.075),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: AppColors.cyan, width: 1.4),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReminderSwitch extends StatelessWidget {
+  const _ReminderSwitch({required this.value, required this.onChanged});
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: isLight
+            ? AppColors.violet.withValues(alpha: 0.08)
+            : AppColors.violet.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.violet.withValues(alpha: 0.16)),
+      ),
+      child: SwitchListTile.adaptive(
+        value: value,
+        contentPadding: const EdgeInsets.only(left: 12, right: 8),
+        secondary: const Icon(
+          Icons.notifications_active_rounded,
+          color: AppColors.neonPurple,
+        ),
+        title: const Text(
+          'Напоминание',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+        subtitle: const Text('Локальное уведомление для этой задачи'),
+        onChanged: onChanged,
+      ),
+    );
+  }
+}
+
 class TaskFormValue {
   const TaskFormValue({
     required this.title,
@@ -365,207 +619,4 @@ class TaskFormValue {
   final EnergyLevel energyLevel;
   final RecurrenceRule recurrenceRule;
   final List<DateTime> reminderTimes;
-}
-
-class _PickerButton extends StatelessWidget {
-  const _PickerButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon),
-      label: Text(label, overflow: TextOverflow.ellipsis),
-    );
-  }
-}
-
-class _Segment<T> extends StatelessWidget {
-  const _Segment({
-    required this.label,
-    required this.value,
-    required this.values,
-    required this.itemLabel,
-    required this.onChanged,
-  });
-
-  final String label;
-  final T value;
-  final List<T> values;
-  final String Function(T value) itemLabel;
-  final ValueChanged<T> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          label,
-          style: Theme.of(
-            context,
-          ).textTheme.labelLarge?.copyWith(color: AppColors.turquoise),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: values
-              .map(
-                (item) => ChoiceChip(
-                  selected: item == value,
-                  label: Text(itemLabel(item)),
-                  onSelected: (_) => onChanged(item),
-                ),
-              )
-              .toList(),
-        ),
-      ],
-    );
-  }
-}
-
-class _CategorySelector extends StatelessWidget {
-  const _CategorySelector({
-    required this.selected,
-    required this.customEnabled,
-    required this.customController,
-    required this.onPresetSelected,
-    required this.onCustomSelected,
-    required this.onCustomChanged,
-  });
-
-  final TaskCategory selected;
-  final bool customEnabled;
-  final TextEditingController customController;
-  final ValueChanged<TaskCategory> onPresetSelected;
-  final VoidCallback onCustomSelected;
-  final ValueChanged<String> onCustomChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          'Для чего задача',
-          style: Theme.of(
-            context,
-          ).textTheme.labelLarge?.copyWith(color: AppColors.turquoise),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: <Widget>[
-            for (final category in _TaskFormCategories.presets)
-              ChoiceChip(
-                selected: !customEnabled && selected.id == category.id,
-                label: Text(category.name),
-                onSelected: (_) => onPresetSelected(category),
-              ),
-            ChoiceChip(
-              selected: customEnabled,
-              label: const Text('Своя'),
-              onSelected: (_) => onCustomSelected(),
-            ),
-          ],
-        ),
-        if (customEnabled) ...<Widget>[
-          const SizedBox(height: 10),
-          TextField(
-            controller: customController,
-            onChanged: onCustomChanged,
-            decoration: const InputDecoration(
-              labelText: 'Название категории',
-              prefixIcon: Icon(Icons.edit_note_rounded),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _MultipleTimesEditor extends StatelessWidget {
-  const _MultipleTimesEditor({
-    required this.times,
-    required this.onAdd,
-    required this.onRemove,
-  });
-
-  final List<TimeOfDay> times;
-  final VoidCallback onAdd;
-  final ValueChanged<TimeOfDay> onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: Text(
-                'Время в течение дня',
-                style: Theme.of(
-                  context,
-                ).textTheme.labelLarge?.copyWith(color: AppColors.turquoise),
-              ),
-            ),
-            TextButton.icon(
-              onPressed: onAdd,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Добавить время'),
-            ),
-          ],
-        ),
-        Wrap(
-          spacing: 8,
-          children: times
-              .map(
-                (time) => InputChip(
-                  label: Text(time.format(context)),
-                  onDeleted: () => onRemove(time),
-                ),
-              )
-              .toList(),
-        ),
-      ],
-    );
-  }
-}
-
-class _TaskFormCategories {
-  const _TaskFormCategories._();
-
-  static const personal = TaskCategory(
-    id: 'personal',
-    name: 'Личное',
-    colorValue: 0xFF8B5CF6,
-  );
-  static const work = TaskCategory(
-    id: 'work',
-    name: 'Работа',
-    colorValue: 0xFF38BDF8,
-  );
-  static const study = TaskCategory(
-    id: 'learning',
-    name: 'Учеба',
-    colorValue: 0xFFA78BFA,
-  );
-
-  static const presets = <TaskCategory>[personal, work, study];
-
-  static bool isPreset(TaskCategory category) {
-    return presets.any((preset) => preset.id == category.id);
-  }
 }

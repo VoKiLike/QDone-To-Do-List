@@ -79,8 +79,10 @@ class UserSettings {
 
   factory UserSettings.fromJson(Map<String, dynamic> json) {
     return UserSettings(
-      themeMode: AppThemeMode.values.byName(
-        json['themeMode'] as String? ?? AppThemeMode.dark.name,
+      themeMode: _enumByName(
+        AppThemeMode.values,
+        json['themeMode'],
+        AppThemeMode.dark,
       ),
       languageCode: 'ru',
       notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
@@ -96,4 +98,16 @@ class UserSettings {
       compactWidget: json['compactWidget'] as bool? ?? false,
     );
   }
+}
+
+T _enumByName<T extends Enum>(List<T> values, Object? name, T fallback) {
+  if (name is! String) {
+    return fallback;
+  }
+  for (final value in values) {
+    if (value.name == name) {
+      return value;
+    }
+  }
+  return fallback;
 }

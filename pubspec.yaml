@@ -1,7 +1,7 @@
 name: qdone
 description: "QDone, a premium cross-platform personal planning app by 'VolkoWeb studio'."
 publish_to: 'none'
-version: 0.3.13
+version: 0.4.1
 
 environment:
   sdk: ^3.10.3
@@ -34,3 +34,10 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/qdone_logo.png
+  fonts:
+    - family: QDoneBrand
+      fonts:
+        - asset: assets/fonts/QDoneBrand-CascadiaCode.ttf
+    - family: QDoneText
+      fonts:
+        - asset: assets/fonts/QDoneText-Bahnschrift.ttf

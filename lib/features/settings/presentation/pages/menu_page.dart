@@ -8,6 +8,7 @@ import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/core/widgets/glass_panel.dart';
 import 'package:qdone/core/widgets/liquid_background.dart';
 import 'package:qdone/core/widgets/modal_glass_surface.dart';
+import 'package:qdone/core/widgets/qdone_modal_presenter.dart';
 import 'package:qdone/features/settings/domain/qdone_backup.dart';
 import 'package:qdone/features/settings/domain/user_settings.dart';
 import 'package:qdone/features/settings/presentation/controllers/settings_controller.dart';
@@ -410,12 +411,8 @@ class _HistorySettings extends ConsumerWidget {
   }
 
   void _showHistory(BuildContext context, WidgetRef ref, List<Task> tasks) {
-    showModalBottomSheet<void>(
+    QDoneModalPresenter.showSheet<void>(
       context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.78),
       builder: (context) => _CompletedTasksSheet(tasks: tasks),
     );
   }
@@ -748,7 +745,7 @@ class _DataManagementSettings extends ConsumerWidget {
   }
 
   Future<void> _importData(BuildContext context, WidgetRef ref) async {
-    final payload = await showDialog<QDoneBackupPayload>(
+    final payload = await QDoneModalPresenter.showAppDialog<QDoneBackupPayload>(
       context: context,
       builder: (context) => const _ImportDialog(),
     );
@@ -860,7 +857,7 @@ class _CompletedTasksSheet extends ConsumerWidget {
                                 .read(tasksControllerProvider.notifier)
                                 .restore(task);
                             if (context.mounted) {
-                              Navigator.pop(context);
+                              QDoneModalPresenter.close(context);
                             }
                           },
                           icon: const Icon(Icons.restore_rounded),
@@ -872,7 +869,7 @@ class _CompletedTasksSheet extends ConsumerWidget {
                                 .read(tasksControllerProvider.notifier)
                                 .delete(task);
                             if (context.mounted) {
-                              Navigator.pop(context);
+                              QDoneModalPresenter.close(context);
                             }
                           },
                           icon: const Icon(Icons.delete_outline_rounded),
@@ -925,13 +922,16 @@ class _ImportDialogState extends State<_ImportDialog> {
       ),
       actions: <Widget>[
         TextButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => QDoneModalPresenter.close(context),
           child: const Text('Отмена'),
         ),
         FilledButton(
           onPressed: () {
             try {
-              Navigator.pop(context, QDoneBackup.decode(_controller.text));
+              QDoneModalPresenter.close(
+                context,
+                QDoneBackup.decode(_controller.text),
+              );
             } on FormatException catch (error) {
               setState(() => _error = error.message);
             } catch (_) {
@@ -1076,18 +1076,18 @@ Future<bool> _confirm(
   required String title,
   required String message,
 }) async {
-  return await showDialog<bool>(
+  return await QDoneModalPresenter.showAppDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
           title: Text(title),
           content: Text(message),
           actions: <Widget>[
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () => QDoneModalPresenter.close(context, false),
               child: const Text('Отмена'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () => QDoneModalPresenter.close(context, true),
               child: const Text('Продолжить'),
             ),
           ],

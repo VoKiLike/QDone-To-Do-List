@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qdone/core/localization/qdone_localizations.dart';
 import 'package:qdone/core/theme/app_colors.dart';
+import 'package:qdone/core/theme/app_fonts.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
 import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
 import 'package:qdone/features/tasks/presentation/controllers/tasks_controller.dart';
@@ -139,7 +140,11 @@ class _Header extends StatelessWidget {
             'QDone',
             style: Theme.of(
               context,
-            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
+            ).textTheme.headlineMedium?.copyWith(
+              fontFamily: AppFonts.brand,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0,
+            ),
           ),
         ),
         Container(

@@ -80,34 +80,71 @@ class RecurrenceRule {
 
   factory RecurrenceRule.fromJson(Map<String, dynamic> json) {
     return RecurrenceRule(
-      type: RecurrenceType.values.byName(
-        json['type'] as String? ?? RecurrenceType.none.name,
+      type: _enumByName(
+        RecurrenceType.values,
+        json['type'],
+        RecurrenceType.none,
       ),
       interval: json['interval'] as int? ?? 1,
-      intervalUnit: RecurrenceIntervalUnit.values.byName(
-        json['intervalUnit'] as String? ?? RecurrenceIntervalUnit.days.name,
+      intervalUnit: _enumByName(
+        RecurrenceIntervalUnit.values,
+        json['intervalUnit'],
+        RecurrenceIntervalUnit.days,
       ),
-      selectedWeekdays: List<int>.from(
-        json['selectedWeekdays'] as List? ?? const <int>[],
-      ),
-      selectedMonthDays: List<int>.from(
-        json['selectedMonthDays'] as List? ?? const <int>[],
-      ),
+      selectedWeekdays: (json['selectedWeekdays'] as List? ?? const <Object?>[])
+          .whereType<int>()
+          .toList(),
+      selectedMonthDays:
+          (json['selectedMonthDays'] as List? ?? const <Object?>[])
+              .whereType<int>()
+              .toList(),
       timesOfDay: (json['timesOfDay'] as List? ?? const <Object?>[])
           .whereType<String>()
-          .map((value) {
-            final parts = value.split(':');
-            return TimeOfDay(
-              hour: int.parse(parts.first),
-              minute: int.parse(parts.last),
-            );
-          })
+          .map(_parseTimeOfDay)
+          .whereType<TimeOfDay>()
           .toList(),
-      startDate: DateTime.tryParse(json['startDate'] as String? ?? ''),
-      endDate: DateTime.tryParse(json['endDate'] as String? ?? ''),
+      startDate: _parseDateTime(json['startDate']),
+      endDate: _parseDateTime(json['endDate']),
       isEnabled: json['isEnabled'] as bool? ?? false,
     );
   }
+}
+
+DateTime? _parseDateTime(Object? value) {
+  if (value is! String || value.isEmpty) {
+    return null;
+  }
+  return DateTime.tryParse(value);
+}
+
+TimeOfDay? _parseTimeOfDay(String value) {
+  final parts = value.split(':');
+  if (parts.length != 2) {
+    return null;
+  }
+  final hour = int.tryParse(parts.first);
+  final minute = int.tryParse(parts.last);
+  if (hour == null ||
+      minute == null ||
+      hour < 0 ||
+      hour > 23 ||
+      minute < 0 ||
+      minute > 59) {
+    return null;
+  }
+  return TimeOfDay(hour: hour, minute: minute);
+}
+
+T _enumByName<T extends Enum>(List<T> values, Object? name, T fallback) {
+  if (name is! String) {
+    return fallback;
+  }
+  for (final value in values) {
+    if (value.name == name) {
+      return value;
+    }
+  }
+  return fallback;
 }
 
 extension TimeOfDayFormatting on TimeOfDay {

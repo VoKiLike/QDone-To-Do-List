@@ -17,9 +17,9 @@ class TaskCategory {
 
   factory TaskCategory.fromJson(Map<String, dynamic> json) {
     return TaskCategory(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      colorValue: json['colorValue'] as int,
+      id: json['id'] as String? ?? 'personal',
+      name: json['name'] as String? ?? 'Личное',
+      colorValue: json['colorValue'] as int? ?? 0xFF8B5CF6,
     );
   }
 }

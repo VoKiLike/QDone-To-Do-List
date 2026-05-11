@@ -17,9 +17,15 @@ class SettingsLocalDataSource {
     if (raw == null || raw.isEmpty) {
       return const UserSettings();
     }
-    return UserSettings.fromJson(
-      Map<String, dynamic>.from(jsonDecode(raw) as Map),
-    );
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) {
+        return const UserSettings();
+      }
+      return UserSettings.fromJson(Map<String, dynamic>.from(decoded));
+    } catch (_) {
+      return const UserSettings();
+    }
   }
 
   Future<void> writeSettings(UserSettings settings) {

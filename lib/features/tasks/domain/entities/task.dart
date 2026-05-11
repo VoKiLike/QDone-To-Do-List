@@ -122,44 +122,88 @@ class Task {
   };
 
   factory Task.fromJson(Map<String, dynamic> json) {
-    final dueParts = (json['dueTime'] as String? ?? '9:0').split(':');
+    final dueTime = _parseTimeOfDay(json['dueTime'] as String?);
+    final category = json['category'];
+    final recurrenceRule = json['recurrenceRule'];
+    final reminders = json['reminders'];
+    final notificationIds = json['notificationIds'];
     return Task(
-      id: json['id'] as String,
-      title: json['title'] as String,
+      id:
+          json['id'] as String? ??
+          'task-${DateTime.now().microsecondsSinceEpoch}',
+      title: json['title'] as String? ?? 'Без названия',
       description: json['description'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      dueDate: DateTime.parse(json['dueDate'] as String),
-      dueTime: TimeOfDay(
-        hour: int.parse(dueParts.first),
-        minute: int.parse(dueParts.last),
-      ),
-      completedAt: DateTime.tryParse(json['completedAt'] as String? ?? ''),
-      status: TaskStatus.values.byName(
-        json['status'] as String? ?? TaskStatus.active.name,
-      ),
-      priority: TaskPriority.values.byName(
-        json['priority'] as String? ?? TaskPriority.medium.name,
+      createdAt: _parseDateTime(json['createdAt'] as String?) ?? DateTime.now(),
+      dueDate: _parseDateTime(json['dueDate'] as String?) ?? DateTime.now(),
+      dueTime: dueTime,
+      completedAt: _parseDateTime(json['completedAt'] as String?),
+      status: _enumByName(TaskStatus.values, json['status'], TaskStatus.active),
+      priority: _enumByName(
+        TaskPriority.values,
+        json['priority'],
+        TaskPriority.medium,
       ),
       category: TaskCategory.fromJson(
-        Map<String, dynamic>.from(json['category'] as Map),
+        category is Map
+            ? Map<String, dynamic>.from(category)
+            : const <String, dynamic>{},
       ),
       recurrenceRule: RecurrenceRule.fromJson(
-        Map<String, dynamic>.from(
-          json['recurrenceRule'] as Map? ?? const <String, dynamic>{},
-        ),
+        recurrenceRule is Map
+            ? Map<String, dynamic>.from(recurrenceRule)
+            : const <String, dynamic>{},
       ),
-      reminders: (json['reminders'] as List? ?? const <Object?>[])
-          .map(
-            (item) => Reminder.fromJson(Map<String, dynamic>.from(item as Map)),
-          )
+      reminders: (reminders is List ? reminders : const <Object?>[])
+          .whereType<Map>()
+          .map((item) => Reminder.fromJson(Map<String, dynamic>.from(item)))
           .toList(),
-      notificationIds: List<int>.from(
-        json['notificationIds'] as List? ?? const <int>[],
-      ),
-      energyLevel: EnergyLevel.values.byName(
-        json['energyLevel'] as String? ?? EnergyLevel.medium.name,
+      notificationIds:
+          (notificationIds is List ? notificationIds : const <Object?>[])
+          .whereType<int>()
+          .toList(),
+      energyLevel: _enumByName(
+        EnergyLevel.values,
+        json['energyLevel'],
+        EnergyLevel.medium,
       ),
       isArchived: json['isArchived'] as bool? ?? false,
     );
   }
+}
+
+DateTime? _parseDateTime(String? value) {
+  if (value == null || value.isEmpty) {
+    return null;
+  }
+  return DateTime.tryParse(value);
+}
+
+TimeOfDay _parseTimeOfDay(String? value) {
+  final parts = (value ?? '9:0').split(':');
+  if (parts.length != 2) {
+    return const TimeOfDay(hour: 9, minute: 0);
+  }
+  final hour = int.tryParse(parts.first);
+  final minute = int.tryParse(parts.last);
+  if (hour == null ||
+      minute == null ||
+      hour < 0 ||
+      hour > 23 ||
+      minute < 0 ||
+      minute > 59) {
+    return const TimeOfDay(hour: 9, minute: 0);
+  }
+  return TimeOfDay(hour: hour, minute: minute);
+}
+
+T _enumByName<T extends Enum>(List<T> values, Object? name, T fallback) {
+  if (name is! String) {
+    return fallback;
+  }
+  for (final value in values) {
+    if (value.name == name) {
+      return value;
+    }
+  }
+  return fallback;
 }

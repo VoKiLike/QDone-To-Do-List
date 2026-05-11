@@ -187,7 +187,7 @@ class TaskCard extends StatelessWidget {
   }
 }
 
-class _StatusControl extends StatelessWidget {
+class _StatusControl extends StatefulWidget {
   const _StatusControl({
     required this.task,
     required this.accent,
@@ -201,10 +201,37 @@ class _StatusControl extends StatelessWidget {
   final VoidCallback onRestore;
 
   @override
+  State<_StatusControl> createState() => _StatusControlState();
+}
+
+class _StatusControlState extends State<_StatusControl> {
+  bool _pressed = false;
+
+  void _setPressed(bool value) {
+    if (!mounted) {
+      return;
+    }
+    setState(() => _pressed = value);
+  }
+
+  void _handleTap() {
+    _setPressed(true);
+    Future<void>.delayed(const Duration(milliseconds: 180), () {
+      _setPressed(false);
+    });
+    if (widget.task.isCompleted) {
+      widget.onRestore();
+    } else {
+      widget.onDone();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final completed = task.isCompleted;
-    final archived = task.status == TaskStatus.archived || task.isArchived;
-    final icon = switch (task.status) {
+    final completed = widget.task.isCompleted;
+    final archived =
+        widget.task.status == TaskStatus.archived || widget.task.isArchived;
+    final icon = switch (widget.task.status) {
       TaskStatus.completed => Icons.task_alt_rounded,
       TaskStatus.archived => Icons.unarchive_rounded,
       TaskStatus.overdue => Icons.priority_high_rounded,
@@ -218,24 +245,59 @@ class _StatusControl extends StatelessWidget {
                 ? 'Вернуть из архива'
                 : 'Вернуть в активные'
           : 'Отметить выполненной',
-      child: InkWell(
-        onTap: completed ? onRestore : onDone,
-        borderRadius: BorderRadius.circular(16),
-        child: AnimatedContainer(
-          width: 44,
-          height: 44,
-          duration: const Duration(milliseconds: 220),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: completed
-                ? accent.withValues(alpha: 0.24)
-                : accent.withValues(alpha: 0.12),
-            border: Border.all(
-              color: accent.withValues(alpha: 0.8),
-              width: 1.5,
+      child: Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        child: InkWell(
+          onTap: _handleTap,
+          onTapDown: (_) => _setPressed(true),
+          onTapCancel: () => _setPressed(false),
+          borderRadius: BorderRadius.circular(22),
+          splashColor: widget.accent.withValues(alpha: 0.34),
+          highlightColor: widget.accent.withValues(alpha: 0.22),
+          child: AnimatedScale(
+            scale: _pressed ? 0.92 : 1,
+            duration: const Duration(milliseconds: 120),
+            curve: Curves.easeOutCubic,
+            child: AnimatedContainer(
+              width: 44,
+              height: 44,
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _pressed
+                    ? widget.accent.withValues(alpha: 0.34)
+                    : completed
+                    ? widget.accent.withValues(alpha: 0.24)
+                    : widget.accent.withValues(alpha: 0.12),
+                border: Border.all(
+                  color: widget.accent.withValues(alpha: _pressed ? 1 : 0.8),
+                  width: _pressed ? 2.2 : 1.5,
+                ),
+                boxShadow: <BoxShadow>[
+                  BoxShadow(
+                    color: widget.accent.withValues(
+                      alpha: _pressed ? 0.42 : 0.16,
+                    ),
+                    blurRadius: _pressed ? 20 : 10,
+                    spreadRadius: _pressed ? 2 : 0,
+                  ),
+                ],
+              ),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                transitionBuilder: (child, animation) {
+                  return ScaleTransition(scale: animation, child: child);
+                },
+                child: Icon(
+                  icon,
+                  key: ValueKey<IconData>(icon),
+                  color: widget.accent,
+                ),
+              ),
             ),
           ),
-          child: Icon(icon, color: accent),
         ),
       ),
     );

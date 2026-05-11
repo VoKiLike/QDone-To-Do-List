@@ -72,9 +72,16 @@ class _TaskSectionState extends State<TaskSection> {
                       ),
                     ),
                   ),
-                  Text(
-                    '${widget.tasks.length}',
-                    style: Theme.of(context).textTheme.labelLarge,
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    transitionBuilder: (child, animation) {
+                      return ScaleTransition(scale: animation, child: child);
+                    },
+                    child: Text(
+                      '${widget.tasks.length}',
+                      key: ValueKey<int>(widget.tasks.length),
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   AnimatedRotation(
@@ -90,34 +97,52 @@ class _TaskSectionState extends State<TaskSection> {
             firstChild: const SizedBox.shrink(),
             secondChild: Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-              child: widget.tasks.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        'Здесь пока пусто',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.muted,
-                        ),
-                      ),
-                    )
-                  : Column(
-                      children: widget.tasks
-                          .map(
-                            (task) => Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: TaskCard(
-                                task: task,
-                                onDone: () => widget.onDone(task),
-                                onRestore: () => widget.onRestore(task),
-                                onDelete: () => widget.onDelete(task),
-                                onSnooze: () => widget.onSnooze(task),
-                                onReschedule: () => widget.onReschedule(task),
-                                onEdit: () => widget.onEdit(task),
-                              ),
-                            ),
-                          )
-                          .toList(),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 260),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SizeTransition(
+                      sizeFactor: animation,
+                      axisAlignment: -1,
+                      child: child,
                     ),
+                  );
+                },
+                child: widget.tasks.isEmpty
+                    ? Padding(
+                        key: const ValueKey<String>('empty-tasks'),
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          'Здесь пока пусто',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.muted),
+                        ),
+                      )
+                    : Column(
+                        key: ValueKey<String>(_taskListKey(widget.tasks)),
+                        children: widget.tasks
+                            .map(
+                              (task) => Padding(
+                                key: ValueKey<String>(task.id),
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: TaskCard(
+                                  task: task,
+                                  onDone: () => widget.onDone(task),
+                                  onRestore: () => widget.onRestore(task),
+                                  onDelete: () => widget.onDelete(task),
+                                  onSnooze: () => widget.onSnooze(task),
+                                  onReschedule: () =>
+                                      widget.onReschedule(task),
+                                  onEdit: () => widget.onEdit(task),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+              ),
             ),
             crossFadeState: _expanded
                 ? CrossFadeState.showSecond
@@ -128,4 +153,8 @@ class _TaskSectionState extends State<TaskSection> {
       ),
     );
   }
+}
+
+String _taskListKey(List<Task> tasks) {
+  return tasks.map((task) => '${task.id}:${task.status.name}').join('|');
 }

@@ -10,9 +10,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(
-          body: TaskFormSheet(onSubmit: (_) async {}),
-        ),
+        home: Scaffold(body: TaskFormSheet(onSubmit: (_) async {})),
       ),
     );
 
@@ -27,10 +25,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: TaskFormSheet(
-            initialTask: _task(),
-            onSubmit: (_) async {},
-          ),
+          body: TaskFormSheet(initialTask: _task(), onSubmit: (_) async {}),
         ),
       ),
     );

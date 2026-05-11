@@ -39,11 +39,22 @@ class Reminder {
 
   factory Reminder.fromJson(Map<String, dynamic> json) {
     return Reminder(
-      id: json['id'] as String,
-      taskId: json['taskId'] as String,
-      dateTime: DateTime.parse(json['dateTime'] as String),
-      notificationId: json['notificationId'] as int?,
+      id:
+          json['id'] as String? ??
+          'reminder-${DateTime.now().microsecondsSinceEpoch}',
+      taskId: json['taskId'] as String? ?? '',
+      dateTime: _parseDateTime(json['dateTime']) ?? DateTime.now(),
+      notificationId: json['notificationId'] is int
+          ? json['notificationId'] as int
+          : null,
       isEnabled: json['isEnabled'] as bool? ?? true,
     );
   }
+}
+
+DateTime? _parseDateTime(Object? value) {
+  if (value is! String || value.isEmpty) {
+    return null;
+  }
+  return DateTime.tryParse(value);
 }

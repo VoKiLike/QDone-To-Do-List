@@ -17,10 +17,27 @@ class TaskLocalDataSource {
     if (raw == null || raw.isEmpty) {
       return const <Task>[];
     }
-    final decoded = jsonDecode(raw) as List;
-    return decoded
-        .map((item) => Task.fromJson(Map<String, dynamic>.from(item as Map)))
-        .toList();
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } catch (_) {
+      return const <Task>[];
+    }
+    if (decoded is! List) {
+      return const <Task>[];
+    }
+    final tasks = <Task>[];
+    for (final item in decoded) {
+      if (item is! Map) {
+        continue;
+      }
+      try {
+        tasks.add(Task.fromJson(Map<String, dynamic>.from(item)));
+      } catch (_) {
+        continue;
+      }
+    }
+    return tasks;
   }
 
   Future<void> writeTasks(List<Task> tasks) {

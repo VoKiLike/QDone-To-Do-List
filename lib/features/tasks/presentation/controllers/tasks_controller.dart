@@ -47,18 +47,39 @@ class TasksController extends StateNotifier<AsyncValue<List<Task>>> {
   final TaskMutationService _mutations;
 
   Future<void> load() async {
-    state = const AsyncValue.loading();
+    await _reload(showLoading: true);
+  }
+
+  Future<void> _reload({required bool showLoading}) async {
+    if (showLoading) {
+      state = const AsyncValue.loading();
+    }
+    final previous = state.valueOrNull;
+    if (!showLoading && previous != null) {
+      state = AsyncValue.data(previous);
+    }
     try {
       final stored = await _repository.watchAll();
       final tasks = stored.isEmpty
           ? _seedTasks()
           : _localizeBuiltInTasks(stored);
-      if (stored.isEmpty) {
-        await _repository.saveAll(tasks);
-      } else {
-        await _repository.saveAll(tasks);
-      }
+      await _repository.saveAll(tasks);
       state = AsyncValue.data(_withEffectiveStatus(tasks));
+    } catch (error, stackTrace) {
+      if (!showLoading && previous != null) {
+        state = AsyncValue.data(previous);
+      } else {
+        state = AsyncValue.error(error, stackTrace);
+      }
+    }
+  }
+
+  Future<void> _refreshAfterMutation() => _reload(showLoading: false);
+
+  Future<void> _mutate(Future<void> Function() action) async {
+    try {
+      await action();
+      await _refreshAfterMutation();
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
     }
@@ -75,23 +96,23 @@ class TasksController extends StateNotifier<AsyncValue<List<Task>>> {
     RecurrenceRule recurrenceRule = const RecurrenceRule(),
     List<DateTime> reminderTimes = const <DateTime>[],
   }) async {
-    await _mutations.addTask(
-      title: title,
-      description: description,
-      dueDate: dueDate,
-      dueTime: dueTime,
-      priority: priority,
-      energyLevel: energyLevel,
-      category: category ?? QDoneCategories.personal,
-      recurrenceRule: recurrenceRule,
-      reminderTimes: reminderTimes,
+    await _mutate(
+      () => _mutations.addTask(
+        title: title,
+        description: description,
+        dueDate: dueDate,
+        dueTime: dueTime,
+        priority: priority,
+        energyLevel: energyLevel,
+        category: category ?? QDoneCategories.personal,
+        recurrenceRule: recurrenceRule,
+        reminderTimes: reminderTimes,
+      ),
     );
-    await load();
   }
 
   Future<void> updateTask(Task task) async {
-    await _mutations.updateTask(task);
-    await load();
+    await _mutate(() => _mutations.updateTask(task));
   }
 
   Future<void> editTask({
@@ -106,54 +127,48 @@ class TasksController extends StateNotifier<AsyncValue<List<Task>>> {
     required RecurrenceRule recurrenceRule,
     required List<DateTime> reminderTimes,
   }) async {
-    await _mutations.editTask(
-      task: task,
-      title: title,
-      description: description,
-      dueDate: dueDate,
-      dueTime: dueTime,
-      priority: priority,
-      energyLevel: energyLevel,
-      category: category,
-      recurrenceRule: recurrenceRule,
-      reminderTimes: reminderTimes,
+    await _mutate(
+      () => _mutations.editTask(
+        task: task,
+        title: title,
+        description: description,
+        dueDate: dueDate,
+        dueTime: dueTime,
+        priority: priority,
+        energyLevel: energyLevel,
+        category: category,
+        recurrenceRule: recurrenceRule,
+        reminderTimes: reminderTimes,
+      ),
     );
-    await load();
   }
 
   Future<void> complete(Task task) async {
-    await _mutations.complete(task);
-    await load();
+    await _mutate(() => _mutations.complete(task));
   }
 
   Future<void> restore(Task task) async {
-    await _mutations.restore(task);
-    await load();
+    await _mutate(() => _mutations.restore(task));
   }
 
   Future<void> archive(Task task) async {
-    await _mutations.archive(task);
-    await load();
+    await _mutate(() => _mutations.archive(task));
   }
 
   Future<void> delete(Task task) async {
-    await _mutations.delete(task);
-    await load();
+    await _mutate(() => _mutations.delete(task));
   }
 
   Future<void> clearCompleted() async {
-    await _mutations.clearCompleted();
-    await load();
+    await _mutate(_mutations.clearCompleted);
   }
 
   Future<void> snooze(Task task, Duration duration) async {
-    await _mutations.snooze(task, duration);
-    await load();
+    await _mutate(() => _mutations.snooze(task, duration));
   }
 
   Future<void> reschedule(Task task, DateTime dateTime) async {
-    await _mutations.reschedule(task, dateTime);
-    await load();
+    await _mutate(() => _mutations.reschedule(task, dateTime));
   }
 
   List<Task> _withEffectiveStatus(List<Task> tasks) {

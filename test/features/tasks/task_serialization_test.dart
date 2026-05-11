@@ -46,4 +46,39 @@ void main() {
     expect(restored.reminders.single.id, 'reminder');
     expect(restored.notificationIds, <int>[42]);
   });
+
+  test('task parser falls back for invalid persisted values', () {
+    final restored = Task.fromJson(<String, dynamic>{
+      'id': 'broken',
+      'title': 'Broken task',
+      'createdAt': 'not-a-date',
+      'dueDate': 'not-a-date',
+      'dueTime': '99:x',
+      'status': 'unknown',
+      'priority': 'unknown',
+      'category': <String, dynamic>{'name': 'Only name'},
+      'recurrenceRule': <String, dynamic>{
+        'type': 'unknown',
+        'intervalUnit': 'unknown',
+        'timesOfDay': <String>['bad', '10:30'],
+      },
+      'reminders': <Object?>[
+        <String, dynamic>{'id': 'ok', 'dateTime': 'bad'},
+        'not-a-map',
+      ],
+      'notificationIds': <Object?>[1, 'bad'],
+      'energyLevel': 'unknown',
+    });
+
+    expect(restored.id, 'broken');
+    expect(restored.dueTime, const TimeOfDay(hour: 9, minute: 0));
+    expect(restored.status, TaskStatus.active);
+    expect(restored.priority, TaskPriority.medium);
+    expect(restored.category.id, 'personal');
+    expect(restored.recurrenceRule.type, RecurrenceType.none);
+    expect(restored.recurrenceRule.timesOfDay.single.hour, 10);
+    expect(restored.reminders.single.id, 'ok');
+    expect(restored.notificationIds, <int>[1]);
+    expect(restored.energyLevel, EnergyLevel.medium);
+  });
 }

@@ -35,11 +35,7 @@ class ModalGlassSurface extends StatelessWidget {
             borderRadius: BorderRadius.vertical(
               top: Radius.circular(borderRadius),
             ),
-            border: Border(
-              top: BorderSide(color: borderColor),
-              left: BorderSide(color: borderColor.withValues(alpha: 0.56)),
-              right: BorderSide(color: borderColor.withValues(alpha: 0.56)),
-            ),
+            border: Border.all(color: borderColor),
             boxShadow: <BoxShadow>[
               BoxShadow(
                 color: AppColors.violet.withValues(
