@@ -12,8 +12,6 @@
         android:layout_width="match_parent"
         android:layout_height="34dp"
         android:background="@drawable/qdone_widget_header_background"
-        android:clickable="true"
-        android:focusable="true"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="10dp"
@@ -31,6 +29,20 @@
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/widget_open_menu"
+            android:layout_width="28dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/qdone_widget_open_button"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="&#9881;"
+            android:textColor="#FFFFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
             android:id="@+id/widget_open_app"
             android:layout_width="72dp"
             android:layout_height="24dp"
@@ -38,7 +50,7 @@
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
-            android:text="Открыть ↗"
+            android:text="&#1054;&#1090;&#1082;&#1088;&#1099;&#1090;&#1100; &#8599;"
             android:textColor="#FFFFFFFF"
             android:textSize="10sp"
             android:textStyle="bold" />
@@ -54,7 +66,7 @@
         <TextView
             android:layout_width="48dp"
             android:layout_height="wrap_content"
-            android:text="Время"
+            android:text="&#1042;&#1088;&#1077;&#1084;&#1103;"
             android:textColor="#BFF7F7FF"
             android:textSize="10sp"
             android:textStyle="bold" />
@@ -62,7 +74,7 @@
         <TextView
             android:layout_width="62dp"
             android:layout_height="wrap_content"
-            android:text="Раздел"
+            android:text="&#1056;&#1072;&#1079;&#1076;&#1077;&#1083;"
             android:textColor="#BFF7F7FF"
             android:textSize="10sp"
             android:textStyle="bold" />
@@ -71,7 +83,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Задача"
+            android:text="&#1047;&#1072;&#1076;&#1072;&#1095;&#1072;"
             android:textColor="#BFF7F7FF"
             android:textSize="10sp"
             android:textStyle="bold" />

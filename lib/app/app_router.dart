@@ -8,6 +8,24 @@ import 'package:qdone/shared/components/qdone_shell.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/tasks',
+  redirect: (context, state) {
+    final uri = state.uri;
+    if (uri.scheme != 'qdone') {
+      return null;
+    }
+
+    if (uri.host == 'home') {
+      return '/tasks';
+    }
+    if (uri.host == 'menu') {
+      return '/menu';
+    }
+    if ((uri.host == 'task' || uri.host == 'focus') &&
+        uri.pathSegments.isNotEmpty) {
+      return '/focus/${uri.pathSegments.first}';
+    }
+    return '/tasks';
+  },
   routes: <RouteBase>[
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>

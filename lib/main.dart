@@ -16,7 +16,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 @pragma('vm:entry-point')
 Future<void> qdoneWidgetCallback(Uri? uri) async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (uri?.host != 'task') {
+  if (uri?.host != 'toggle') {
     return;
   }
   final taskId = uri?.pathSegments.isNotEmpty == true

@@ -1,7 +1,7 @@
 name: qdone
 description: "QDone, a premium cross-platform personal planning app by 'VolkoWeb studio'."
 publish_to: 'none'
-version: 0.3.8
+version: 0.3.13
 
 environment:
   sdk: ^3.10.3

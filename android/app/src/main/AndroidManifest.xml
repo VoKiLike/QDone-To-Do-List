@@ -38,6 +38,7 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.volkoweb.qdone.ACTION_TOGGLE_TASK" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"

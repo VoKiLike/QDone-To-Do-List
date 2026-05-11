@@ -1,14 +1,17 @@
 package com.volkoweb.qdone
 
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Color
 import android.graphics.Paint
 import android.net.Uri
+import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
-import es.antonborri.home_widget.HomeWidgetBackgroundIntent
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetProvider
 import java.time.LocalDateTime
@@ -16,6 +19,21 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class QDoneWidgetProvider : HomeWidgetProvider() {
+    override fun onReceive(context: Context, intent: Intent) {
+        Log.d(TAG, "onReceive action=${intent.action}")
+        if (intent.action == ACTION_TOGGLE_TASK) {
+            val taskId = intent.getStringExtra(EXTRA_TASK_ID)
+            Log.d(TAG, "Toggle requested for taskId=$taskId")
+            if (!taskId.isNullOrBlank() && toggleTask(context, taskId)) {
+                updateAllWidgets(context)
+            } else {
+                Log.w(TAG, "Toggle ignored: taskId missing or task not found")
+            }
+            return
+        }
+        super.onReceive(context, intent)
+    }
+
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -37,13 +55,22 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
             widgetData?.getString(WIDGET_TITLE_KEY, "QDone") ?: "QDone"
         )
 
-        val openIntent = HomeWidgetLaunchIntent.getActivity(
-            context,
-            MainActivity::class.java,
-            Uri.parse("qdone://home")
+        views.setOnClickPendingIntent(
+            R.id.widget_open_app,
+            HomeWidgetLaunchIntent.getActivity(
+                context,
+                MainActivity::class.java,
+                Uri.parse("qdone://home")
+            )
         )
-        views.setOnClickPendingIntent(R.id.widget_header, openIntent)
-        views.setOnClickPendingIntent(R.id.widget_open_app, openIntent)
+        views.setOnClickPendingIntent(
+            R.id.widget_open_menu,
+            HomeWidgetLaunchIntent.getActivity(
+                context,
+                MainActivity::class.java,
+                Uri.parse("qdone://menu")
+            )
+        )
 
         views.removeAllViews(R.id.widget_rows)
         renderRows(context, views, widgetData)
@@ -68,7 +95,7 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
             val emptyRow = RemoteViews(context.packageName, R.layout.qdone_widget_row)
             emptyRow.setTextViewText(R.id.widget_task_time, "")
             emptyRow.setTextViewText(R.id.widget_task_category, "")
-            emptyRow.setTextViewText(R.id.widget_task_title, "Нет ближайших задач")
+            emptyRow.setTextViewText(R.id.widget_task_title, "\u041D\u0435\u0442 \u0431\u043B\u0438\u0436\u0430\u0439\u0448\u0438\u0445 \u0437\u0430\u0434\u0430\u0447")
             emptyRow.setTextViewText(R.id.widget_task_done, "")
             emptyRow.setViewVisibility(R.id.widget_task_done, View.INVISIBLE)
             views.addView(R.id.widget_rows, emptyRow)
@@ -88,7 +115,7 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
             row.setTextViewText(R.id.widget_task_time, item.time)
             row.setTextViewText(R.id.widget_task_category, item.category)
             row.setTextViewText(R.id.widget_task_title, item.title)
-            row.setTextViewText(R.id.widget_task_done, if (done) "↺" else "✓")
+            row.setTextViewText(R.id.widget_task_done, if (done) "\u21BA" else "\u2713")
 
             row.setTextColor(
                 R.id.widget_task_time,
@@ -109,30 +136,85 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
             row.setInt(
                 R.id.widget_task_done,
                 "setBackgroundResource",
-                if (done) {
-                    R.drawable.qdone_widget_restore_button
-                } else {
-                    R.drawable.qdone_widget_done_button
-                }
+                if (done) R.drawable.qdone_widget_restore_button else R.drawable.qdone_widget_done_button
             )
             setStrike(row, R.id.widget_task_time, done)
             setStrike(row, R.id.widget_task_category, done)
             setStrike(row, R.id.widget_task_title, done)
 
-            val openIntent = HomeWidgetLaunchIntent.getActivity(
-                context,
-                MainActivity::class.java,
-                Uri.parse("qdone://task/$taskId")
-            )
-            row.setOnClickPendingIntent(R.id.widget_task_row, openIntent)
             row.setOnClickPendingIntent(
-                R.id.widget_task_done,
-                HomeWidgetBackgroundIntent.getBroadcast(
+                R.id.widget_task_content,
+                HomeWidgetLaunchIntent.getActivity(
                     context,
-                    Uri.parse("qdone://task/$taskId")
+                    MainActivity::class.java,
+                    Uri.parse("qdone://focus/$taskId")
                 )
             )
+            row.setOnClickPendingIntent(
+                R.id.widget_task_done,
+                toggleIntent(context, taskId)
+            )
             views.addView(R.id.widget_rows, row)
+        }
+    }
+
+    private fun toggleTask(context: Context, taskId: String): Boolean {
+        val prefs = flutterPreferences(context)
+        val raw = prefs.getString(TASKS_KEY, null)
+        if (raw.isNullOrBlank()) {
+            Log.w(TAG, "Task store is empty for key=$TASKS_KEY")
+            return false
+        }
+        val tasks = runCatching { JSONArray(raw) }.getOrNull()
+        if (tasks == null) {
+            Log.w(TAG, "Task store JSON is invalid")
+            return false
+        }
+
+        for (index in 0 until tasks.length()) {
+            val task = tasks.optJSONObject(index) ?: continue
+            if (task.optString("id") != taskId) continue
+
+            val completed = task.optBoolean("isArchived", false) ||
+                task.optString("status") == STATUS_COMPLETED ||
+                task.optString("status") == STATUS_ARCHIVED
+
+            if (completed) {
+                task.put("status", restoredStatusFor(task))
+                task.put("isArchived", false)
+                task.put("completedAt", JSONObject.NULL)
+            } else {
+                task.put("status", STATUS_COMPLETED)
+                task.put("isArchived", false)
+                task.put("completedAt", LocalDateTime.now().toString())
+            }
+
+            task.put("notificationIds", JSONArray())
+            val saved = prefs.edit().putString(TASKS_KEY, tasks.toString()).commit()
+            val status = task.optString("status")
+            Log.d(TAG, "Toggle saved=$saved taskId=$taskId status=$status")
+            return true
+        }
+
+        Log.w(TAG, "Task not found in widget toggle taskId=$taskId")
+        return false
+    }
+
+    private fun restoredStatusFor(task: JSONObject): String {
+        val dueDateTime = WidgetTask.dueDateTimeOf(task)
+        return if (dueDateTime?.isBefore(LocalDateTime.now()) == true) {
+            STATUS_OVERDUE
+        } else {
+            STATUS_ACTIVE
+        }
+    }
+
+    private fun updateAllWidgets(context: Context) {
+        val manager = AppWidgetManager.getInstance(context)
+        val component = ComponentName(context, QDoneWidgetProvider::class.java)
+        val ids = manager.getAppWidgetIds(component)
+        ids.forEach { widgetId ->
+            manager.updateAppWidget(widgetId, buildViews(context, null))
         }
     }
 
@@ -194,11 +276,25 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
     private fun flutterPreferences(context: Context): SharedPreferences =
         context.getSharedPreferences(FLUTTER_PREFS, Context.MODE_PRIVATE)
 
+    private fun toggleIntent(context: Context, taskId: String): PendingIntent {
+        val intent = Intent(context, QDoneWidgetProvider::class.java).apply {
+            action = ACTION_TOGGLE_TASK
+            data = Uri.parse("qdone://toggle/$taskId")
+            putExtra(EXTRA_TASK_ID, taskId)
+        }
+        return PendingIntent.getBroadcast(
+            context,
+            taskId.hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
     private fun setStrike(row: RemoteViews, viewId: Int, enabled: Boolean) {
-        val flags = Paint.ANTI_ALIAS_FLAG or if (enabled) {
-            Paint.STRIKE_THRU_TEXT_FLAG
+        val flags = if (enabled) {
+            Paint.ANTI_ALIAS_FLAG or Paint.STRIKE_THRU_TEXT_FLAG
         } else {
-            0
+            Paint.ANTI_ALIAS_FLAG
         }
         row.setInt(viewId, "setPaintFlags", flags)
     }
@@ -251,7 +347,7 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
                     id = json.optString("id"),
                     title = json.optString("title"),
                     time = if (status == STATUS_OVERDUE) {
-                        "Проср."
+                        "\u041F\u0440\u043E\u0441\u0440."
                     } else {
                         formatTime(json.optString("dueTime", "9:0"))
                     },
@@ -282,6 +378,9 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
     }
 
     companion object {
+        private const val TAG = "QDoneWidget"
+        private const val ACTION_TOGGLE_TASK = "com.volkoweb.qdone.ACTION_TOGGLE_TASK"
+        private const val EXTRA_TASK_ID = "task_id"
         private const val FLUTTER_PREFS = "FlutterSharedPreferences"
         private const val TASKS_KEY = "flutter.qdone.tasks.v1"
         private const val SETTINGS_KEY = "flutter.qdone.settings.v1"
