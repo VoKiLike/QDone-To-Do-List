@@ -6,6 +6,7 @@ import 'package:qdone/core/constants/app_constants.dart';
 import 'package:qdone/core/localization/qdone_localizations.dart';
 import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/core/widgets/glass_panel.dart';
+import 'package:qdone/core/widgets/liquid_background.dart';
 import 'package:qdone/core/widgets/modal_glass_surface.dart';
 import 'package:qdone/features/settings/domain/qdone_backup.dart';
 import 'package:qdone/features/settings/domain/user_settings.dart';
@@ -232,11 +233,6 @@ class _CalendarSettings extends ConsumerWidget {
           title: 'Календарь',
         ),
         const SizedBox(height: 10),
-        const _ReadonlyChip(
-          icon: Icons.view_week_rounded,
-          label: 'Неделя начинается с понедельника',
-        ),
-        const SizedBox(height: 8),
         _SwitchRow(
           icon: Icons.done_all_rounded,
           title: 'Точки выполненных задач',
@@ -279,37 +275,35 @@ class _WidgetSettings extends ConsumerWidget {
           title: 'Android-виджет',
         ),
         const SizedBox(height: 10),
-        Text(
-          'Прозрачность: ${(settings.widgetTransparency * 100).round()}%',
-          style: Theme.of(context).textTheme.labelLarge,
-        ),
-        Slider(
-          value: settings.widgetTransparency,
-          min: 0.25,
-          max: 0.95,
-          divisions: 14,
-          onChanged: controller.setWidgetTransparency,
-        ),
         _NumberStepper(
           title: 'Количество задач',
           value: settings.widgetTaskLimit,
           min: 1,
           max: 10,
-          onChanged: controller.setWidgetTaskLimit,
+          onChanged: (value) =>
+              _updateWidgetSetting(context, ref, tasks, () async {
+                await controller.setWidgetTaskLimit(value);
+              }),
         ),
         _SwitchRow(
           icon: Icons.inventory_2_rounded,
           title: 'Показывать выполненные',
           subtitle: 'Добавлять архивные задачи в список виджета',
           value: settings.widgetShowsCompleted,
-          onChanged: controller.setWidgetShowsCompleted,
+          onChanged: (value) =>
+              _updateWidgetSetting(context, ref, tasks, () async {
+                await controller.setWidgetShowsCompleted(value);
+              }),
         ),
         _SwitchRow(
           icon: Icons.compress_rounded,
           title: 'Компактный режим',
           subtitle: 'Меньше воздуха, больше задач на экране',
           value: settings.compactWidget,
-          onChanged: controller.setCompactWidget,
+          onChanged: (value) =>
+              _updateWidgetSetting(context, ref, tasks, () async {
+                await controller.setCompactWidget(value);
+              }),
         ),
         const SizedBox(height: 8),
         FilledButton.tonalIcon(
@@ -330,6 +324,27 @@ class _WidgetSettings extends ConsumerWidget {
         _showSnack(context, 'Виджет обновлен');
       }
     } catch (error) {
+      if (context.mounted) {
+        _showSnack(context, 'Виджет недоступен на этой платформе');
+      }
+    }
+  }
+
+  Future<void> _updateWidgetSetting(
+    BuildContext context,
+    WidgetRef ref,
+    List<Task> tasks,
+    Future<void> Function() update,
+  ) async {
+    await update();
+    final settings =
+        ref.read(settingsControllerProvider).valueOrNull ??
+        const UserSettings();
+    try {
+      await ref
+          .read(homeWidgetSyncServiceProvider)
+          .sync(tasks: tasks, settings: settings);
+    } catch (_) {
       if (context.mounted) {
         _showSnack(context, 'Виджет недоступен на этой платформе');
       }
@@ -432,19 +447,17 @@ class _KnowledgeBaseSettings extends StatelessWidget {
   }
 
   void _openKnowledgeBase(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.78),
-      builder: (context) => const _KnowledgeBaseSheet(),
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (context) => const _KnowledgeBasePage(),
+      ),
     );
   }
 }
 
-class _KnowledgeBaseSheet extends StatelessWidget {
-  const _KnowledgeBaseSheet();
+class _KnowledgeBasePage extends StatelessWidget {
+  const _KnowledgeBasePage();
 
   static const _groups = <_KnowledgeGroup>[
     _KnowledgeGroup(
@@ -576,17 +589,12 @@ class _KnowledgeBaseSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ModalGlassSurface(
-      padding: EdgeInsets.zero,
-      child: DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.86,
-        minChildSize: 0.55,
-        maxChildSize: 0.96,
-        builder: (context, scrollController) {
-          final bottomPadding = MediaQuery.paddingOf(context).bottom + 112;
-          return ListView(
-            controller: scrollController,
+    final bottomPadding = MediaQuery.paddingOf(context).bottom + 24;
+    return LiquidBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          child: ListView(
             padding: EdgeInsets.fromLTRB(18, 18, 18, bottomPadding),
             children: <Widget>[
               Row(
@@ -615,8 +623,8 @@ class _KnowledgeBaseSheet extends StatelessWidget {
               const SizedBox(height: 16),
               ..._groups.map((group) => _KnowledgeGroupView(group: group)),
             ],
-          );
-        },
+          ),
+        ),
       ),
     );
   }

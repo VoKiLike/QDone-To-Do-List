@@ -45,11 +45,15 @@ class TasksPage extends ConsumerWidget {
                   initiallyExpanded: grouped.overdue.isNotEmpty,
                   onDone: (task) =>
                       ref.read(tasksControllerProvider.notifier).complete(task),
+                  onRestore: (task) =>
+                      ref.read(tasksControllerProvider.notifier).restore(task),
                   onDelete: (task) =>
-                      ref.read(tasksControllerProvider.notifier).delete(task),
+                      ref.read(tasksControllerProvider.notifier).archive(task),
                   onSnooze: (task) => ref
                       .read(tasksControllerProvider.notifier)
                       .snooze(task, const Duration(minutes: 15)),
+                  onReschedule: (task) =>
+                      _rescheduleTask(context, ref, task: task),
                   onEdit: (task) => _openTaskForm(context, ref, task: task),
                 ),
                 const SizedBox(height: 14),
@@ -61,11 +65,15 @@ class TasksPage extends ConsumerWidget {
                   initiallyExpanded: true,
                   onDone: (task) =>
                       ref.read(tasksControllerProvider.notifier).complete(task),
+                  onRestore: (task) =>
+                      ref.read(tasksControllerProvider.notifier).restore(task),
                   onDelete: (task) =>
-                      ref.read(tasksControllerProvider.notifier).delete(task),
+                      ref.read(tasksControllerProvider.notifier).archive(task),
                   onSnooze: (task) => ref
                       .read(tasksControllerProvider.notifier)
                       .snooze(task, const Duration(hours: 1)),
+                  onReschedule: (task) =>
+                      _rescheduleTask(context, ref, task: task),
                   onEdit: (task) => _openTaskForm(context, ref, task: task),
                 ),
                 const SizedBox(height: 14),
@@ -77,11 +85,15 @@ class TasksPage extends ConsumerWidget {
                   initiallyExpanded: false,
                   onDone: (task) =>
                       ref.read(tasksControllerProvider.notifier).complete(task),
+                  onRestore: (task) =>
+                      ref.read(tasksControllerProvider.notifier).restore(task),
                   onDelete: (task) =>
-                      ref.read(tasksControllerProvider.notifier).delete(task),
+                      ref.read(tasksControllerProvider.notifier).archive(task),
                   onSnooze: (task) => ref
                       .read(tasksControllerProvider.notifier)
                       .snooze(task, const Duration(hours: 1)),
+                  onReschedule: (task) =>
+                      _rescheduleTask(context, ref, task: task),
                   onEdit: (task) => _openTaskForm(context, ref, task: task),
                 ),
                 const SizedBox(height: 14),
@@ -93,11 +105,15 @@ class TasksPage extends ConsumerWidget {
                   initiallyExpanded: false,
                   onDone: (task) =>
                       ref.read(tasksControllerProvider.notifier).restore(task),
+                  onRestore: (task) =>
+                      ref.read(tasksControllerProvider.notifier).restore(task),
                   onDelete: (task) =>
                       ref.read(tasksControllerProvider.notifier).delete(task),
                   onSnooze: (task) => ref
                       .read(tasksControllerProvider.notifier)
                       .snooze(task, const Duration(hours: 1)),
+                  onReschedule: (task) =>
+                      _rescheduleTask(context, ref, task: task),
                   onEdit: (task) => _openTaskForm(context, ref, task: task),
                 ),
               ],
@@ -260,4 +276,35 @@ Future<void> _openTaskForm(BuildContext context, WidgetRef ref, {Task? task}) {
       );
     },
   );
+}
+
+Future<void> _rescheduleTask(
+  BuildContext context,
+  WidgetRef ref, {
+  required Task task,
+}) async {
+  final date = await showDatePicker(
+    context: context,
+    initialDate: task.dueDate,
+    firstDate: DateTime.now().subtract(const Duration(days: 365)),
+    lastDate: DateTime.now().add(const Duration(days: 365 * 3)),
+  );
+  if (date == null || !context.mounted) {
+    return;
+  }
+
+  final time = await showTimePicker(
+    context: context,
+    initialTime: task.dueTime,
+  );
+  if (time == null) {
+    return;
+  }
+
+  await ref
+      .read(tasksControllerProvider.notifier)
+      .reschedule(
+        task,
+        DateTime(date.year, date.month, date.day, time.hour, time.minute),
+      );
 }

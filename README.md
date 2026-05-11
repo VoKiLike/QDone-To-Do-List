@@ -5,7 +5,7 @@
 Clean Architecture, local storage, recurring tasks, reminders, a liquid
 glass-inspired interface, and Android home widget groundwork.
 
-Version: **0.3.3**.
+Version: **0.3.8**.
 
 Русская версия ниже.
 
@@ -17,6 +17,10 @@ Version: **0.3.3**.
 - Custom liquid glass bottom navigation with curved-bar motion and cached tab switching.
 - Calendar vertical scrolling remains responsive while preserving horizontal month swipes.
 - Theme-aware secondary text colors for light and dark modes.
+- Completed and archived tasks can be restored to active tracking from the task status control.
+- Task action buttons support edit, snooze, reschedule, archive, restore, and delete flows.
+- Knowledge base opens as a dedicated full-screen reference view.
+- Knowledge base spacing is tightened for full-screen reading.
 - Calendar page with Monday-first month view, task indicators, selected-day task list, and task creation/editing.
 - Task overview page with daily summary and collapsible task groups.
 - Local task persistence through repository/data-source boundaries.
@@ -24,6 +28,9 @@ Version: **0.3.3**.
 - Recurring task foundation with daily, weekly, monthly, yearly, custom intervals, and multiple times per day.
 - Local notification service foundation using `flutter_local_notifications` and `timezone`.
 - Android transparent home screen widget foundation using `home_widget`.
+- Android widget tasks can be completed or restored from the widget, with completed rows shown as struck-through when enabled.
+- Android widget ordering shows active tasks first by due time, then completed tasks by due time.
+- Android widget settings now sync immediately for task count, completed-task visibility, and compact density; the broken transparency control was removed from the settings UI.
 - Focus Mode foundation for distraction-free task actions.
 - Settings knowledge base that explains the app icons and their actions.
 
@@ -67,7 +74,7 @@ flutter build apk --debug
 
 - The app is currently Russian-first and uses Russian as the fixed app locale.
 - Persistence is implemented behind repository interfaces using local JSON in `shared_preferences`; this can be migrated to Drift without changing presentation controllers.
-- Android widget support is present as a foundation. Direct mark-as-done actions from the launcher widget still require native callback completion.
+- Android widget support includes native launcher actions backed by the same local task store as the app.
 - Production release still needs final Android signing, store metadata, and final iOS notification permission review.
 
 ## License
@@ -83,7 +90,7 @@ This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md).
 для задач и календаря: Clean Architecture, локальное хранение, повторяющиеся
 задачи, напоминания, интерфейс в стиле liquid glass и основа Android-виджета.
 
-Версия: **0.3.3**.
+Версия: **0.3.8**.
 
 ## Возможности
 
@@ -93,6 +100,10 @@ This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md).
 - Кастомная нижняя навигация в стиле liquid glass с curved-анимацией и сохранением вкладок.
 - Вертикальный скролл календаря работает стабильно при сохранении горизонтального свайпа месяцев.
 - Вторичные тексты используют цвета темы и читаются в светлом и темном режимах.
+- Выполненные и архивные задачи можно вернуть в активное отслеживание через статусный элемент задачи.
+- Кнопки задач поддерживают редактирование, откладывание, перенос, архив, восстановление и удаление.
+- Справочник знаний открывается как отдельный полноэкранный экран.
+- Отступы справочника знаний уменьшены для полноэкранного чтения.
 - Страница календаря: месяц с началом недели в понедельник, точки задач, список задач выбранного дня, создание и редактирование задач.
 - Главная страница задач: сводка дня и сворачиваемые группы задач.
 - Локальное сохранение задач через repository/data-source слой.

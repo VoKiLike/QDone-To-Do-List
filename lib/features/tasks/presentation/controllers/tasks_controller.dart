@@ -223,6 +223,8 @@ class TasksController extends StateNotifier<AsyncValue<List<Task>>> {
           dueDate: DateTime(next.year, next.month, next.day),
           dueTime: TimeOfDay(hour: next.hour, minute: next.minute),
           status: TaskStatus.active,
+          clearCompletedAt: true,
+          isArchived: false,
           reminders: <Reminder>[
             Reminder(id: _uuid.v4(), taskId: task.id, dateTime: next),
           ],
@@ -241,6 +243,8 @@ class TasksController extends StateNotifier<AsyncValue<List<Task>>> {
           dueDate: DateTime(dateTime.year, dateTime.month, dateTime.day),
           dueTime: TimeOfDay(hour: dateTime.hour, minute: dateTime.minute),
           status: TaskStatus.active,
+          clearCompletedAt: true,
+          isArchived: false,
           notificationIds: const <int>[],
         ),
       ),

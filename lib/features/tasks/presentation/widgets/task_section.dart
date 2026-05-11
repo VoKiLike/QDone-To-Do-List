@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/core/widgets/glass_panel.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
@@ -13,8 +13,10 @@ class TaskSection extends StatefulWidget {
     required this.accent,
     required this.initiallyExpanded,
     required this.onDone,
+    required this.onRestore,
     required this.onDelete,
     required this.onSnooze,
+    required this.onReschedule,
     required this.onEdit,
   });
 
@@ -24,8 +26,10 @@ class TaskSection extends StatefulWidget {
   final Color accent;
   final bool initiallyExpanded;
   final ValueChanged<Task> onDone;
+  final ValueChanged<Task> onRestore;
   final ValueChanged<Task> onDelete;
   final ValueChanged<Task> onSnooze;
+  final ValueChanged<Task> onReschedule;
   final ValueChanged<Task> onEdit;
 
   @override
@@ -104,8 +108,10 @@ class _TaskSectionState extends State<TaskSection> {
                               child: TaskCard(
                                 task: task,
                                 onDone: () => widget.onDone(task),
+                                onRestore: () => widget.onRestore(task),
                                 onDelete: () => widget.onDelete(task),
                                 onSnooze: () => widget.onSnooze(task),
+                                onReschedule: () => widget.onReschedule(task),
                                 onEdit: () => widget.onEdit(task),
                               ),
                             ),

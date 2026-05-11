@@ -63,8 +63,8 @@ class HomeWidgetSyncService {
             .map((task) => task.effectiveStatus())
             .toList()
           ..sort((a, b) {
-            final aWeight = a.status == TaskStatus.overdue ? 0 : 1;
-            final bWeight = b.status == TaskStatus.overdue ? 0 : 1;
+            final aWeight = a.isCompleted ? 1 : 0;
+            final bWeight = b.isCompleted ? 1 : 0;
             final weight = aWeight.compareTo(bWeight);
             return weight == 0
                 ? a.dueDateTime.compareTo(b.dueDateTime)

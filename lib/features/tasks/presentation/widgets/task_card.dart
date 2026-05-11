@@ -10,23 +10,25 @@ class TaskCard extends StatelessWidget {
     super.key,
     required this.task,
     required this.onDone,
+    required this.onRestore,
     required this.onDelete,
     required this.onSnooze,
+    required this.onReschedule,
     required this.onEdit,
   });
 
   final Task task;
   final VoidCallback onDone;
+  final VoidCallback onRestore;
   final VoidCallback onDelete;
   final VoidCallback onSnooze;
+  final VoidCallback onReschedule;
   final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
     final accent = _accentFor(task.status);
-    final muted =
-        task.status == TaskStatus.completed ||
-        task.status == TaskStatus.archived;
+    final muted = task.isCompleted;
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 220),
       opacity: muted ? 0.68 : 1,
@@ -55,7 +57,12 @@ class TaskCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  _StatusControl(task: task, accent: accent, onDone: onDone),
+                  _StatusControl(
+                    task: task,
+                    accent: accent,
+                    onDone: onDone,
+                    onRestore: onRestore,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -152,11 +159,13 @@ class TaskCard extends StatelessWidget {
                   _ActionButton(
                     icon: Icons.event_repeat_rounded,
                     label: 'Перенести',
-                    onTap: onEdit,
+                    onTap: onReschedule,
                   ),
                   _ActionButton(
-                    icon: Icons.delete_outline_rounded,
-                    label: 'Удалить',
+                    icon: task.isCompleted
+                        ? Icons.delete_outline_rounded
+                        : Icons.archive_outlined,
+                    label: task.isCompleted ? 'Удалить' : 'В архив',
                     onTap: onDelete,
                   ),
                 ],
@@ -171,7 +180,8 @@ class TaskCard extends StatelessWidget {
   Color _accentFor(TaskStatus status) {
     return switch (status) {
       TaskStatus.overdue => AppColors.warning,
-      TaskStatus.completed || TaskStatus.archived => AppColors.muted,
+      TaskStatus.completed => AppColors.success,
+      TaskStatus.archived => AppColors.neonPurple,
       TaskStatus.active => AppColors.turquoise,
     };
   }
@@ -182,21 +192,34 @@ class _StatusControl extends StatelessWidget {
     required this.task,
     required this.accent,
     required this.onDone,
+    required this.onRestore,
   });
 
   final Task task;
   final Color accent;
   final VoidCallback onDone;
+  final VoidCallback onRestore;
 
   @override
   Widget build(BuildContext context) {
     final completed = task.isCompleted;
+    final archived = task.status == TaskStatus.archived || task.isArchived;
+    final icon = switch (task.status) {
+      TaskStatus.completed => Icons.task_alt_rounded,
+      TaskStatus.archived => Icons.unarchive_rounded,
+      TaskStatus.overdue => Icons.priority_high_rounded,
+      TaskStatus.active => Icons.done_rounded,
+    };
     return Semantics(
       button: true,
       checked: completed,
-      label: completed ? 'Выполнено' : 'Отметить выполненной',
+      label: completed
+          ? archived
+                ? 'Вернуть из архива'
+                : 'Вернуть в активные'
+          : 'Отметить выполненной',
       child: InkWell(
-        onTap: completed ? null : onDone,
+        onTap: completed ? onRestore : onDone,
         borderRadius: BorderRadius.circular(16),
         child: AnimatedContainer(
           width: 44,
@@ -212,10 +235,7 @@ class _StatusControl extends StatelessWidget {
               width: 1.5,
             ),
           ),
-          child: Icon(
-            completed ? Icons.done_all_rounded : Icons.done_rounded,
-            color: accent,
-          ),
+          child: Icon(icon, color: accent),
         ),
       ),
     );
