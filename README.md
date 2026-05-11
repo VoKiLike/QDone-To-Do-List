@@ -5,7 +5,7 @@
 Clean Architecture, local storage, recurring tasks, reminders, a liquid
 glass-inspired interface, and Android home widget groundwork.
 
-Version: **0.3.0**.
+Version: **0.3.2**.
 
 Русская версия ниже.
 
@@ -14,7 +14,7 @@ Version: **0.3.0**.
 - Flutter app for Android and iOS.
 - Russian-first UI.
 - Dark, light, and system theme modes.
-- Custom animated liquid glass bottom navigation.
+- Custom liquid glass bottom navigation with curved-bar motion and cached tab switching.
 - Calendar page with Monday-first month view, task indicators, selected-day task list, and task creation/editing.
 - Task overview page with daily summary and collapsible task groups.
 - Local task persistence through repository/data-source boundaries.
@@ -81,14 +81,14 @@ This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md).
 для задач и календаря: Clean Architecture, локальное хранение, повторяющиеся
 задачи, напоминания, интерфейс в стиле liquid glass и основа Android-виджета.
 
-Версия: **0.3.0**.
+Версия: **0.3.2**.
 
 ## Возможности
 
 - Flutter-приложение для Android и iOS.
 - Русскоязычный интерфейс по умолчанию.
 - Темная, светлая и системная темы.
-- Кастомная анимированная нижняя навигация в стиле liquid glass.
+- Кастомная нижняя навигация в стиле liquid glass с curved-анимацией и сохранением вкладок.
 - Страница календаря: месяц с началом недели в понедельник, точки задач, список задач выбранного дня, создание и редактирование задач.
 - Главная страница задач: сводка дня и сворачиваемые группы задач.
 - Локальное сохранение задач через repository/data-source слой.

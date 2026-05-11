@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qdone/features/calendar/presentation/pages/calendar_page.dart';
 import 'package:qdone/features/settings/presentation/pages/menu_page.dart';
@@ -9,16 +9,34 @@ import 'package:qdone/shared/components/qdone_shell.dart';
 final appRouter = GoRouter(
   initialLocation: '/tasks',
   routes: <RouteBase>[
-    ShellRoute(
-      builder: (context, state, child) =>
-          QDoneShell(location: state.uri.path, child: child),
-      routes: <RouteBase>[
-        GoRoute(
-          path: '/calendar',
-          builder: (context, state) => const CalendarPage(),
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) =>
+          QDoneShell(navigationShell: navigationShell),
+      branches: <StatefulShellBranch>[
+        StatefulShellBranch(
+          routes: <RouteBase>[
+            GoRoute(
+              path: '/calendar',
+              builder: (context, state) => const CalendarPage(),
+            ),
+          ],
         ),
-        GoRoute(path: '/tasks', builder: (context, state) => const TasksPage()),
-        GoRoute(path: '/menu', builder: (context, state) => const MenuPage()),
+        StatefulShellBranch(
+          routes: <RouteBase>[
+            GoRoute(
+              path: '/tasks',
+              builder: (context, state) => const TasksPage(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: <RouteBase>[
+            GoRoute(
+              path: '/menu',
+              builder: (context, state) => const MenuPage(),
+            ),
+          ],
+        ),
       ],
     ),
     GoRoute(

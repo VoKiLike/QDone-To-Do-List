@@ -407,11 +407,8 @@ Future<void> _openTaskForm(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    barrierColor: Colors.black.withValues(alpha: 0.62),
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-    ),
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withValues(alpha: 0.78),
     builder: (context) {
       return TaskFormSheet(
         initialTask: task,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qdone/core/theme/app_colors.dart';
-import 'package:qdone/core/widgets/glass_panel.dart';
+import 'package:qdone/core/widgets/modal_glass_surface.dart';
 import 'package:qdone/features/tasks/domain/entities/recurrence_rule.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
 import 'package:qdone/features/tasks/domain/entities/task_category.dart';
@@ -79,13 +79,10 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
   Widget build(BuildContext context) {
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
-      padding: EdgeInsets.fromLTRB(12, 0, 12, bottom + 12),
-      child: GlassPanel(
+      padding: EdgeInsets.only(bottom: bottom),
+      child: ModalGlassSurface(
         borderRadius: 32,
         padding: const EdgeInsets.all(18),
-        opacity: 0.92,
-        blurSigma: 8,
-        borderOpacity: 0.26,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,

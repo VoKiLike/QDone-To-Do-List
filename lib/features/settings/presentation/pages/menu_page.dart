@@ -6,6 +6,7 @@ import 'package:qdone/core/constants/app_constants.dart';
 import 'package:qdone/core/localization/qdone_localizations.dart';
 import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/core/widgets/glass_panel.dart';
+import 'package:qdone/core/widgets/modal_glass_surface.dart';
 import 'package:qdone/features/settings/domain/qdone_backup.dart';
 import 'package:qdone/features/settings/domain/user_settings.dart';
 import 'package:qdone/features/settings/presentation/controllers/settings_controller.dart';
@@ -398,11 +399,8 @@ class _HistorySettings extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      barrierColor: Colors.black.withValues(alpha: 0.62),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.78),
       builder: (context) => _CompletedTasksSheet(tasks: tasks),
     );
   }
@@ -438,11 +436,8 @@ class _KnowledgeBaseSettings extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      barrierColor: Colors.black.withValues(alpha: 0.62),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.78),
       builder: (context) => const _KnowledgeBaseSheet(),
     );
   }
@@ -581,45 +576,48 @@ class _KnowledgeBaseSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.86,
-      minChildSize: 0.55,
-      maxChildSize: 0.96,
-      builder: (context, scrollController) {
-        final bottomPadding = MediaQuery.paddingOf(context).bottom + 112;
-        return ListView(
-          controller: scrollController,
-          padding: EdgeInsets.fromLTRB(18, 12, 18, bottomPadding),
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                const Icon(Icons.menu_book_rounded, color: AppColors.cyan),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Библиотека знаний',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
+    return ModalGlassSurface(
+      padding: EdgeInsets.zero,
+      child: DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.86,
+        minChildSize: 0.55,
+        maxChildSize: 0.96,
+        builder: (context, scrollController) {
+          final bottomPadding = MediaQuery.paddingOf(context).bottom + 112;
+          return ListView(
+            controller: scrollController,
+            padding: EdgeInsets.fromLTRB(18, 18, 18, bottomPadding),
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  const Icon(Icons.menu_book_rounded, color: AppColors.cyan),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Библиотека знаний',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  tooltip: 'Закрыть',
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Значки сгруппированы по смыслу. Цвет и контекст могут меняться, но действие остается тем же.',
-            ),
-            const SizedBox(height: 16),
-            ..._groups.map((group) => _KnowledgeGroupView(group: group)),
-          ],
-        );
-      },
+                  IconButton(
+                    tooltip: 'Закрыть',
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Значки сгруппированы по смыслу. Цвет и контекст могут меняться, но действие остается тем же.',
+              ),
+              const SizedBox(height: 16),
+              ..._groups.map((group) => _KnowledgeGroupView(group: group)),
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -808,8 +806,13 @@ class _CompletedTasksSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+    return ModalGlassSurface(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        18,
+        16,
+        MediaQuery.paddingOf(context).bottom + 24,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

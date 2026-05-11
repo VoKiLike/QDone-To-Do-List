@@ -1,13 +1,12 @@
 name: qdone
 description: "QDone, a premium cross-platform personal planning app by 'VolkoWeb studio'."
 publish_to: 'none'
-version: 0.3.0
+version: 0.3.2
 
 environment:
   sdk: ^3.10.3
 
 dependencies:
-  curved_labeled_navigation_bar: ^2.0.6
   flutter:
     sdk: flutter
   flutter_localizations:
