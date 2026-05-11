@@ -40,6 +40,8 @@ class _LiquidQDoneNavigation extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = QDoneLocalizations.of(context);
     final isLight = Theme.of(context).brightness == Brightness.light;
+    final isLandscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
     final items = <_QDoneNavItem>[
       _QDoneNavItem(
         icon: Icons.calendar_month_rounded,
@@ -52,20 +54,31 @@ class _LiquidQDoneNavigation extends StatelessWidget {
       _QDoneNavItem(icon: Icons.tune_rounded, label: strings.text('menu')),
     ];
 
+    final navigationBar = _CurvedLiquidNavigationBar(
+      items: items,
+      index: navigationShell.currentIndex,
+      isLight: isLight,
+      edgeToEdge: !isLandscape,
+      onTap: (index) {
+        navigationShell.goBranch(
+          index,
+          initialLocation: index == navigationShell.currentIndex,
+        );
+      },
+    );
+
+    if (!isLandscape) {
+      return MediaQuery.removePadding(
+        context: context,
+        removeBottom: true,
+        child: navigationBar,
+      );
+    }
+
     return SafeArea(
       top: false,
       minimum: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-      child: _CurvedLiquidNavigationBar(
-        items: items,
-        index: navigationShell.currentIndex,
-        isLight: isLight,
-        onTap: (index) {
-          navigationShell.goBranch(
-            index,
-            initialLocation: index == navigationShell.currentIndex,
-          );
-        },
-      ),
+      child: navigationBar,
     );
   }
 }
@@ -75,6 +88,7 @@ class _CurvedLiquidNavigationBar extends StatefulWidget {
     required this.items,
     required this.index,
     required this.isLight,
+    required this.edgeToEdge,
     required this.onTap,
   }) : assert(items.length > 0),
        assert(index >= 0 && index < items.length);
@@ -82,6 +96,7 @@ class _CurvedLiquidNavigationBar extends StatefulWidget {
   final List<_QDoneNavItem> items;
   final int index;
   final bool isLight;
+  final bool edgeToEdge;
   final ValueChanged<int> onTap;
 
   @override
@@ -193,7 +208,7 @@ class _CurvedLiquidNavigationBarState extends State<_CurvedLiquidNavigationBar>
       _ => 0.55,
     };
     final inactiveColor = widget.isLight
-        ? const Color(0xFF3F3A4B)
+        ? const Color(0xFF383443)
         : Colors.white.withValues(alpha: 0.74);
     final labelStyle = TextStyle(
       color: inactiveColor,
@@ -202,11 +217,12 @@ class _CurvedLiquidNavigationBarState extends State<_CurvedLiquidNavigationBar>
       fontWeight: FontWeight.w800,
     );
     final barColor = widget.isLight
-        ? Colors.white.withValues(alpha: 0.70)
+        ? const Color(0xFFE4E6EE).withValues(alpha: 0.88)
         : const Color(0xFF0C0918).withValues(alpha: 0.70);
-    final borderColor = Colors.white.withValues(
-      alpha: widget.isLight ? 0.62 : 0.18,
-    );
+    final borderColor = widget.isLight
+        ? const Color(0xFFC3C7D4).withValues(alpha: 0.78)
+        : Colors.white.withValues(alpha: 0.18);
+    final bottomCornerRadius = widget.edgeToEdge ? 0.0 : 26.0;
 
     return SizedBox(
       height: _navTotalHeight,
@@ -250,6 +266,7 @@ class _CurvedLiquidNavigationBarState extends State<_CurvedLiquidNavigationBar>
                     itemsLength: _length,
                     textDirection: textDirection,
                     bottomFactor: bottomFactor,
+                    bottomCornerRadius: bottomCornerRadius,
                     borderColor: borderColor,
                   ),
                   child: ClipPath(
@@ -258,6 +275,7 @@ class _CurvedLiquidNavigationBarState extends State<_CurvedLiquidNavigationBar>
                       itemsLength: _length,
                       textDirection: textDirection,
                       bottomFactor: bottomFactor,
+                      bottomCornerRadius: bottomCornerRadius,
                     ),
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
@@ -463,12 +481,14 @@ class _CurvedLiquidNavClipper extends CustomClipper<Path> {
     required this.itemsLength,
     required this.textDirection,
     required this.bottomFactor,
+    required this.bottomCornerRadius,
   });
 
   final double startingLoc;
   final int itemsLength;
   final TextDirection textDirection;
   final double bottomFactor;
+  final double bottomCornerRadius;
 
   @override
   Path getClip(Size size) {
@@ -478,6 +498,7 @@ class _CurvedLiquidNavClipper extends CustomClipper<Path> {
       itemsLength: itemsLength,
       textDirection: textDirection,
       bottomFactor: bottomFactor,
+      bottomCornerRadius: bottomCornerRadius,
     );
   }
 
@@ -486,7 +507,8 @@ class _CurvedLiquidNavClipper extends CustomClipper<Path> {
     return oldClipper.startingLoc != startingLoc ||
         oldClipper.itemsLength != itemsLength ||
         oldClipper.textDirection != textDirection ||
-        oldClipper.bottomFactor != bottomFactor;
+        oldClipper.bottomFactor != bottomFactor ||
+        oldClipper.bottomCornerRadius != bottomCornerRadius;
   }
 }
 
@@ -496,6 +518,7 @@ class _CurvedLiquidNavBorderPainter extends CustomPainter {
     required this.itemsLength,
     required this.textDirection,
     required this.bottomFactor,
+    required this.bottomCornerRadius,
     required this.borderColor,
   });
 
@@ -503,6 +526,7 @@ class _CurvedLiquidNavBorderPainter extends CustomPainter {
   final int itemsLength;
   final TextDirection textDirection;
   final double bottomFactor;
+  final double bottomCornerRadius;
   final Color borderColor;
 
   @override
@@ -513,6 +537,7 @@ class _CurvedLiquidNavBorderPainter extends CustomPainter {
       itemsLength: itemsLength,
       textDirection: textDirection,
       bottomFactor: bottomFactor,
+      bottomCornerRadius: bottomCornerRadius,
     );
     final paint = Paint()
       ..color = borderColor
@@ -527,6 +552,7 @@ class _CurvedLiquidNavBorderPainter extends CustomPainter {
         oldDelegate.itemsLength != itemsLength ||
         oldDelegate.textDirection != textDirection ||
         oldDelegate.bottomFactor != bottomFactor ||
+        oldDelegate.bottomCornerRadius != bottomCornerRadius ||
         oldDelegate.borderColor != borderColor;
   }
 }
@@ -537,13 +563,14 @@ Path _buildCurvedNavPath({
   required int itemsLength,
   required TextDirection textDirection,
   required double bottomFactor,
+  required double bottomCornerRadius,
 }) {
   final span = 1.0 / itemsLength;
   final initialLoc = startingLoc + (span - _navCurveSpan) / 2;
   final loc = textDirection == TextDirection.rtl
       ? (1 - _navCurveSpan) - initialLoc
       : initialLoc;
-  const bottomRadius = 26.0;
+  final bottomRadius = bottomCornerRadius;
 
   return Path()
     ..moveTo(0, 0)

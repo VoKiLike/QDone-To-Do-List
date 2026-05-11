@@ -11,6 +11,7 @@ class DailyPulseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final now = DateTime.now();
     final todayTasks = tasks
         .where((task) => _sameDay(task.dueDate, now))
@@ -65,9 +66,9 @@ class DailyPulseCard extends StatelessWidget {
                 const SizedBox(height: 5),
                 Text(
                   '$done выполнено · $left осталось · $overdue просрочено · $nextLabel',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 5),
                 Text(

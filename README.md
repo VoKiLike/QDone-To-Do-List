@@ -5,7 +5,7 @@
 Clean Architecture, local storage, recurring tasks, reminders, a liquid
 glass-inspired interface, and Android home widget groundwork.
 
-Version: **0.3.2**.
+Version: **0.3.3**.
 
 Русская версия ниже.
 
@@ -15,6 +15,8 @@ Version: **0.3.2**.
 - Russian-first UI.
 - Dark, light, and system theme modes.
 - Custom liquid glass bottom navigation with curved-bar motion and cached tab switching.
+- Calendar vertical scrolling remains responsive while preserving horizontal month swipes.
+- Theme-aware secondary text colors for light and dark modes.
 - Calendar page with Monday-first month view, task indicators, selected-day task list, and task creation/editing.
 - Task overview page with daily summary and collapsible task groups.
 - Local task persistence through repository/data-source boundaries.
@@ -81,7 +83,7 @@ This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md).
 для задач и календаря: Clean Architecture, локальное хранение, повторяющиеся
 задачи, напоминания, интерфейс в стиле liquid glass и основа Android-виджета.
 
-Версия: **0.3.2**.
+Версия: **0.3.3**.
 
 ## Возможности
 
@@ -89,6 +91,8 @@ This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md).
 - Русскоязычный интерфейс по умолчанию.
 - Темная, светлая и системная темы.
 - Кастомная нижняя навигация в стиле liquid glass с curved-анимацией и сохранением вкладок.
+- Вертикальный скролл календаря работает стабильно при сохранении горизонтального свайпа месяцев.
+- Вторичные тексты используют цвета темы и читаются в светлом и темном режимах.
 - Страница календаря: месяц с началом недели в понедельник, точки задач, список задач выбранного дня, создание и редактирование задач.
 - Главная страница задач: сводка дня и сворачиваемые группы задач.
 - Локальное сохранение задач через repository/data-source слой.

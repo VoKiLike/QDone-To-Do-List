@@ -55,6 +55,7 @@ class CalendarPage extends ConsumerWidget {
             child: TableCalendar<Task>(
               locale: 'ru_RU',
               startingDayOfWeek: StartingDayOfWeek.monday,
+              availableGestures: AvailableGestures.horizontalSwipe,
               focusedDay: selectedDay,
               firstDay: DateTime.now().subtract(const Duration(days: 365)),
               lastDay: DateTime.now().add(const Duration(days: 365 * 3)),
@@ -328,9 +329,9 @@ class _CalendarTaskTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       '${task.dueTime.format(context)} - ${task.category.name} - ${task.recurrenceRule.summary}',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.white70),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
