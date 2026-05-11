@@ -8,7 +8,9 @@ List<DateTime> buildDefaultReminderTimes({
     return const <DateTime>[];
   }
   final reference = now ?? DateTime.now();
-  final offset = Duration(minutes: defaultReminderMinutes.clamp(0, 1440));
+  final offset = Duration(
+    minutes: defaultReminderMinutes.clamp(0, 525600).toInt(),
+  );
   final preferred = dueDateTime.subtract(offset);
   if (!preferred.isBefore(reference)) {
     return <DateTime>[preferred];

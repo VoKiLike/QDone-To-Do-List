@@ -123,4 +123,53 @@ void main() {
       DateTime.thursday,
     ]);
   });
+
+  test('supports custom recurrence every two weeks', () {
+    final task = taskWithRule(
+      RecurrenceRule(
+        type: RecurrenceType.custom,
+        interval: 2,
+        intervalUnit: RecurrenceIntervalUnit.weeks,
+        startDate: DateTime(2026, 5, 11),
+        isEnabled: true,
+      ),
+    );
+
+    final occurrences = service.occurrencesForRange(
+      task: task,
+      from: DateTime(2026, 5, 11),
+      to: DateTime(2026, 6, 10),
+    );
+
+    expect(occurrences, <DateTime>[
+      DateTime(2026, 5, 11, 8),
+      DateTime(2026, 5, 25, 8),
+      DateTime(2026, 6, 8, 8),
+    ]);
+  });
+
+  test('supports custom recurrence every two months', () {
+    final task = taskWithRule(
+      RecurrenceRule(
+        type: RecurrenceType.custom,
+        interval: 2,
+        intervalUnit: RecurrenceIntervalUnit.months,
+        startDate: DateTime(2026, 5, 10),
+        isEnabled: true,
+      ),
+    );
+
+    final occurrences = service.occurrencesForRange(
+      task: task,
+      from: DateTime(2026, 5, 10),
+      to: DateTime(2026, 11, 10),
+    );
+
+    expect(occurrences, <DateTime>[
+      DateTime(2026, 5, 10, 8),
+      DateTime(2026, 7, 10, 8),
+      DateTime(2026, 9, 10, 8),
+      DateTime(2026, 11, 10, 8),
+    ]);
+  });
 }

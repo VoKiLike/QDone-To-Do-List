@@ -42,7 +42,11 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
   late TaskCategory _category;
   late bool _customCategoryEnabled;
   late bool _reminderEnabled;
+  late int _reminderLeadValue;
+  late RecurrenceIntervalUnit _reminderLeadUnit;
   late RecurrenceType _recurrenceType;
+  late int _recurrenceInterval;
+  late RecurrenceIntervalUnit _recurrenceIntervalUnit;
   late final List<TimeOfDay> _timesOfDay;
   bool _saving = false;
 
@@ -65,8 +69,17 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
     );
     _reminderEnabled =
         task?.reminders.isNotEmpty ?? widget.notificationsEnabled;
-    _recurrenceType = task?.recurrenceRule.type ?? RecurrenceType.none;
-    _timesOfDay = <TimeOfDay>[...?task?.recurrenceRule.timesOfDay];
+    final reminderOffset = _initialReminderOffset(task);
+    _reminderLeadValue = reminderOffset.$1;
+    _reminderLeadUnit = reminderOffset.$2;
+    final recurrenceRule = task?.recurrenceRule;
+    _recurrenceType = recurrenceRule?.type ?? RecurrenceType.none;
+    _recurrenceInterval = (recurrenceRule?.interval ?? 1)
+        .clamp(1, 999)
+        .toInt();
+    _recurrenceIntervalUnit =
+        recurrenceRule?.intervalUnit ?? RecurrenceIntervalUnit.days;
+    _timesOfDay = <TimeOfDay>[...?recurrenceRule?.timesOfDay];
   }
 
   @override
@@ -226,6 +239,19 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
                                 onChanged: (value) =>
                                     setState(() => _reminderEnabled = value),
                               ),
+                              if (_reminderEnabled) ...<Widget>[
+                                const SizedBox(height: 14),
+                                TaskFormReminderTimingEditor(
+                                  value: _reminderLeadValue,
+                                  unit: _reminderLeadUnit,
+                                  onValueChanged: (value) => setState(
+                                    () => _reminderLeadValue = value,
+                                  ),
+                                  onUnitChanged: (unit) => setState(
+                                    () => _reminderLeadUnit = unit,
+                                  ),
+                                ),
+                              ],
                               const SizedBox(height: 16),
                               TaskFormSegment<RecurrenceType>(
                                 label: 'Повтор',
@@ -238,6 +264,20 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
                                 onChanged: (value) =>
                                     setState(() => _recurrenceType = value),
                               ),
+                              if (_recurrenceType ==
+                                  RecurrenceType.custom) ...<Widget>[
+                                const SizedBox(height: 14),
+                                TaskFormIntervalEditor(
+                                  value: _recurrenceInterval,
+                                  unit: _recurrenceIntervalUnit,
+                                  onValueChanged: (value) => setState(
+                                    () => _recurrenceInterval = value,
+                                  ),
+                                  onUnitChanged: (unit) => setState(
+                                    () => _recurrenceIntervalUnit = unit,
+                                  ),
+                                ),
+                              ],
                               if (_recurrenceType !=
                                   RecurrenceType.none) ...<Widget>[
                                 const SizedBox(height: 14),
@@ -350,8 +390,8 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
           energyLevel: _energy,
           recurrenceRule: RecurrenceRule(
             type: _recurrenceType,
-            interval: 1,
-            intervalUnit: RecurrenceIntervalUnit.days,
+            interval: _effectiveRecurrenceInterval,
+            intervalUnit: _effectiveRecurrenceIntervalUnit,
             timesOfDay: List<TimeOfDay>.unmodifiable(_timesOfDay),
             startDate: _date,
             isEnabled: _recurrenceType != RecurrenceType.none,
@@ -359,7 +399,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
           reminderTimes: buildDefaultReminderTimes(
             dueDateTime: dueDateTime,
             enabled: _reminderEnabled,
-            defaultReminderMinutes: widget.defaultReminderMinutes,
+            defaultReminderMinutes: _reminderOffsetMinutes,
           ),
         ),
       );
@@ -388,6 +428,53 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
       name: safeName,
       colorValue: 0xFF2DD4BF,
     );
+  }
+
+  int get _effectiveRecurrenceInterval {
+    return _recurrenceType == RecurrenceType.custom
+        ? _recurrenceInterval.clamp(1, 999).toInt()
+        : 1;
+  }
+
+  RecurrenceIntervalUnit get _effectiveRecurrenceIntervalUnit {
+    return _recurrenceType == RecurrenceType.custom
+        ? _recurrenceIntervalUnit
+        : RecurrenceIntervalUnit.days;
+  }
+
+  int get _reminderOffsetMinutes {
+    final value = _reminderLeadValue.clamp(0, 999).toInt();
+    return switch (_reminderLeadUnit) {
+      RecurrenceIntervalUnit.minutes => value,
+      RecurrenceIntervalUnit.hours => value * 60,
+      RecurrenceIntervalUnit.days => value * 1440,
+      RecurrenceIntervalUnit.weeks => value * 10080,
+      RecurrenceIntervalUnit.months => value * 43200,
+    };
+  }
+
+  (int, RecurrenceIntervalUnit) _initialReminderOffset(Task? task) {
+    if (task == null || task.reminders.isEmpty) {
+      return _splitReminderOffset(widget.defaultReminderMinutes);
+    }
+    final minutes = task.dueDateTime
+        .difference(task.reminders.first.dateTime)
+        .inMinutes;
+    return _splitReminderOffset(minutes < 0 ? 0 : minutes);
+  }
+
+  (int, RecurrenceIntervalUnit) _splitReminderOffset(int minutes) {
+    final safeMinutes = minutes.clamp(0, 525600).toInt();
+    if (safeMinutes == 0) {
+      return (0, RecurrenceIntervalUnit.minutes);
+    }
+    if (safeMinutes % 1440 == 0) {
+      return (safeMinutes ~/ 1440, RecurrenceIntervalUnit.days);
+    }
+    if (safeMinutes % 60 == 0) {
+      return (safeMinutes ~/ 60, RecurrenceIntervalUnit.hours);
+    }
+    return (safeMinutes, RecurrenceIntervalUnit.minutes);
   }
 }
 

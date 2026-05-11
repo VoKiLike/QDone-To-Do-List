@@ -3,5 +3,5 @@ class AppConstants {
 
   static const appName = 'QDone';
   static const studioName = 'VolkoWeb studio';
-  static const appVersion = '0.4.1';
+  static const appVersion = '0.4.2';
 }

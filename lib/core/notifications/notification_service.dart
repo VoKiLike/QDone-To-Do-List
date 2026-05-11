@@ -166,16 +166,18 @@ class NotificationService {
         .toList();
 
     final items = <_NotificationScheduleItem>[];
+    final reminderOffset = _reminderOffsetFor(task, enabledReminders.first);
     for (final occurrence in occurrences) {
       if (items.length >= maxPendingNotificationsPerTask) {
         break;
       }
       final template = _templateReminderFor(task, enabledReminders, occurrence);
+      final notificationTime = occurrence.add(reminderOffset);
       items.add(
         _NotificationScheduleItem(
           reminder: template,
-          dateTime: occurrence,
-          notificationId: _stableNotificationIdFor(task.id, occurrence),
+          dateTime: notificationTime,
+          notificationId: _stableNotificationIdFor(task.id, notificationTime),
         ),
       );
     }
@@ -205,6 +207,14 @@ class NotificationService {
           reminder.dateTime.minute == occurrence.minute,
       orElse: () => reminders.first,
     );
+  }
+
+  Duration _reminderOffsetFor(Task task, Reminder reminder) {
+    final offset = reminder.dateTime.difference(task.dueDateTime);
+    if (offset.isNegative) {
+      return offset;
+    }
+    return Duration.zero;
   }
 }
 

@@ -34,4 +34,15 @@ void main() {
 
     expect(reminders, isEmpty);
   });
+
+  test('supports reminder offsets larger than one day', () {
+    final reminders = buildDefaultReminderTimes(
+      dueDateTime: DateTime(2026, 5, 10, 20),
+      enabled: true,
+      defaultReminderMinutes: 3 * 24 * 60,
+      now: DateTime(2026, 5, 1, 10),
+    );
+
+    expect(reminders, <DateTime>[DateTime(2026, 5, 7, 20)]);
+  });
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/features/tasks/domain/entities/task_category.dart';
+import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
 
 class TaskFormPickerButton extends StatelessWidget {
   const TaskFormPickerButton({
@@ -257,6 +258,186 @@ class TaskFormMultipleTimesEditor extends StatelessWidget {
       ),
     );
   }
+}
+
+class TaskFormIntervalEditor extends StatelessWidget {
+  const TaskFormIntervalEditor({
+    super.key,
+    required this.value,
+    required this.unit,
+    required this.onValueChanged,
+    required this.onUnitChanged,
+  });
+
+  final int value;
+  final RecurrenceIntervalUnit unit;
+  final ValueChanged<int> onValueChanged;
+  final ValueChanged<RecurrenceIntervalUnit> onUnitChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return _IntervalPanel(
+      title: 'Каждые',
+      value: value,
+      min: 1,
+      unit: unit,
+      units: RecurrenceIntervalUnit.values,
+      onValueChanged: onValueChanged,
+      onUnitChanged: onUnitChanged,
+    );
+  }
+}
+
+class TaskFormReminderTimingEditor extends StatelessWidget {
+  const TaskFormReminderTimingEditor({
+    super.key,
+    required this.value,
+    required this.unit,
+    required this.onValueChanged,
+    required this.onUnitChanged,
+  });
+
+  final int value;
+  final RecurrenceIntervalUnit unit;
+  final ValueChanged<int> onValueChanged;
+  final ValueChanged<RecurrenceIntervalUnit> onUnitChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return _IntervalPanel(
+      title: 'Уведомить за',
+      value: value,
+      min: 0,
+      unit: unit,
+      units: const <RecurrenceIntervalUnit>[
+        RecurrenceIntervalUnit.minutes,
+        RecurrenceIntervalUnit.hours,
+        RecurrenceIntervalUnit.days,
+      ],
+      zeroLabel: 'в срок',
+      onValueChanged: onValueChanged,
+      onUnitChanged: onUnitChanged,
+    );
+  }
+}
+
+class _IntervalPanel extends StatelessWidget {
+  const _IntervalPanel({
+    required this.title,
+    required this.value,
+    required this.min,
+    required this.unit,
+    required this.units,
+    required this.onValueChanged,
+    required this.onUnitChanged,
+    this.zeroLabel,
+  });
+
+  final String title;
+  final int value;
+  final int min;
+  final RecurrenceIntervalUnit unit;
+  final List<RecurrenceIntervalUnit> units;
+  final ValueChanged<int> onValueChanged;
+  final ValueChanged<RecurrenceIntervalUnit> onUnitChanged;
+  final String? zeroLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final normalizedValue = value.clamp(min, 999).toInt();
+    final isAtMinimum = normalizedValue <= min;
+    final label = zeroLabel != null && normalizedValue == 0
+        ? zeroLabel!
+        : '$normalizedValue ${_unitLabel(unit, normalizedValue)}';
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.violet.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.violet.withValues(alpha: 0.16)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: AppColors.turquoise,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                IconButton.filledTonal(
+                  tooltip: 'Уменьшить',
+                  onPressed: isAtMinimum
+                      ? null
+                      : () => onValueChanged(normalizedValue - 1),
+                  icon: const Icon(Icons.remove_rounded),
+                ),
+                const SizedBox(width: 8),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.cyan.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.cyan.withValues(alpha: 0.28),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: Text(
+                      label,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: AppColors.cyan,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  tooltip: 'Увеличить',
+                  onPressed: normalizedValue >= 999
+                      ? null
+                      : () => onValueChanged(normalizedValue + 1),
+                  icon: const Icon(Icons.add_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: units.map((item) {
+                return _TaskFormChip(
+                  selected: item == unit,
+                  label: _unitLabel(item, normalizedValue),
+                  onTap: () => onUnitChanged(item),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _unitLabel(RecurrenceIntervalUnit unit, int value) {
+  return switch (unit) {
+    RecurrenceIntervalUnit.minutes => 'мин.',
+    RecurrenceIntervalUnit.hours => 'ч.',
+    RecurrenceIntervalUnit.days => 'дн.',
+    RecurrenceIntervalUnit.weeks => 'нед.',
+    RecurrenceIntervalUnit.months => 'мес.',
+  };
 }
 
 class _TaskFormChip extends StatelessWidget {

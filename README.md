@@ -5,7 +5,7 @@
 Clean Architecture, local storage, recurring tasks, reminders, a liquid
 glass-inspired interface, and Android home widget groundwork.
 
-Version: **0.4.1**.
+Version: **0.4.2**.
 
 Русская версия ниже.
 
@@ -27,6 +27,8 @@ Version: **0.4.1**.
 - Task status controls now use a brighter animated press highlight and smoother icon transitions.
 - Task group counters and task-list membership changes animate when tasks move between overdue, current, future, and completed sections.
 - Bundled QDone typography now pairs a sharp Latin brand font for `QDone` with a denser Cyrillic UI font for the rest of the app.
+- Custom recurrence in the task form now supports flexible intervals such as every 2 weeks or every 2 months.
+- Per-task reminder timing can now be adjusted in the create/edit form and is applied to recurring task notifications.
 - Local task persistence through repository/data-source boundaries.
 - Task model with priority, energy level, category, status, reminders, recurrence, archive state, and notification IDs.
 - Recurring task foundation with daily, weekly, monthly, yearly, custom intervals, and multiple times per day.
@@ -94,7 +96,7 @@ This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md).
 для задач и календаря: Clean Architecture, локальное хранение, повторяющиеся
 задачи, напоминания, интерфейс в стиле liquid glass и основа Android-виджета.
 
-Версия: **0.4.1**.
+Версия: **0.4.2**.
 
 ## Возможности
 
@@ -114,6 +116,8 @@ This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md).
 - Статусная кнопка задачи получила более яркую анимацию нажатия и плавную смену значка.
 - Счетчики групп и перемещение задач между просроченными, текущими, будущими и выполненными секциями теперь анимируются.
 - В приложение встроена новая типографика QDone: резкий латинский шрифт для бренда `QDone` и более плотный кириллический UI-шрифт для остального интерфейса.
+- Настраиваемый повтор в форме задачи теперь поддерживает гибкие интервалы, например раз в 2 недели или раз в 2 месяца.
+- Время напоминания можно настраивать для каждой задачи в форме создания/изменения; это смещение применяется и к повторяющимся уведомлениям.
 - Локальное сохранение задач через repository/data-source слой.
 - Модель задачи с приоритетом, уровнем энергии, категорией, статусом, напоминаниями, повтором, архивом и ID уведомлений.
 - Основа повторяющихся задач: ежедневно, еженедельно, ежемесячно, ежегодно, пользовательские интервалы и несколько времен в день.
