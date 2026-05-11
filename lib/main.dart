@@ -10,17 +10,18 @@ import 'package:qdone/features/settings/data/local_settings_repository.dart';
 import 'package:qdone/features/settings/data/settings_local_data_source.dart';
 import 'package:qdone/features/tasks/data/datasources/task_local_data_source.dart';
 import 'package:qdone/features/tasks/data/repositories/local_task_repository.dart';
-import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
-import 'package:qdone/features/tasks/domain/services/recurrence_service.dart';
+import 'package:qdone/features/tasks/domain/services/task_mutation_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 @pragma('vm:entry-point')
 Future<void> qdoneWidgetCallback(Uri? uri) async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (uri?.host != 'done') {
+  if (uri?.host != 'task') {
     return;
   }
-  final taskId = uri?.queryParameters['taskId'];
+  final taskId = uri?.pathSegments.isNotEmpty == true
+      ? uri!.pathSegments.first
+      : uri?.queryParameters['taskId'];
   if (taskId == null || taskId.isEmpty) {
     return;
   }
@@ -30,39 +31,15 @@ Future<void> qdoneWidgetCallback(Uri? uri) async {
   final settingsRepository = LocalSettingsRepository(
     SettingsLocalDataSource(preferences),
   );
-  final tasks = await taskRepository.watchAll();
-  final index = tasks.indexWhere((task) => task.id == taskId);
-  if (index == -1) {
-    return;
-  }
-
-  final task = tasks[index];
-  final nextOccurrence = const RecurrenceService().nextOccurrenceAfter(
-    task: task,
-    after: task.dueDateTime,
+  final notificationService = NotificationService(
+    FlutterLocalNotificationsPlugin(),
   );
-  if (nextOccurrence != null) {
-    await taskRepository.upsert(
-      task.copyWith(
-        dueDate: DateTime(
-          nextOccurrence.year,
-          nextOccurrence.month,
-          nextOccurrence.day,
-        ),
-        dueTime: TimeOfDay(
-          hour: nextOccurrence.hour,
-          minute: nextOccurrence.minute,
-        ),
-        status: TaskStatus.active,
-        clearCompletedAt: true,
-        notificationIds: const <int>[],
-      ),
-    );
-  } else {
-    await taskRepository.upsert(
-      task.copyWith(status: TaskStatus.completed, completedAt: DateTime.now()),
-    );
-  }
+  await notificationService.initialize();
+  await TaskMutationService(
+    repository: taskRepository,
+    notificationService: notificationService,
+    settingsRepository: settingsRepository,
+  ).toggleFromWidget(taskId);
   await const HomeWidgetSyncService().sync(
     tasks: await taskRepository.watchAll(),
     settings: await settingsRepository.read(),

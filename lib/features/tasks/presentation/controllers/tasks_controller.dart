@@ -9,8 +9,8 @@ import 'package:qdone/features/tasks/domain/entities/task.dart';
 import 'package:qdone/features/tasks/domain/entities/task_category.dart';
 import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
 import 'package:qdone/features/tasks/domain/repositories/task_repository.dart';
-import 'package:qdone/features/tasks/domain/services/recurrence_service.dart';
-import 'package:uuid/uuid.dart';
+import 'package:qdone/features/tasks/domain/services/task_calendar_service.dart';
+import 'package:qdone/features/tasks/domain/services/task_mutation_service.dart';
 
 final tasksControllerProvider =
     StateNotifierProvider<TasksController, AsyncValue<List<Task>>>((ref) {
@@ -27,21 +27,24 @@ final tasksBySelectedDateProvider = Provider.family<List<Task>, DateTime>((
 ) {
   final tasks =
       ref.watch(tasksControllerProvider).valueOrNull ?? const <Task>[];
-  return _tasksForDay(tasks, date);
+  return const TaskCalendarService().tasksForDay(tasks, date);
 });
 
 class TasksController extends StateNotifier<AsyncValue<List<Task>>> {
   TasksController(
-    this._repository,
-    this._notificationService,
-    this._settingsRepository,
-  ) : super(const AsyncValue.loading());
+    TaskRepository repository,
+    NotificationService notificationService,
+    SettingsRepository settingsRepository,
+  ) : _repository = repository,
+      _mutations = TaskMutationService(
+        repository: repository,
+        notificationService: notificationService,
+        settingsRepository: settingsRepository,
+      ),
+      super(const AsyncValue.loading());
 
   final TaskRepository _repository;
-  final NotificationService _notificationService;
-  final SettingsRepository _settingsRepository;
-  final _uuid = const Uuid();
-  final _recurrenceService = const RecurrenceService();
+  final TaskMutationService _mutations;
 
   Future<void> load() async {
     state = const AsyncValue.loading();
@@ -72,33 +75,22 @@ class TasksController extends StateNotifier<AsyncValue<List<Task>>> {
     RecurrenceRule recurrenceRule = const RecurrenceRule(),
     List<DateTime> reminderTimes = const <DateTime>[],
   }) async {
-    final id = _uuid.v4();
-    final task = Task(
-      id: id,
-      title: title.trim(),
-      description: description?.trim().isEmpty ?? true
-          ? null
-          : description?.trim(),
-      createdAt: DateTime.now(),
+    await _mutations.addTask(
+      title: title,
+      description: description,
       dueDate: dueDate,
       dueTime: dueTime,
       priority: priority,
+      energyLevel: energyLevel,
       category: category ?? QDoneCategories.personal,
       recurrenceRule: recurrenceRule,
-      reminders: reminderTimes
-          .map(
-            (dateTime) =>
-                Reminder(id: _uuid.v4(), taskId: id, dateTime: dateTime),
-          )
-          .toList(),
-      energyLevel: energyLevel,
+      reminderTimes: reminderTimes,
     );
-    await _repository.upsert(await _scheduleIfAllowed(task));
     await load();
   }
 
   Future<void> updateTask(Task task) async {
-    await _repository.upsert(await _scheduleIfAllowed(task));
+    await _mutations.updateTask(task);
     await load();
   }
 
@@ -114,150 +106,54 @@ class TasksController extends StateNotifier<AsyncValue<List<Task>>> {
     required RecurrenceRule recurrenceRule,
     required List<DateTime> reminderTimes,
   }) async {
-    await _notificationService.cancelTask(task);
-    await updateTask(
-      task.copyWith(
-        title: title,
-        description: description,
-        dueDate: dueDate,
-        dueTime: dueTime,
-        priority: priority,
-        energyLevel: energyLevel,
-        category: category,
-        recurrenceRule: recurrenceRule,
-        reminders: reminderTimes
-            .map(
-              (dateTime) =>
-                  Reminder(id: _uuid.v4(), taskId: task.id, dateTime: dateTime),
-            )
-            .toList(),
-        notificationIds: const <int>[],
-      ),
+    await _mutations.editTask(
+      task: task,
+      title: title,
+      description: description,
+      dueDate: dueDate,
+      dueTime: dueTime,
+      priority: priority,
+      energyLevel: energyLevel,
+      category: category,
+      recurrenceRule: recurrenceRule,
+      reminderTimes: reminderTimes,
     );
+    await load();
   }
 
   Future<void> complete(Task task) async {
-    await _notificationService.cancelTask(task);
-    if (task.recurrenceRule.isEnabled &&
-        task.recurrenceRule.type != RecurrenceType.none) {
-      final nextOccurrence = _recurrenceService.nextOccurrenceAfter(
-        task: task,
-        after: task.dueDateTime,
-      );
-      if (nextOccurrence != null) {
-        final nextTask = await _scheduleIfAllowed(
-          task.copyWith(
-            dueDate: DateTime(
-              nextOccurrence.year,
-              nextOccurrence.month,
-              nextOccurrence.day,
-            ),
-            dueTime: TimeOfDay(
-              hour: nextOccurrence.hour,
-              minute: nextOccurrence.minute,
-            ),
-            status: TaskStatus.active,
-            clearCompletedAt: true,
-            notificationIds: const <int>[],
-          ),
-        );
-        await _repository.upsert(nextTask);
-        await load();
-        return;
-      }
-    }
-
-    await _repository.upsert(
-      task.copyWith(status: TaskStatus.completed, completedAt: DateTime.now()),
-    );
+    await _mutations.complete(task);
     await load();
   }
 
   Future<void> restore(Task task) async {
-    await _repository.upsert(
-      await _scheduleIfAllowed(
-        task.copyWith(
-          status: TaskStatus.active,
-          clearCompletedAt: true,
-          isArchived: false,
-          notificationIds: const <int>[],
-        ),
-      ),
-    );
+    await _mutations.restore(task);
     await load();
   }
 
   Future<void> archive(Task task) async {
-    await _notificationService.cancelTask(task);
-    await _repository.upsert(
-      task.copyWith(
-        status: TaskStatus.archived,
-        completedAt: task.completedAt ?? DateTime.now(),
-        isArchived: true,
-      ),
-    );
+    await _mutations.archive(task);
     await load();
   }
 
   Future<void> delete(Task task) async {
-    await _notificationService.cancelTask(task);
-    await _repository.delete(task.id);
+    await _mutations.delete(task);
     await load();
   }
 
   Future<void> clearCompleted() async {
-    final tasks = await _repository.watchAll();
-    for (final task in tasks.where((task) => task.isCompleted)) {
-      await _notificationService.cancelTask(task);
-    }
-    await _repository.clearCompleted();
+    await _mutations.clearCompleted();
     await load();
   }
 
   Future<void> snooze(Task task, Duration duration) async {
-    await _notificationService.cancelTask(task);
-    final next = DateTime.now().add(duration);
-    await _repository.upsert(
-      await _scheduleIfAllowed(
-        task.copyWith(
-          dueDate: DateTime(next.year, next.month, next.day),
-          dueTime: TimeOfDay(hour: next.hour, minute: next.minute),
-          status: TaskStatus.active,
-          clearCompletedAt: true,
-          isArchived: false,
-          reminders: <Reminder>[
-            Reminder(id: _uuid.v4(), taskId: task.id, dateTime: next),
-          ],
-          notificationIds: const <int>[],
-        ),
-      ),
-    );
+    await _mutations.snooze(task, duration);
     await load();
   }
 
   Future<void> reschedule(Task task, DateTime dateTime) async {
-    await _notificationService.cancelTask(task);
-    await _repository.upsert(
-      await _scheduleIfAllowed(
-        task.copyWith(
-          dueDate: DateTime(dateTime.year, dateTime.month, dateTime.day),
-          dueTime: TimeOfDay(hour: dateTime.hour, minute: dateTime.minute),
-          status: TaskStatus.active,
-          clearCompletedAt: true,
-          isArchived: false,
-          notificationIds: const <int>[],
-        ),
-      ),
-    );
+    await _mutations.reschedule(task, dateTime);
     await load();
-  }
-
-  Future<Task> _scheduleIfAllowed(Task task) async {
-    final settings = await _settingsRepository.read();
-    if (!settings.notificationsEnabled || task.reminders.isEmpty) {
-      return task.copyWith(notificationIds: const <int>[]);
-    }
-    return _notificationService.scheduleTask(task);
   }
 
   List<Task> _withEffectiveStatus(List<Task> tasks) {
@@ -403,51 +299,4 @@ List<Task> _localizeBuiltInTasks(List<Task> tasks) {
       _ => task,
     };
   }).toList();
-}
-
-bool _isSameDay(DateTime a, DateTime b) {
-  return a.year == b.year && a.month == b.month && a.day == b.day;
-}
-
-List<Task> _tasksForDay(List<Task> tasks, DateTime day) {
-  final recurrenceService = const RecurrenceService();
-  final start = DateTime(day.year, day.month, day.day);
-  final end = DateTime(day.year, day.month, day.day, 23, 59, 59);
-  final result = <Task>[];
-
-  for (final task in tasks) {
-    if (task.recurrenceRule.isEnabled &&
-        task.recurrenceRule.type != RecurrenceType.none &&
-        !task.isArchived) {
-      final occurrences = recurrenceService.occurrencesForRange(
-        task: task,
-        from: start,
-        to: end,
-      );
-      result.addAll(
-        occurrences.map(
-          (occurrence) => task
-              .copyWith(
-                dueDate: DateTime(
-                  occurrence.year,
-                  occurrence.month,
-                  occurrence.day,
-                ),
-                dueTime: TimeOfDay(
-                  hour: occurrence.hour,
-                  minute: occurrence.minute,
-                ),
-              )
-              .effectiveStatus(),
-        ),
-      );
-      continue;
-    }
-
-    if (_isSameDay(task.dueDate, day)) {
-      result.add(task);
-    }
-  }
-
-  return result;
 }

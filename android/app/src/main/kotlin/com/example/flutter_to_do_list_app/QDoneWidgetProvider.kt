@@ -1,16 +1,14 @@
 package com.volkoweb.qdone
 
-import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
-import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Color
 import android.graphics.Paint
 import android.net.Uri
 import android.view.View
 import android.widget.RemoteViews
+import es.antonborri.home_widget.HomeWidgetBackgroundIntent
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetProvider
 import java.time.LocalDateTime
@@ -18,17 +16,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class QDoneWidgetProvider : HomeWidgetProvider() {
-    override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == ACTION_TOGGLE_TASK) {
-            val taskId = intent.getStringExtra(EXTRA_TASK_ID)
-            if (!taskId.isNullOrBlank() && toggleTask(context, taskId)) {
-                updateAllWidgets(context)
-            }
-            return
-        }
-        super.onReceive(context, intent)
-    }
-
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -45,7 +32,10 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
         widgetData: SharedPreferences?
     ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.qdone_widget)
-        views.setTextViewText(R.id.widget_title, widgetData?.getString("widget_title", "QDone") ?: "QDone")
+        views.setTextViewText(
+            R.id.widget_title,
+            widgetData?.getString(WIDGET_TITLE_KEY, "QDone") ?: "QDone"
+        )
 
         val openIntent = HomeWidgetLaunchIntent.getActivity(
             context,
@@ -68,7 +58,10 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
         val prefs = flutterPreferences(context)
         val settings = readSettings(prefs)
         val rows = readWidgetTasks(prefs, settings)
-            ?: readWidgetTasks(widgetData?.getString("widget_tasks_json", "[]"), settings.compact)
+            ?: readWidgetTasks(
+                widgetData?.getString(WIDGET_TASKS_JSON_KEY, "[]"),
+                settings.compact
+            )
             ?: emptyList()
 
         if (rows.isEmpty()) {
@@ -83,7 +76,11 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
         }
 
         rows.forEach { item ->
-            val layout = if (settings.compact) R.layout.qdone_widget_row_compact else R.layout.qdone_widget_row
+            val layout = if (settings.compact) {
+                R.layout.qdone_widget_row_compact
+            } else {
+                R.layout.qdone_widget_row
+            }
             val row = RemoteViews(context.packageName, layout)
             val done = item.isCompleted
             val taskId = item.id
@@ -112,7 +109,11 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
             row.setInt(
                 R.id.widget_task_done,
                 "setBackgroundResource",
-                if (done) R.drawable.qdone_widget_restore_button else R.drawable.qdone_widget_done_button
+                if (done) {
+                    R.drawable.qdone_widget_restore_button
+                } else {
+                    R.drawable.qdone_widget_done_button
+                }
             )
             setStrike(row, R.id.widget_task_time, done)
             setStrike(row, R.id.widget_task_category, done)
@@ -124,7 +125,13 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
                 Uri.parse("qdone://task/$taskId")
             )
             row.setOnClickPendingIntent(R.id.widget_task_row, openIntent)
-            row.setOnClickPendingIntent(R.id.widget_task_done, toggleIntent(context, taskId))
+            row.setOnClickPendingIntent(
+                R.id.widget_task_done,
+                HomeWidgetBackgroundIntent.getBroadcast(
+                    context,
+                    Uri.parse("qdone://task/$taskId")
+                )
+            )
             views.addView(R.id.widget_rows, row)
         }
     }
@@ -134,7 +141,13 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
         settings: WidgetSettings
     ): List<WidgetTask>? {
         val raw = prefs.getString(TASKS_KEY, null) ?: return null
-        return readWidgetTasks(raw, settings.compact, settings.showCompleted, settings.taskLimit, true)
+        return readWidgetTasks(
+            raw = raw,
+            compact = settings.compact,
+            showCompleted = settings.showCompleted,
+            taskLimit = settings.taskLimit,
+            fromTaskStore = true
+        )
     }
 
     private fun readWidgetTasks(
@@ -150,7 +163,11 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
         val tasks = mutableListOf<WidgetTask>()
         for (index in 0 until source.length()) {
             val item = source.optJSONObject(index) ?: continue
-            val task = if (fromTaskStore) WidgetTask.fromTaskJson(item) else WidgetTask.fromWidgetJson(item)
+            val task = if (fromTaskStore) {
+                WidgetTask.fromTaskJson(item)
+            } else {
+                WidgetTask.fromWidgetJson(item)
+            }
             if (showCompleted || !task.isCompleted) {
                 tasks.add(task)
             }
@@ -162,53 +179,6 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
                     .thenBy { it.dueDateTime ?: LocalDateTime.MAX }
             )
             .take(taskLimit.coerceIn(1, 10))
-    }
-
-    private fun toggleTask(context: Context, taskId: String): Boolean {
-        val prefs = flutterPreferences(context)
-        val raw = prefs.getString(TASKS_KEY, null) ?: return false
-        val tasks = runCatching { JSONArray(raw) }.getOrNull() ?: return false
-        var changed = false
-
-        for (index in 0 until tasks.length()) {
-            val task = tasks.optJSONObject(index) ?: continue
-            if (task.optString("id") != taskId) continue
-
-            val completed = task.optBoolean("isArchived", false) ||
-                task.optString("status") == STATUS_COMPLETED ||
-                task.optString("status") == STATUS_ARCHIVED
-
-            if (completed) {
-                val restoredStatus = if (WidgetTask.dueDateTimeOf(task)?.isBefore(LocalDateTime.now()) == true) {
-                    STATUS_OVERDUE
-                } else {
-                    STATUS_ACTIVE
-                }
-                task.put("status", restoredStatus)
-                task.put("isArchived", false)
-                task.put("completedAt", JSONObject.NULL)
-            } else {
-                task.put("status", STATUS_COMPLETED)
-                task.put("isArchived", false)
-                task.put("completedAt", LocalDateTime.now().toString())
-            }
-            task.put("notificationIds", JSONArray())
-            changed = true
-            break
-        }
-
-        if (!changed) return false
-        prefs.edit().putString(TASKS_KEY, tasks.toString()).apply()
-        return true
-    }
-
-    private fun updateAllWidgets(context: Context) {
-        val manager = AppWidgetManager.getInstance(context)
-        val component = ComponentName(context, QDoneWidgetProvider::class.java)
-        val ids = manager.getAppWidgetIds(component)
-        ids.forEach { widgetId ->
-            manager.updateAppWidget(widgetId, buildViews(context, null))
-        }
     }
 
     private fun readSettings(prefs: SharedPreferences): WidgetSettings {
@@ -224,21 +194,12 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
     private fun flutterPreferences(context: Context): SharedPreferences =
         context.getSharedPreferences(FLUTTER_PREFS, Context.MODE_PRIVATE)
 
-    private fun toggleIntent(context: Context, taskId: String): PendingIntent {
-        val intent = Intent(context, QDoneWidgetProvider::class.java).apply {
-            action = ACTION_TOGGLE_TASK
-            putExtra(EXTRA_TASK_ID, taskId)
-        }
-        return PendingIntent.getBroadcast(
-            context,
-            taskId.hashCode(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-    }
-
     private fun setStrike(row: RemoteViews, viewId: Int, enabled: Boolean) {
-        val flags = Paint.ANTI_ALIAS_FLAG or if (enabled) Paint.STRIKE_THRU_TEXT_FLAG else 0
+        val flags = Paint.ANTI_ALIAS_FLAG or if (enabled) {
+            Paint.STRIKE_THRU_TEXT_FLAG
+        } else {
+            0
+        }
         row.setInt(viewId, "setPaintFlags", flags)
     }
 
@@ -266,7 +227,10 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
                     time = json.optString("time"),
                     category = json.optString("category"),
                     status = status,
-                    isCompleted = json.optBoolean("isCompleted", status == STATUS_COMPLETED || status == STATUS_ARCHIVED),
+                    isCompleted = json.optBoolean(
+                        "isCompleted",
+                        status == STATUS_COMPLETED || status == STATUS_ARCHIVED
+                    ),
                     dueDateTime = null
                 )
             }
@@ -286,7 +250,11 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
                 return WidgetTask(
                     id = json.optString("id"),
                     title = json.optString("title"),
-                    time = if (status == STATUS_OVERDUE) "Проср." else formatTime(json.optString("dueTime", "9:0")),
+                    time = if (status == STATUS_OVERDUE) {
+                        "Проср."
+                    } else {
+                        formatTime(json.optString("dueTime", "9:0"))
+                    },
                     category = json.optJSONObject("category")?.optString("name").orEmpty(),
                     status = status,
                     isCompleted = completed,
@@ -295,8 +263,9 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
             }
 
             fun dueDateTimeOf(json: JSONObject): LocalDateTime? {
-                val dueDate = runCatching { LocalDateTime.parse(json.optString("dueDate")) }.getOrNull()
-                    ?: return null
+                val dueDate = runCatching {
+                    LocalDateTime.parse(json.optString("dueDate"))
+                }.getOrNull() ?: return null
                 val parts = json.optString("dueTime", "9:0").split(":")
                 val hour = parts.getOrNull(0)?.toIntOrNull() ?: 9
                 val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
@@ -313,11 +282,11 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
     }
 
     companion object {
-        private const val ACTION_TOGGLE_TASK = "com.volkoweb.qdone.ACTION_TOGGLE_TASK"
-        private const val EXTRA_TASK_ID = "task_id"
         private const val FLUTTER_PREFS = "FlutterSharedPreferences"
         private const val TASKS_KEY = "flutter.qdone.tasks.v1"
         private const val SETTINGS_KEY = "flutter.qdone.settings.v1"
+        private const val WIDGET_TITLE_KEY = "widget_title"
+        private const val WIDGET_TASKS_JSON_KEY = "widget_tasks_json"
         private const val STATUS_ACTIVE = "active"
         private const val STATUS_OVERDUE = "overdue"
         private const val STATUS_COMPLETED = "completed"

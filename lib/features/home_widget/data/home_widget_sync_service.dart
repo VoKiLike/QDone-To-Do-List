@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
+import 'package:qdone/features/home_widget/data/widget_storage_contract.dart';
 import 'package:qdone/features/settings/domain/user_settings.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
 import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
@@ -18,33 +19,36 @@ class HomeWidgetSyncService {
         .map((task) => '${task.time} - ${task.title}')
         .join('\n');
 
-    await HomeWidget.saveWidgetData<String>('widget_title', 'QDone');
     await HomeWidget.saveWidgetData<String>(
-      'widget_tasks',
+      WidgetStorageContract.widgetTitleKey,
+      'QDone',
+    );
+    await HomeWidget.saveWidgetData<String>(
+      WidgetStorageContract.widgetTasksTextKey,
       lines.isEmpty ? 'Нет ближайших задач' : lines,
     );
     await HomeWidget.saveWidgetData<String>(
-      'widget_tasks_json',
+      WidgetStorageContract.widgetTasksJsonKey,
       jsonEncode(payload.tasks.map((task) => task.toJson()).toList()),
     );
     await HomeWidget.saveWidgetData<double>(
-      'widget_transparency',
+      WidgetStorageContract.widgetTransparencyKey,
       settings.widgetTransparency,
     );
     await HomeWidget.saveWidgetData<bool>(
-      'widget_compact',
+      WidgetStorageContract.widgetCompactKey,
       settings.compactWidget,
     );
     await HomeWidget.saveWidgetData<bool>(
-      'widget_show_completed',
+      WidgetStorageContract.widgetShowCompletedKey,
       settings.widgetShowsCompleted,
     );
     await HomeWidget.saveWidgetData<int>(
-      'widget_task_limit',
+      WidgetStorageContract.widgetTaskLimitKey,
       settings.widgetTaskLimit,
     );
     await HomeWidget.saveWidgetData<String>(
-      'widget_theme',
+      WidgetStorageContract.widgetThemeKey,
       settings.themeMode.name,
     );
     await HomeWidget.updateWidget(
@@ -62,14 +66,7 @@ class HomeWidgetSyncService {
             .where((task) => settings.widgetShowsCompleted || !task.isCompleted)
             .map((task) => task.effectiveStatus())
             .toList()
-          ..sort((a, b) {
-            final aWeight = a.isCompleted ? 1 : 0;
-            final bWeight = b.isCompleted ? 1 : 0;
-            final weight = aWeight.compareTo(bWeight);
-            return weight == 0
-                ? a.dueDateTime.compareTo(b.dueDateTime)
-                : weight;
-          });
+          ..sort(_compareForWidget);
 
     return WidgetPayload(
       tasks: visibleTasks
@@ -77,6 +74,13 @@ class HomeWidgetSyncService {
           .map(WidgetTask.fromTask)
           .toList(),
     );
+  }
+
+  int _compareForWidget(Task a, Task b) {
+    final aWeight = a.isCompleted ? 1 : 0;
+    final bWeight = b.isCompleted ? 1 : 0;
+    final weight = aWeight.compareTo(bWeight);
+    return weight == 0 ? a.dueDateTime.compareTo(b.dueDateTime) : weight;
   }
 }
 
@@ -109,9 +113,7 @@ class WidgetTask {
     return WidgetTask(
       id: task.id,
       title: task.title,
-      time: task.status == TaskStatus.overdue
-          ? 'Проср.'
-          : task.dueTime.format24,
+      time: task.status == TaskStatus.overdue ? 'Проср.' : task.dueTime.format24,
       category: task.category.name,
       status: task.status.name,
       priority: task.priority.name,

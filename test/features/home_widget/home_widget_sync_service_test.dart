@@ -27,6 +27,24 @@ void main() {
     expect(payload.tasks.single.id, 'late');
     expect(payload.tasks.single.category, 'Личное');
   });
+
+  test('widget payload sorts active tasks before completed tasks', () {
+    const service = HomeWidgetSyncService();
+    final tasks = <Task>[
+      _task(id: 'done', title: 'Done', status: TaskStatus.completed),
+      _task(id: 'active', title: 'Active', date: DateTime(2026, 5, 12)),
+    ];
+
+    final payload = service.buildWidgetPayload(
+      tasks: tasks,
+      settings: const UserSettings(
+        widgetTaskLimit: 5,
+        widgetShowsCompleted: true,
+      ),
+    );
+
+    expect(payload.tasks.map((task) => task.id), <String>['active', 'done']);
+  });
 }
 
 Task _task({

@@ -8,9 +8,9 @@ import 'package:qdone/features/settings/domain/user_settings.dart';
 import 'package:qdone/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
 import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
-import 'package:qdone/features/tasks/domain/services/recurrence_service.dart';
+import 'package:qdone/features/tasks/domain/services/task_calendar_service.dart';
 import 'package:qdone/features/tasks/presentation/controllers/tasks_controller.dart';
-import 'package:qdone/features/tasks/presentation/widgets/task_form_sheet.dart';
+import 'package:qdone/features/tasks/presentation/widgets/task_form_modal.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class CalendarPage extends ConsumerWidget {
@@ -24,13 +24,19 @@ class CalendarPage extends ConsumerWidget {
     final settings =
         ref.watch(settingsControllerProvider).valueOrNull ??
         const UserSettings();
-    final selectedTasks = _tasksForDay(tasks, selectedDay)
+    final calendarService = const TaskCalendarService();
+    final selectedTasks = calendarService.tasksForDay(tasks, selectedDay)
       ..sort((a, b) => a.dueDateTime.compareTo(b.dueDateTime));
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openTaskForm(context, ref, selectedDay: selectedDay),
+        onPressed: () => TaskFormModal.show(
+          context,
+          ref,
+          initialDate: selectedDay,
+          initialTime: const TimeOfDay(hour: 9, minute: 0),
+        ),
         backgroundColor: AppColors.violet,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded),
@@ -60,8 +66,10 @@ class CalendarPage extends ConsumerWidget {
               firstDay: DateTime.now().subtract(const Duration(days: 365)),
               lastDay: DateTime.now().add(const Duration(days: 365 * 3)),
               selectedDayPredicate: (day) => isSameDay(day, selectedDay),
-              eventLoader: (day) =>
-                  _indicatorTasks(_tasksForDay(tasks, day), settings),
+              eventLoader: (day) => _indicatorTasks(
+                calendarService.tasksForDay(tasks, day),
+                settings,
+              ),
               onDaySelected: (selected, focused) {
                 ref.read(selectedCalendarDayProvider.notifier).state = DateTime(
                   selected.year,
@@ -121,7 +129,12 @@ class CalendarPage extends ConsumerWidget {
           _SelectedDayPanel(
             day: selectedDay,
             tasks: selectedTasks,
-            onAdd: () => _openTaskForm(context, ref, selectedDay: selectedDay),
+            onAdd: () => TaskFormModal.show(
+              context,
+              ref,
+              initialDate: selectedDay,
+              initialTime: const TimeOfDay(hour: 9, minute: 0),
+            ),
             onDone: (task) =>
                 ref.read(tasksControllerProvider.notifier).complete(task),
             onDelete: (task) =>
@@ -129,11 +142,12 @@ class CalendarPage extends ConsumerWidget {
             onSnooze: (task) => ref
                 .read(tasksControllerProvider.notifier)
                 .snooze(task, const Duration(minutes: 15)),
-            onEdit: (task) => _openTaskForm(
+            onEdit: (task) => TaskFormModal.show(
               context,
               ref,
-              selectedDay: selectedDay,
               task: task,
+              initialDate: selectedDay,
+              initialTime: const TimeOfDay(hour: 9, minute: 0),
             ),
           ),
         ],
@@ -396,64 +410,6 @@ class _CalendarTaskTile extends StatelessWidget {
   }
 }
 
-Future<void> _openTaskForm(
-  BuildContext context,
-  WidgetRef ref, {
-  required DateTime selectedDay,
-  Task? task,
-}) {
-  final settings =
-      ref.read(settingsControllerProvider).valueOrNull ?? const UserSettings();
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: Colors.black.withValues(alpha: 0.78),
-    builder: (context) {
-      return TaskFormSheet(
-        initialTask: task,
-        initialDate: selectedDay,
-        initialTime: const TimeOfDay(hour: 9, minute: 0),
-        defaultReminderMinutes: settings.defaultReminderMinutes,
-        notificationsEnabled: settings.notificationsEnabled,
-        onSubmit: (value) async {
-          if (task == null) {
-            await ref
-                .read(tasksControllerProvider.notifier)
-                .addTask(
-                  title: value.title,
-                  description: value.description,
-                  dueDate: value.dueDate,
-                  dueTime: value.dueTime,
-                  priority: value.priority,
-                  category: value.category,
-                  energyLevel: value.energyLevel,
-                  recurrenceRule: value.recurrenceRule,
-                  reminderTimes: value.reminderTimes,
-                );
-          } else {
-            await ref
-                .read(tasksControllerProvider.notifier)
-                .editTask(
-                  task: task,
-                  title: value.title,
-                  description: value.description,
-                  dueDate: value.dueDate,
-                  dueTime: value.dueTime,
-                  priority: value.priority,
-                  category: value.category,
-                  energyLevel: value.energyLevel,
-                  recurrenceRule: value.recurrenceRule,
-                  reminderTimes: value.reminderTimes,
-                );
-          }
-        },
-      );
-    },
-  );
-}
-
 List<Task> _indicatorTasks(List<Task> tasks, UserSettings settings) {
   return tasks.where((task) {
     if (task.status == TaskStatus.completed) {
@@ -509,47 +465,4 @@ class _CalendarMarker {
   final _CalendarMarkerType type;
 
   Color get color => type.color;
-}
-
-List<Task> _tasksForDay(List<Task> tasks, DateTime day) {
-  final recurrenceService = const RecurrenceService();
-  final start = DateTime(day.year, day.month, day.day);
-  final end = DateTime(day.year, day.month, day.day, 23, 59, 59);
-  final result = <Task>[];
-
-  for (final task in tasks) {
-    if (task.recurrenceRule.isEnabled &&
-        task.recurrenceRule.type != RecurrenceType.none &&
-        !task.isArchived) {
-      final occurrences = recurrenceService.occurrencesForRange(
-        task: task,
-        from: start,
-        to: end,
-      );
-      result.addAll(
-        occurrences.map(
-          (occurrence) => task
-              .copyWith(
-                dueDate: DateTime(
-                  occurrence.year,
-                  occurrence.month,
-                  occurrence.day,
-                ),
-                dueTime: TimeOfDay(
-                  hour: occurrence.hour,
-                  minute: occurrence.minute,
-                ),
-              )
-              .effectiveStatus(),
-        ),
-      );
-      continue;
-    }
-
-    if (isSameDay(task.dueDate, day)) {
-      result.add(task);
-    }
-  }
-
-  return result;
 }

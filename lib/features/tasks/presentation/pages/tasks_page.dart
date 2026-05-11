@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qdone/core/localization/qdone_localizations.dart';
 import 'package:qdone/core/theme/app_colors.dart';
-import 'package:qdone/features/settings/domain/user_settings.dart';
-import 'package:qdone/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
 import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
 import 'package:qdone/features/tasks/presentation/controllers/tasks_controller.dart';
 import 'package:qdone/features/tasks/presentation/widgets/daily_pulse_card.dart';
-import 'package:qdone/features/tasks/presentation/widgets/task_form_sheet.dart';
+import 'package:qdone/features/tasks/presentation/widgets/task_form_modal.dart';
 import 'package:qdone/features/tasks/presentation/widgets/task_section.dart';
 
 class TasksPage extends ConsumerWidget {
@@ -54,7 +52,8 @@ class TasksPage extends ConsumerWidget {
                       .snooze(task, const Duration(minutes: 15)),
                   onReschedule: (task) =>
                       _rescheduleTask(context, ref, task: task),
-                  onEdit: (task) => _openTaskForm(context, ref, task: task),
+                  onEdit: (task) =>
+                      TaskFormModal.show(context, ref, task: task),
                 ),
                 const SizedBox(height: 14),
                 TaskSection(
@@ -74,7 +73,8 @@ class TasksPage extends ConsumerWidget {
                       .snooze(task, const Duration(hours: 1)),
                   onReschedule: (task) =>
                       _rescheduleTask(context, ref, task: task),
-                  onEdit: (task) => _openTaskForm(context, ref, task: task),
+                  onEdit: (task) =>
+                      TaskFormModal.show(context, ref, task: task),
                 ),
                 const SizedBox(height: 14),
                 TaskSection(
@@ -94,7 +94,8 @@ class TasksPage extends ConsumerWidget {
                       .snooze(task, const Duration(hours: 1)),
                   onReschedule: (task) =>
                       _rescheduleTask(context, ref, task: task),
-                  onEdit: (task) => _openTaskForm(context, ref, task: task),
+                  onEdit: (task) =>
+                      TaskFormModal.show(context, ref, task: task),
                 ),
                 const SizedBox(height: 14),
                 TaskSection(
@@ -114,7 +115,8 @@ class TasksPage extends ConsumerWidget {
                       .snooze(task, const Duration(hours: 1)),
                   onReschedule: (task) =>
                       _rescheduleTask(context, ref, task: task),
-                  onEdit: (task) => _openTaskForm(context, ref, task: task),
+                  onEdit: (task) =>
+                      TaskFormModal.show(context, ref, task: task),
                 ),
               ],
             ),
@@ -227,57 +229,6 @@ class _ErrorState extends StatelessWidget {
   }
 }
 
-Future<void> _openTaskForm(BuildContext context, WidgetRef ref, {Task? task}) {
-  final settings =
-      ref.read(settingsControllerProvider).valueOrNull ?? const UserSettings();
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: Colors.black.withValues(alpha: 0.78),
-    builder: (context) {
-      return TaskFormSheet(
-        initialTask: task,
-        defaultReminderMinutes: settings.defaultReminderMinutes,
-        notificationsEnabled: settings.notificationsEnabled,
-        onSubmit: (value) async {
-          if (task == null) {
-            await ref
-                .read(tasksControllerProvider.notifier)
-                .addTask(
-                  title: value.title,
-                  description: value.description,
-                  dueDate: value.dueDate,
-                  dueTime: value.dueTime,
-                  priority: value.priority,
-                  category: value.category,
-                  energyLevel: value.energyLevel,
-                  recurrenceRule: value.recurrenceRule,
-                  reminderTimes: value.reminderTimes,
-                );
-          } else {
-            await ref
-                .read(tasksControllerProvider.notifier)
-                .editTask(
-                  task: task,
-                  title: value.title,
-                  description: value.description,
-                  dueDate: value.dueDate,
-                  dueTime: value.dueTime,
-                  priority: value.priority,
-                  category: value.category,
-                  energyLevel: value.energyLevel,
-                  recurrenceRule: value.recurrenceRule,
-                  reminderTimes: value.reminderTimes,
-                );
-          }
-        },
-      );
-    },
-  );
-}
-
 Future<void> _rescheduleTask(
   BuildContext context,
   WidgetRef ref, {
@@ -285,6 +236,7 @@ Future<void> _rescheduleTask(
 }) async {
   final date = await showDatePicker(
     context: context,
+    useRootNavigator: true,
     initialDate: task.dueDate,
     firstDate: DateTime.now().subtract(const Duration(days: 365)),
     lastDate: DateTime.now().add(const Duration(days: 365 * 3)),
@@ -295,9 +247,10 @@ Future<void> _rescheduleTask(
 
   final time = await showTimePicker(
     context: context,
+    useRootNavigator: true,
     initialTime: task.dueTime,
   );
-  if (time == null) {
+  if (time == null || !context.mounted) {
     return;
   }
 

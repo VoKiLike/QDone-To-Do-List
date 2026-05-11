@@ -9,11 +9,36 @@ import 'package:qdone/core/theme/app_theme.dart';
 import 'package:qdone/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:qdone/features/tasks/presentation/controllers/tasks_controller.dart';
 
-class QDoneApp extends ConsumerWidget {
+class QDoneApp extends ConsumerStatefulWidget {
   const QDoneApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<QDoneApp> createState() => _QDoneAppState();
+}
+
+class _QDoneAppState extends ConsumerState<QDoneApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _reloadExternalState();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     ref.watch(settingsControllerProvider);
     ref.listen(settingsControllerProvider, (_, _) => _syncHomeWidget(ref));
     ref.listen(tasksControllerProvider, (_, _) => _syncHomeWidget(ref));
@@ -33,6 +58,12 @@ class QDoneApp extends ConsumerWidget {
       ],
       routerConfig: appRouter,
     );
+  }
+
+  Future<void> _reloadExternalState() async {
+    await ref.read(sharedPreferencesProvider).reload();
+    await ref.read(settingsControllerProvider.notifier).load();
+    await ref.read(tasksControllerProvider.notifier).load();
   }
 
   void _syncHomeWidget(WidgetRef ref) {

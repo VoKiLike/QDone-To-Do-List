@@ -100,7 +100,8 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
                     ),
                   ),
                   IconButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () =>
+                        Navigator.of(context, rootNavigator: true).pop(),
                     icon: const Icon(Icons.close_rounded),
                   ),
                   const SizedBox(width: 8),
@@ -239,18 +240,23 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
+      useRootNavigator: true,
       initialDate: _date,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 4)),
     );
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() => _date = picked);
     }
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(context: context, initialTime: _time);
-    if (picked != null) {
+    final picked = await showTimePicker(
+      context: context,
+      useRootNavigator: true,
+      initialTime: _time,
+    );
+    if (picked != null && mounted) {
       setState(() => _time = picked);
     }
   }
@@ -258,54 +264,67 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
   Future<void> _addRepeatTime() async {
     final picked = await showTimePicker(
       context: context,
+      useRootNavigator: true,
       initialTime: TimeOfDay.now(),
     );
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() => _timesOfDay.add(picked));
     }
   }
 
   Future<void> _submit() async {
+    if (_saving) {
+      return;
+    }
     if (_titleController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Введите название задачи')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Введите название задачи')),
+      );
       return;
     }
     setState(() => _saving = true);
-    final dueDateTime = DateTime(
-      _date.year,
-      _date.month,
-      _date.day,
-      _time.hour,
-      _time.minute,
-    );
-    await widget.onSubmit(
-      TaskFormValue(
-        title: _titleController.text,
-        description: _descriptionController.text,
-        dueDate: _date,
-        dueTime: _time,
-        priority: _priority,
-        category: _customCategoryEnabled ? _customCategory() : _category,
-        energyLevel: _energy,
-        recurrenceRule: RecurrenceRule(
-          type: _recurrenceType,
-          interval: 1,
-          intervalUnit: RecurrenceIntervalUnit.days,
-          timesOfDay: List<TimeOfDay>.unmodifiable(_timesOfDay),
-          startDate: _date,
-          isEnabled: _recurrenceType != RecurrenceType.none,
+    try {
+      final dueDateTime = DateTime(
+        _date.year,
+        _date.month,
+        _date.day,
+        _time.hour,
+        _time.minute,
+      );
+      await widget.onSubmit(
+        TaskFormValue(
+          title: _titleController.text.trim(),
+          description: _descriptionController.text.trim(),
+          dueDate: _date,
+          dueTime: _time,
+          priority: _priority,
+          category: _customCategoryEnabled ? _customCategory() : _category,
+          energyLevel: _energy,
+          recurrenceRule: RecurrenceRule(
+            type: _recurrenceType,
+            interval: 1,
+            intervalUnit: RecurrenceIntervalUnit.days,
+            timesOfDay: List<TimeOfDay>.unmodifiable(_timesOfDay),
+            startDate: _date,
+            isEnabled: _recurrenceType != RecurrenceType.none,
+          ),
+          reminderTimes: buildDefaultReminderTimes(
+            dueDateTime: dueDateTime,
+            enabled: _reminderEnabled,
+            defaultReminderMinutes: widget.defaultReminderMinutes,
+          ),
         ),
-        reminderTimes: buildDefaultReminderTimes(
-          dueDateTime: dueDateTime,
-          enabled: _reminderEnabled,
-          defaultReminderMinutes: widget.defaultReminderMinutes,
-        ),
-      ),
-    );
-    if (mounted) {
-      Navigator.pop(context);
+      );
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось сохранить задачу')),
+        );
+      }
     }
   }
 
@@ -540,7 +559,7 @@ class _TaskFormCategories {
   );
   static const study = TaskCategory(
     id: 'learning',
-    name: 'Учёба',
+    name: 'Учеба',
     colorValue: 0xFFA78BFA,
   );
 
