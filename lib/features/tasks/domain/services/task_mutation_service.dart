@@ -70,6 +70,24 @@ class TaskMutationService {
     await repository.upsert(await _scheduleIfAllowed(task));
   }
 
+  Future<void> refreshScheduledNotifications() async {
+    final tasks = await repository.watchAll();
+    for (final task in tasks.where(_needsNotificationRefresh)) {
+      final latest = await _latestTask(task.id);
+      if (latest == null || !_needsNotificationRefresh(latest)) {
+        continue;
+      }
+      await notificationService.cancelTask(latest);
+      final rescheduled = await _scheduleIfAllowed(
+        latest.copyWith(notificationIds: const <int>[]),
+      );
+      final current = await _latestTask(task.id);
+      if (current != null && _sameSchedulingInputs(latest, current)) {
+        await repository.upsert(rescheduled);
+      }
+    }
+  }
+
   Future<void> editTask({
     required Task task,
     required String title,
@@ -243,5 +261,48 @@ class TaskMutationService {
       return task.copyWith(notificationIds: const <int>[]);
     }
     return notificationService.scheduleTask(task);
+  }
+
+  bool _needsNotificationRefresh(Task task) {
+    return !task.isCompleted &&
+        task.reminders.any((reminder) => reminder.isEnabled);
+  }
+
+  Future<Task?> _latestTask(String taskId) async {
+    final tasks = await repository.watchAll();
+    for (final task in tasks) {
+      if (task.id == taskId) {
+        return task;
+      }
+    }
+    return null;
+  }
+
+  bool _sameSchedulingInputs(Task a, Task b) {
+    return a.title == b.title &&
+        a.description == b.description &&
+        a.status == b.status &&
+        a.isArchived == b.isArchived &&
+        a.dueDateTime == b.dueDateTime &&
+        a.recurrenceRule.toJson().toString() ==
+            b.recurrenceRule.toJson().toString() &&
+        _sameReminderTemplates(a.reminders, b.reminders);
+  }
+
+  bool _sameReminderTemplates(List<Reminder> a, List<Reminder> b) {
+    if (a.length != b.length) {
+      return false;
+    }
+    for (var index = 0; index < a.length; index++) {
+      final left = a[index];
+      final right = b[index];
+      if (left.id != right.id ||
+          left.taskId != right.taskId ||
+          left.dateTime != right.dateTime ||
+          left.isEnabled != right.isEnabled) {
+        return false;
+      }
+    }
+    return true;
   }
 }

@@ -4,6 +4,7 @@ import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/core/widgets/glass_panel.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
 import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
+import 'package:qdone/features/tasks/presentation/utils/task_haptics.dart';
 
 class TaskCard extends StatelessWidget {
   const TaskCard({
@@ -97,7 +98,12 @@ class TaskCard extends StatelessWidget {
                   ),
                   IconButton.filledTonal(
                     tooltip: 'Режим фокуса',
-                    onPressed: () => context.push('/focus/${task.id}'),
+                    onPressed: () async {
+                      await TaskHaptics.tap();
+                      if (context.mounted) {
+                        context.push('/focus/${task.id}');
+                      }
+                    },
                     icon: const Icon(Icons.center_focus_strong_rounded),
                   ),
                 ],
@@ -136,9 +142,7 @@ class TaskCard extends StatelessWidget {
                     icon: task.reminders.isEmpty
                         ? Icons.notifications_off_rounded
                         : Icons.notifications_active_rounded,
-                    label: task.reminders.isEmpty
-                        ? 'Без напоминаний'
-                        : 'Напоминаний: ${task.reminders.length}',
+                    label: _reminderLabel(task),
                     color: AppColors.cyan,
                   ),
                 ],
@@ -215,6 +219,7 @@ class _StatusControlState extends State<_StatusControl> {
   }
 
   void _handleTap() {
+    TaskHaptics.tap();
     _setPressed(true);
     Future<void>.delayed(const Duration(milliseconds: 180), () {
       _setPressed(false);
@@ -350,14 +355,29 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Future<void> handlePressed() async {
+      await TaskHaptics.tap();
+      onTap();
+    }
+
     return Expanded(
       child: IconButton(
         tooltip: label,
-        onPressed: onTap,
+        onPressed: handlePressed,
         icon: Icon(icon, size: 20),
       ),
     );
   }
+}
+
+String _reminderLabel(Task task) {
+  if (task.reminders.isEmpty) {
+    return 'Без напоминаний';
+  }
+  if (task.recurrenceRule.isEnabled || task.reminders.length == 1) {
+    return 'Напоминание включено';
+  }
+  return 'Напоминаний: ${task.reminders.length}';
 }
 
 String _dateLabel(Task task) {

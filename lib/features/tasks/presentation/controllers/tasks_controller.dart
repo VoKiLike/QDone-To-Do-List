@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qdone/app/app_providers.dart';
@@ -45,9 +47,11 @@ class TasksController extends StateNotifier<AsyncValue<List<Task>>> {
 
   final TaskRepository _repository;
   final TaskMutationService _mutations;
+  bool _notificationRefreshQueued = false;
 
   Future<void> load() async {
     await _reload(showLoading: true);
+    _refreshNotificationsInBackground();
   }
 
   Future<void> _reload({required bool showLoading}) async {
@@ -60,10 +64,11 @@ class TasksController extends StateNotifier<AsyncValue<List<Task>>> {
     }
     try {
       final stored = await _repository.watchAll();
-      final tasks = stored.isEmpty
-          ? _seedTasks()
-          : _localizeBuiltInTasks(stored);
-      await _repository.saveAll(tasks);
+      final hasSavedTasks = await _repository.hasSavedTasks();
+      final tasks = stored.isEmpty && !hasSavedTasks ? _seedTasks() : stored;
+      if (stored.isEmpty && !hasSavedTasks) {
+        await _repository.saveAll(tasks);
+      }
       state = AsyncValue.data(_withEffectiveStatus(tasks));
     } catch (error, stackTrace) {
       if (!showLoading && previous != null) {
@@ -75,6 +80,14 @@ class TasksController extends StateNotifier<AsyncValue<List<Task>>> {
   }
 
   Future<void> _refreshAfterMutation() => _reload(showLoading: false);
+
+  void _refreshNotificationsInBackground() {
+    if (_notificationRefreshQueued) {
+      return;
+    }
+    _notificationRefreshQueued = true;
+    unawaited(_mutations.refreshScheduledNotifications().catchError((_) {}));
+  }
 
   Future<void> _mutate(Future<void> Function() action) async {
     try {
@@ -284,34 +297,4 @@ List<Task> _seedTasks() {
       energyLevel: EnergyLevel.low,
     ),
   ];
-}
-
-List<Task> _localizeBuiltInTasks(List<Task> tasks) {
-  return tasks.map((task) {
-    return switch (task.id) {
-      'seed-medicine' => task.copyWith(
-        title: 'Принять лекарство',
-        description: 'Утренний и вечерний прием таблеток',
-        category: QDoneCategories.health,
-      ),
-      'seed-study' => task.copyWith(
-        title: 'Изучить анимации Flutter',
-        description: 'Доработать стеклянные переходы навигации',
-        category: QDoneCategories.learning,
-      ),
-      'seed-overdue' => task.copyWith(
-        title: 'Отправить счет по проекту',
-        category: QDoneCategories.work,
-      ),
-      'seed-future' => task.copyWith(
-        title: 'Запланировать недельный обзор',
-        category: QDoneCategories.personal,
-      ),
-      'seed-completed' => task.copyWith(
-        title: 'Разобрать архив выполненных',
-        category: QDoneCategories.personal,
-      ),
-      _ => task,
-    };
-  }).toList();
 }

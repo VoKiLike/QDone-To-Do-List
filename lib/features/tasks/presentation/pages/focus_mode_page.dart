@@ -6,6 +6,7 @@ import 'package:qdone/core/widgets/glass_panel.dart';
 import 'package:qdone/core/widgets/liquid_background.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
 import 'package:qdone/features/tasks/presentation/controllers/tasks_controller.dart';
+import 'package:qdone/features/tasks/presentation/utils/task_haptics.dart';
 
 class FocusModePage extends ConsumerWidget {
   const FocusModePage({super.key, required this.taskId});
@@ -120,6 +121,7 @@ class _FocusContent extends ConsumerWidget {
             Expanded(
               child: FilledButton.icon(
                 onPressed: () async {
+                  await TaskHaptics.tap();
                   await ref
                       .read(tasksControllerProvider.notifier)
                       .complete(task);
@@ -134,9 +136,12 @@ class _FocusContent extends ConsumerWidget {
             const SizedBox(width: 10),
             Expanded(
               child: FilledButton.tonalIcon(
-                onPressed: () => ref
-                    .read(tasksControllerProvider.notifier)
-                    .snooze(task, const Duration(minutes: 15)),
+                onPressed: () async {
+                  await TaskHaptics.tap();
+                  await ref
+                      .read(tasksControllerProvider.notifier)
+                      .snooze(task, const Duration(minutes: 15));
+                },
                 icon: const Icon(Icons.snooze_rounded),
                 label: const Text('15 мин.'),
               ),
@@ -147,9 +152,12 @@ class _FocusContent extends ConsumerWidget {
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
-            onPressed: () => ref
-                .read(tasksControllerProvider.notifier)
-                .snooze(task, const Duration(days: 1)),
+            onPressed: () async {
+              await TaskHaptics.tap();
+              await ref
+                  .read(tasksControllerProvider.notifier)
+                  .snooze(task, const Duration(days: 1));
+            },
             icon: const Icon(Icons.wb_sunny_rounded),
             label: const Text('Завтра утром'),
           ),

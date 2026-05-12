@@ -117,6 +117,9 @@ class _MemoryTaskRepository implements TaskRepository {
   final List<Task> tasks;
 
   @override
+  Future<bool> hasSavedTasks() async => true;
+
+  @override
   Future<void> clearCompleted() async {
     tasks.removeWhere((task) => task.isCompleted);
   }

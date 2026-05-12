@@ -243,6 +243,7 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
 
         val source = runCatching { JSONArray(raw) }.getOrNull() ?: return null
         val tasks = mutableListOf<WidgetTask>()
+        val now = LocalDateTime.now()
         for (index in 0 until source.length()) {
             val item = source.optJSONObject(index) ?: continue
             val task = if (fromTaskStore) {
@@ -250,7 +251,12 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
             } else {
                 WidgetTask.fromWidgetJson(item)
             }
-            if (showCompleted || !task.isCompleted) {
+            val visible = if (fromTaskStore) {
+                task.isVisibleToday(showCompleted, now)
+            } else {
+                showCompleted || !task.isCompleted
+            }
+            if (visible) {
                 tasks.add(task)
             }
         }
@@ -312,8 +318,24 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
         val category: String,
         val status: String,
         val isCompleted: Boolean,
-        val dueDateTime: LocalDateTime?
+        val dueDateTime: LocalDateTime?,
+        val completedAt: LocalDateTime?
     ) {
+        fun isVisibleToday(showCompleted: Boolean, now: LocalDateTime): Boolean {
+            val dueToday = isSameDay(dueDateTime, now)
+            if (!isCompleted) {
+                return dueToday
+            }
+            if (!showCompleted) {
+                return false
+            }
+            return if (completedAt == null) dueToday else isSameDay(completedAt, now)
+        }
+
+        private fun isSameDay(value: LocalDateTime?, now: LocalDateTime): Boolean {
+            return value != null && value.year == now.year && value.dayOfYear == now.dayOfYear
+        }
+
         companion object {
             fun fromWidgetJson(json: JSONObject): WidgetTask {
                 val status = json.optString("status", STATUS_ACTIVE)
@@ -327,7 +349,8 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
                         "isCompleted",
                         status == STATUS_COMPLETED || status == STATUS_ARCHIVED
                     ),
-                    dueDateTime = null
+                    dueDateTime = null,
+                    completedAt = null
                 )
             }
 
@@ -354,7 +377,8 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
                     category = json.optJSONObject("category")?.optString("name").orEmpty(),
                     status = status,
                     isCompleted = completed,
-                    dueDateTime = dueDateTime
+                    dueDateTime = dueDateTime,
+                    completedAt = parseDateTime(json.optString("completedAt"))
                 )
             }
 
@@ -366,6 +390,11 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
                 val hour = parts.getOrNull(0)?.toIntOrNull() ?: 9
                 val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
                 return dueDate.withHour(hour).withMinute(minute).withSecond(0).withNano(0)
+            }
+
+            private fun parseDateTime(value: String): LocalDateTime? {
+                if (value.isBlank() || value == "null") return null
+                return runCatching { LocalDateTime.parse(value.removeSuffix("Z")) }.getOrNull()
             }
 
             private fun formatTime(value: String): String {

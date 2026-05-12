@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:qdone/core/localization/qdone_localizations.dart';
 import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/core/widgets/glass_panel.dart';
@@ -10,6 +11,7 @@ import 'package:qdone/features/tasks/domain/entities/task.dart';
 import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
 import 'package:qdone/features/tasks/domain/services/task_calendar_service.dart';
 import 'package:qdone/features/tasks/presentation/controllers/tasks_controller.dart';
+import 'package:qdone/features/tasks/presentation/utils/task_haptics.dart';
 import 'package:qdone/features/tasks/presentation/widgets/task_form_modal.dart';
 import 'package:table_calendar/table_calendar.dart';
 
@@ -77,11 +79,12 @@ class CalendarPage extends ConsumerWidget {
                   selected.day,
                 );
               },
-              headerStyle: const HeaderStyle(
+              headerStyle: HeaderStyle(
                 titleCentered: true,
                 formatButtonVisible: false,
-                leftChevronIcon: Icon(Icons.chevron_left_rounded),
-                rightChevronIcon: Icon(Icons.chevron_right_rounded),
+                titleTextFormatter: _calendarTitle,
+                leftChevronIcon: const Icon(Icons.chevron_left_rounded),
+                rightChevronIcon: const Icon(Icons.chevron_right_rounded),
               ),
               calendarStyle: CalendarStyle(
                 todayDecoration: BoxDecoration(
@@ -358,22 +361,22 @@ class _CalendarTaskTile extends StatelessWidget {
             children: <Widget>[
               IconButton(
                 tooltip: 'Выполнено',
-                onPressed: task.isCompleted ? null : onDone,
+                onPressed: task.isCompleted ? null : () => _tapTask(onDone),
                 icon: const Icon(Icons.done_rounded),
               ),
               IconButton(
                 tooltip: 'Отложить на 15 минут',
-                onPressed: onSnooze,
+                onPressed: () => _tapTask(onSnooze),
                 icon: const Icon(Icons.snooze_rounded),
               ),
               IconButton(
                 tooltip: 'Изменить',
-                onPressed: onEdit,
+                onPressed: () => _tapTask(onEdit),
                 icon: const Icon(Icons.edit_rounded),
               ),
               IconButton(
                 tooltip: 'Удалить',
-                onPressed: onDelete,
+                onPressed: () => _tapTask(onDelete),
                 icon: const Icon(Icons.delete_outline_rounded),
               ),
             ],
@@ -381,6 +384,11 @@ class _CalendarTaskTile extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _tapTask(VoidCallback action) async {
+    await TaskHaptics.tap();
+    action();
   }
 
   IconData _iconFor(Task task) {
@@ -465,4 +473,12 @@ class _CalendarMarker {
   final _CalendarMarkerType type;
 
   Color get color => type.color;
+}
+
+String _calendarTitle(DateTime date, dynamic locale) {
+  final formatted = DateFormat.yMMMM(locale as String?).format(date);
+  if (formatted.isEmpty) {
+    return formatted;
+  }
+  return formatted[0].toUpperCase() + formatted.substring(1);
 }

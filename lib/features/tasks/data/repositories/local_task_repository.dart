@@ -9,6 +9,9 @@ class LocalTaskRepository implements TaskRepository {
   final TaskLocalDataSource _dataSource;
 
   @override
+  Future<bool> hasSavedTasks() => _dataSource.hasSavedTasks();
+
+  @override
   Future<List<Task>> watchAll() => _dataSource.readTasks();
 
   @override

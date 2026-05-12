@@ -11,6 +11,11 @@ class TaskLocalDataSource {
 
   final SharedPreferences _preferences;
 
+  Future<bool> hasSavedTasks() async {
+    await _preferences.reload();
+    return _preferences.containsKey(_tasksKey);
+  }
+
   Future<List<Task>> readTasks() async {
     await _preferences.reload();
     final raw = _preferences.getString(_tasksKey);

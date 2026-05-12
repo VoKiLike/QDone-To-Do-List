@@ -61,9 +61,10 @@ class HomeWidgetSyncService {
     required List<Task> tasks,
     required UserSettings settings,
   }) {
+    final today = DateTime.now();
     final visibleTasks =
         tasks
-            .where((task) => settings.widgetShowsCompleted || !task.isCompleted)
+            .where((task) => _isVisibleOnWidgetToday(task, settings, today))
             .map((task) => task.effectiveStatus())
             .toList()
           ..sort(_compareForWidget);
@@ -81,6 +82,24 @@ class HomeWidgetSyncService {
     final bWeight = b.isCompleted ? 1 : 0;
     final weight = aWeight.compareTo(bWeight);
     return weight == 0 ? a.dueDateTime.compareTo(b.dueDateTime) : weight;
+  }
+
+  bool _isVisibleOnWidgetToday(
+    Task task,
+    UserSettings settings,
+    DateTime today,
+  ) {
+    final dueToday = DateUtils.isSameDay(task.dueDate, today);
+    if (!task.isCompleted) {
+      return dueToday;
+    }
+    if (!settings.widgetShowsCompleted) {
+      return false;
+    }
+    final completedAt = task.completedAt;
+    return completedAt == null
+        ? dueToday
+        : DateUtils.isSameDay(completedAt, today);
   }
 }
 

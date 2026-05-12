@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:qdone/features/tasks/domain/entities/reminder.dart';
@@ -11,13 +14,19 @@ class NotificationService {
   NotificationService(this._plugin);
 
   static const int maxPendingNotificationsPerTask = 64;
+  static const String _taskChannelId = 'qdone_tasks_v2';
+  static final Int64List _taskVibrationPattern = Int64List.fromList(
+    <int>[0, 120, 80, 180],
+  );
 
-  static const AndroidNotificationChannel taskChannel =
+  static final AndroidNotificationChannel taskChannel =
       AndroidNotificationChannel(
-        'qdone_tasks',
+        _taskChannelId,
         'Задачи QDone',
         description: 'Напоминания о задачах, повторах и умном откладывании.',
         importance: Importance.high,
+        enableVibration: true,
+        vibrationPattern: _taskVibrationPattern,
       );
 
   final FlutterLocalNotificationsPlugin _plugin;
@@ -70,6 +79,7 @@ class NotificationService {
     final scheduledIds = <int>[];
     final scheduledReminders = <Reminder>[];
     final scheduleItems = _scheduleItemsFor(task);
+    final scheduleMode = await _androidScheduleMode();
 
     for (final item in scheduleItems) {
       final dateTime = item.dateTime;
@@ -81,19 +91,22 @@ class NotificationService {
         task.title,
         task.description ?? 'Напоминание QDone',
         tz.TZDateTime.from(dateTime, tz.local),
-        const NotificationDetails(
+        NotificationDetails(
           android: AndroidNotificationDetails(
-            'qdone_tasks',
+            _taskChannelId,
             'Задачи QDone',
             channelDescription:
                 'Напоминания о задачах, повторах и умном откладывании.',
             importance: Importance.high,
             priority: Priority.high,
             category: AndroidNotificationCategory.reminder,
+            enableVibration: true,
+            vibrationPattern: _taskVibrationPattern,
+            visibility: NotificationVisibility.public,
           ),
-          iOS: DarwinNotificationDetails(),
+          iOS: const DarwinNotificationDetails(),
         ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: scheduleMode,
         payload: task.id,
       );
       scheduledIds.add(item.notificationId);
@@ -106,7 +119,7 @@ class NotificationService {
     }
 
     return task.copyWith(
-      reminders: scheduledReminders,
+      reminders: _storedRemindersFor(task, scheduledReminders),
       notificationIds: List<int>.unmodifiable(scheduledIds),
     );
   }
@@ -122,6 +135,43 @@ class NotificationService {
     for (final id in ids) {
       await _plugin.cancel(id);
     }
+  }
+
+  Future<AndroidScheduleMode> _androidScheduleMode() async {
+    final androidPlugin = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    final canScheduleExact =
+        await androidPlugin?.canScheduleExactNotifications() ?? true;
+    return canScheduleExact
+        ? AndroidScheduleMode.alarmClock
+        : AndroidScheduleMode.inexactAllowWhileIdle;
+  }
+
+  List<Reminder> _storedRemindersFor(
+    Task task,
+    List<Reminder> scheduledReminders,
+  ) {
+    final recurrence = task.recurrenceRule;
+    if (!recurrence.isEnabled || recurrence.type == RecurrenceType.none) {
+      return scheduledReminders;
+    }
+    final enabledReminders = task.reminders
+        .where((reminder) => reminder.isEnabled)
+        .toList();
+    if (enabledReminders.isEmpty) {
+      return const <Reminder>[];
+    }
+    final template = enabledReminders.first;
+    return <Reminder>[
+      Reminder(
+        id: template.id,
+        taskId: template.taskId,
+        dateTime: task.dueDateTime.add(_reminderOffsetFor(task, template)),
+        isEnabled: template.isEnabled,
+      ),
+    ];
   }
 
   Future<void> _configureLocalTimeZone() async {
@@ -214,7 +264,39 @@ class NotificationService {
     if (offset.isNegative) {
       return offset;
     }
+    final inferredRecurringOffset = _recurringReminderOffsetFor(task, reminder);
+    if (inferredRecurringOffset.isNegative) {
+      return inferredRecurringOffset;
+    }
     return Duration.zero;
+  }
+
+  Duration _recurringReminderOffsetFor(Task task, Reminder reminder) {
+    final recurrence = task.recurrenceRule;
+    if (!recurrence.isEnabled || recurrence.type == RecurrenceType.none) {
+      return Duration.zero;
+    }
+    final times = recurrence.timesOfDay.isEmpty
+        ? <TimeOfDay>[task.dueTime]
+        : recurrence.timesOfDay;
+    Duration? bestOffset;
+    for (final time in times) {
+      final occurrence = DateTime(
+        reminder.dateTime.year,
+        reminder.dateTime.month,
+        reminder.dateTime.day,
+        time.hour,
+        time.minute,
+      );
+      final candidate = reminder.dateTime.difference(occurrence);
+      if (candidate > Duration.zero) {
+        continue;
+      }
+      if (bestOffset == null || candidate > bestOffset) {
+        bestOffset = candidate;
+      }
+    }
+    return bestOffset ?? Duration.zero;
   }
 }
 

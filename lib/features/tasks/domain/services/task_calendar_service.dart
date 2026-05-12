@@ -16,9 +16,12 @@ class TaskCalendarService {
     final result = <Task>[];
 
     for (final task in tasks) {
+      if (task.isArchived || task.status == TaskStatus.archived) {
+        continue;
+      }
       if (task.recurrenceRule.isEnabled &&
           task.recurrenceRule.type != RecurrenceType.none &&
-          !task.isArchived) {
+          !task.isCompleted) {
         final occurrences = recurrenceService.occurrencesForRange(
           task: task,
           from: start,

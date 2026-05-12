@@ -22,6 +22,18 @@ void main() {
     final tasks = await repository.watchAll();
     expect(tasks.map((task) => task.id), <String>['active']);
   });
+
+  test('hasSavedTasks distinguishes empty store from deleted tasks', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final preferences = await SharedPreferences.getInstance();
+    final repository = LocalTaskRepository(TaskLocalDataSource(preferences));
+
+    expect(await repository.hasSavedTasks(), isFalse);
+
+    await repository.saveAll(const <Task>[]);
+
+    expect(await repository.hasSavedTasks(), isTrue);
+  });
 }
 
 Task _task({required String id, required TaskStatus status}) {

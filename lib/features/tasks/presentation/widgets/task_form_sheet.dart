@@ -124,7 +124,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
                   title: title,
                   isSaving: _saving,
                   onClose: () => QDoneModalPresenter.close(context),
-                  onSubmit: _submit,
+                  onSubmit: _handleSubmitTap,
                 ),
               ),
               Flexible(
@@ -296,7 +296,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
                           width: double.infinity,
                           height: 54,
                           child: FilledButton.icon(
-                            onPressed: _saving ? null : _submit,
+                            onPressed: _saving ? null : _handleSubmitTap,
                             icon: _saving
                                 ? const SizedBox(
                                     width: 18,
@@ -358,6 +358,11 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
     if (picked != null && mounted) {
       setState(() => _timesOfDay.add(picked));
     }
+  }
+
+  Future<void> _handleSubmitTap() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    await _submit();
   }
 
   Future<void> _submit() async {

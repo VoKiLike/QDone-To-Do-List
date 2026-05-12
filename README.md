@@ -5,7 +5,7 @@
 Clean Architecture, local storage, recurring tasks, reminders, a liquid
 glass-inspired interface, and Android home widget groundwork.
 
-Version: **0.4.2**.
+Version: **0.4.6**.
 
 Русская версия ниже.
 
@@ -29,6 +29,9 @@ Version: **0.4.2**.
 - Bundled QDone typography now pairs a sharp Latin brand font for `QDone` with a denser Cyrillic UI font for the rest of the app.
 - Custom recurrence in the task form now supports flexible intervals such as every 2 weeks or every 2 months.
 - Per-task reminder timing can now be adjusted in the create/edit form and is applied to recurring task notifications.
+- Task actions use an Android native haptic channel for direct vibration feedback without depending on the system touch-feedback toggle.
+- Android task reminders use a dedicated high-importance notification channel with vibration and exact alarm scheduling when the device grants exact alarm access.
+- Task notification refresh runs in the background after the first task list render, keeping the main task page and task actions responsive.
 - Local task persistence through repository/data-source boundaries.
 - Task model with priority, energy level, category, status, reminders, recurrence, archive state, and notification IDs.
 - Recurring task foundation with daily, weekly, monthly, yearly, custom intervals, and multiple times per day.
@@ -82,6 +85,8 @@ flutter build apk --debug
 - Persistence is implemented behind repository interfaces using local JSON in `shared_preferences`; this can be migrated to Drift without changing presentation controllers.
 - Android widget support includes native launcher actions backed by the same local task store as the app.
 - Production release still needs final Android signing, store metadata, and final iOS notification permission review.
+- Huawei/HarmonyOS devices may still require manual permission checks: allow notifications, exact alarms/reminders, autostart, indirect launch, and background activity for QDone.
+- After installing an update, open QDone once so existing reminders can be rescheduled onto the current Android notification channel.
 
 ## License
 
@@ -96,7 +101,7 @@ This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md).
 для задач и календаря: Clean Architecture, локальное хранение, повторяющиеся
 задачи, напоминания, интерфейс в стиле liquid glass и основа Android-виджета.
 
-Версия: **0.4.2**.
+Версия: **0.4.6**.
 
 ## Возможности
 
