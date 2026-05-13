@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qdone/features/tasks/domain/entities/recurrence_rule.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
@@ -53,6 +53,30 @@ void main() {
     ]);
   });
 
+  test(
+    'keeps explicit repeat times on the start day even if due time differs',
+    () {
+      final task = taskWithRule(
+        RecurrenceRule(
+          type: RecurrenceType.custom,
+          interval: 1,
+          intervalUnit: RecurrenceIntervalUnit.days,
+          timesOfDay: const <TimeOfDay>[TimeOfDay(hour: 8, minute: 0)],
+          startDate: DateTime(2026, 5, 10),
+          isEnabled: true,
+        ),
+      ).copyWith(dueTime: const TimeOfDay(hour: 20, minute: 0));
+
+      final occurrences = const RecurrenceService().occurrencesForRange(
+        task: task,
+        from: DateTime(2026, 5, 10),
+        to: DateTime(2026, 5, 10, 23, 59),
+      );
+
+      expect(occurrences, <DateTime>[DateTime(2026, 5, 10, 8)]);
+    },
+  );
+
   test('finds next same-day occurrence for recurring task completion', () {
     final task = taskWithRule(
       RecurrenceRule(
@@ -76,7 +100,7 @@ void main() {
     expect(next, DateTime(2026, 5, 10, 20));
   });
 
-  test('does not emit past times after a recurring task moves forward', () {
+  test('keeps configured times visible on the task start day', () {
     final task = taskWithRule(
       RecurrenceRule(
         type: RecurrenceType.custom,
@@ -97,7 +121,10 @@ void main() {
       to: DateTime(2026, 5, 10, 23, 59),
     );
 
-    expect(occurrences, <DateTime>[DateTime(2026, 5, 10, 20)]);
+    expect(occurrences, <DateTime>[
+      DateTime(2026, 5, 10, 8),
+      DateTime(2026, 5, 10, 20),
+    ]);
   });
 
   test('filters custom weekly recurrence by selected weekdays', () {
@@ -162,7 +189,7 @@ void main() {
     final occurrences = service.occurrencesForRange(
       task: task,
       from: DateTime(2026, 5, 10),
-      to: DateTime(2026, 11, 10),
+      to: DateTime(2026, 11, 10, 23, 59),
     );
 
     expect(occurrences, <DateTime>[

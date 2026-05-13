@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/core/widgets/glass_panel.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
+import 'package:qdone/features/tasks/presentation/utils/task_haptics.dart';
 import 'package:qdone/features/tasks/presentation/widgets/task_card.dart';
 
 class TaskSection extends StatefulWidget {
@@ -49,7 +50,12 @@ class _TaskSectionState extends State<TaskSection> {
         children: <Widget>[
           InkWell(
             borderRadius: BorderRadius.circular(26),
-            onTap: () => setState(() => _expanded = !_expanded),
+            onTap: () async {
+              await TaskHaptics.tap();
+              if (mounted) {
+                setState(() => _expanded = !_expanded);
+              }
+            },
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -134,8 +140,7 @@ class _TaskSectionState extends State<TaskSection> {
                                   onRestore: () => widget.onRestore(task),
                                   onDelete: () => widget.onDelete(task),
                                   onSnooze: () => widget.onSnooze(task),
-                                  onReschedule: () =>
-                                      widget.onReschedule(task),
+                                  onReschedule: () => widget.onReschedule(task),
                                   onEdit: () => widget.onEdit(task),
                                 ),
                               ),

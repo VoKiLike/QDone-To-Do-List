@@ -15,9 +15,12 @@ class NotificationService {
 
   static const int maxPendingNotificationsPerTask = 64;
   static const String _taskChannelId = 'qdone_tasks_v2';
-  static final Int64List _taskVibrationPattern = Int64List.fromList(
-    <int>[0, 120, 80, 180],
-  );
+  static final Int64List _taskVibrationPattern = Int64List.fromList(<int>[
+    0,
+    120,
+    80,
+    180,
+  ]);
 
   static final AndroidNotificationChannel taskChannel =
       AndroidNotificationChannel(
@@ -68,12 +71,7 @@ class NotificationService {
 
   Future<Task> scheduleTask(Task task) async {
     if (task.isCompleted) {
-      return task.copyWith(
-        reminders: task.reminders
-            .map((reminder) => reminder.copyWith(isEnabled: false))
-            .toList(),
-        notificationIds: const <int>[],
-      );
+      return task.copyWith(notificationIds: const <int>[]);
     }
 
     final scheduledIds = <int>[];
@@ -155,7 +153,7 @@ class NotificationService {
   ) {
     final recurrence = task.recurrenceRule;
     if (!recurrence.isEnabled || recurrence.type == RecurrenceType.none) {
-      return scheduledReminders;
+      return _mergeScheduledReminders(task.reminders, scheduledReminders);
     }
     final enabledReminders = task.reminders
         .where((reminder) => reminder.isEnabled)
@@ -172,6 +170,24 @@ class NotificationService {
         isEnabled: template.isEnabled,
       ),
     ];
+  }
+
+  List<Reminder> _mergeScheduledReminders(
+    List<Reminder> originalReminders,
+    List<Reminder> scheduledReminders,
+  ) {
+    final scheduledById = <String, Reminder>{
+      for (final reminder in scheduledReminders) reminder.id: reminder,
+    };
+    return originalReminders.map((reminder) {
+      return scheduledById[reminder.id] ??
+          Reminder(
+            id: reminder.id,
+            taskId: reminder.taskId,
+            dateTime: reminder.dateTime,
+            isEnabled: reminder.isEnabled,
+          );
+    }).toList();
   }
 
   Future<void> _configureLocalTimeZone() async {

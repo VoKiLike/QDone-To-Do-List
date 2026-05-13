@@ -1,10 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
 import 'package:qdone/features/tasks/domain/entities/task_category.dart';
 import 'package:qdone/features/tasks/presentation/widgets/task_form_sheet.dart';
 
 void main() {
+  const hapticsChannel = MethodChannel('qdone/haptics');
+
+  setUp(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(hapticsChannel, (_) async => null);
+  });
+
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(hapticsChannel, null);
+  });
+
   testWidgets('empty title shows validation and keeps sheet mounted', (
     tester,
   ) async {
@@ -14,8 +27,10 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Создать задачу'));
-    await tester.pump();
+    final createButton = find.widgetWithText(FilledButton, 'Создать задачу');
+    await tester.ensureVisible(createButton);
+    await tester.tap(createButton);
+    await tester.pumpAndSettle();
 
     expect(find.text('Введите название задачи'), findsOneWidget);
     expect(find.byType(TaskFormSheet), findsOneWidget);

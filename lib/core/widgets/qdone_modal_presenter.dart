@@ -21,11 +21,12 @@ class QDoneModalPresenter {
       builder: (modalContext) {
         final height = MediaQuery.sizeOf(modalContext).height;
         final viewInsets = MediaQuery.viewInsetsOf(modalContext);
-        final availableHeight = (height - viewInsets.bottom).clamp(
-          0.0,
-          height,
-        ).toDouble();
-        return Padding(
+        final availableHeight = (height - viewInsets.bottom)
+            .clamp(0.0, height)
+            .toDouble();
+        return AnimatedPadding(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
           padding: EdgeInsets.only(bottom: viewInsets.bottom),
           child: ConstrainedBox(
             constraints: BoxConstraints(

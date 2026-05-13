@@ -7,6 +7,7 @@ import 'package:qdone/features/tasks/domain/entities/task.dart';
 import 'package:qdone/features/tasks/domain/entities/task_category.dart';
 import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
 import 'package:qdone/features/tasks/domain/services/reminder_time_factory.dart';
+import 'package:qdone/features/tasks/presentation/utils/task_haptics.dart';
 import 'package:qdone/features/tasks/presentation/widgets/task_form_controls.dart';
 
 class TaskFormSheet extends StatefulWidget {
@@ -74,9 +75,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
     _reminderLeadUnit = reminderOffset.$2;
     final recurrenceRule = task?.recurrenceRule;
     _recurrenceType = recurrenceRule?.type ?? RecurrenceType.none;
-    _recurrenceInterval = (recurrenceRule?.interval ?? 1)
-        .clamp(1, 999)
-        .toInt();
+    _recurrenceInterval = (recurrenceRule?.interval ?? 1).clamp(1, 999).toInt();
     _recurrenceIntervalUnit =
         recurrenceRule?.intervalUnit ?? RecurrenceIntervalUnit.days;
     _timesOfDay = <TimeOfDay>[...?recurrenceRule?.timesOfDay];
@@ -92,7 +91,6 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final maxHeight = MediaQuery.sizeOf(context).height * 0.92;
     final title = widget.initialTask == null
         ? 'Новая задача'
@@ -103,223 +101,227 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
       padding: EdgeInsets.zero,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: maxHeight),
-        child: Padding(
-          padding: EdgeInsets.only(bottom: bottomInset),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const SizedBox(height: 10),
-              Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: (isLight ? AppColors.violet : Colors.white)
-                      .withValues(alpha: isLight ? 0.24 : 0.24),
-                  borderRadius: BorderRadius.circular(99),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const SizedBox(height: 10),
+            Container(
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(
+                color: (isLight ? AppColors.violet : Colors.white).withValues(
+                  alpha: isLight ? 0.24 : 0.24,
                 ),
+                borderRadius: BorderRadius.circular(99),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
-                child: _SheetHeader(
-                  title: title,
-                  isSaving: _saving,
-                  onClose: () => QDoneModalPresenter.close(context),
-                  onSubmit: _handleSubmitTap,
-                ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+              child: _SheetHeader(
+                title: title,
+                isSaving: _saving,
+                onClose: () async {
+                  await TaskHaptics.tap();
+                  if (context.mounted) {
+                    QDoneModalPresenter.close(context);
+                  }
+                },
               ),
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
-                  child: SafeArea(
-                    top: false,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        _FormPanel(
-                          icon: Icons.edit_note_rounded,
-                          title: 'Содержание',
-                          child: Column(
-                            children: <Widget>[
-                              _TaskTextField(
-                                controller: _titleController,
-                                label: 'Название',
-                                icon: Icons.title_rounded,
-                                textInputAction: TextInputAction.next,
-                              ),
-                              const SizedBox(height: 12),
-                              _TaskTextField(
-                                controller: _descriptionController,
-                                label: 'Описание',
-                                icon: Icons.notes_rounded,
-                                minLines: 3,
-                                maxLines: 5,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        _FormPanel(
-                          icon: Icons.event_available_rounded,
-                          title: 'Срок',
-                          child: Row(
-                            children: <Widget>[
-                              Expanded(
-                                child: TaskFormPickerButton(
-                                  icon: Icons.calendar_today_rounded,
-                                  label:
-                                      '${_date.day.toString().padLeft(2, '0')}.${_date.month.toString().padLeft(2, '0')}.${_date.year}',
-                                  onTap: _pickDate,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: TaskFormPickerButton(
-                                  icon: Icons.schedule_rounded,
-                                  label: _time.format(context),
-                                  onTap: _pickTime,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        _FormPanel(
-                          icon: Icons.tune_rounded,
-                          title: 'Параметры',
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              TaskFormSegment<TaskPriority>(
-                                label: 'Приоритет',
-                                value: _priority,
-                                values: TaskPriority.values,
-                                itemLabel: (value) => value.label,
-                                onChanged: (value) =>
-                                    setState(() => _priority = value),
-                              ),
-                              const SizedBox(height: 16),
-                              TaskFormSegment<EnergyLevel>(
-                                label: 'Энергия',
-                                value: _energy,
-                                values: EnergyLevel.values,
-                                itemLabel: (value) => value.label,
-                                onChanged: (value) =>
-                                    setState(() => _energy = value),
-                              ),
-                              const SizedBox(height: 16),
-                              TaskFormCategorySelector(
-                                selected: _category,
-                                customEnabled: _customCategoryEnabled,
-                                customController: _customCategoryController,
-                                onPresetSelected: (category) => setState(() {
-                                  _category = category;
-                                  _customCategoryEnabled = false;
-                                }),
-                                onCustomSelected: () => setState(() {
-                                  _customCategoryEnabled = true;
-                                  _category = _customCategory();
-                                }),
-                                onCustomChanged: (_) => setState(() {
-                                  if (_customCategoryEnabled) {
-                                    _category = _customCategory();
-                                  }
-                                }),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        _FormPanel(
-                          icon: Icons.notifications_active_rounded,
-                          title: 'Автоматизация',
-                          child: Column(
-                            children: <Widget>[
-                              _ReminderSwitch(
-                                value: _reminderEnabled,
-                                onChanged: (value) =>
-                                    setState(() => _reminderEnabled = value),
-                              ),
-                              if (_reminderEnabled) ...<Widget>[
-                                const SizedBox(height: 14),
-                                TaskFormReminderTimingEditor(
-                                  value: _reminderLeadValue,
-                                  unit: _reminderLeadUnit,
-                                  onValueChanged: (value) => setState(
-                                    () => _reminderLeadValue = value,
-                                  ),
-                                  onUnitChanged: (unit) => setState(
-                                    () => _reminderLeadUnit = unit,
-                                  ),
-                                ),
-                              ],
-                              const SizedBox(height: 16),
-                              TaskFormSegment<RecurrenceType>(
-                                label: 'Повтор',
-                                value: _recurrenceType,
-                                values: RecurrenceType.values,
-                                itemLabel: (value) => value ==
-                                        RecurrenceType.none
-                                    ? 'Выкл.'
-                                    : value.label,
-                                onChanged: (value) =>
-                                    setState(() => _recurrenceType = value),
-                              ),
-                              if (_recurrenceType ==
-                                  RecurrenceType.custom) ...<Widget>[
-                                const SizedBox(height: 14),
-                                TaskFormIntervalEditor(
-                                  value: _recurrenceInterval,
-                                  unit: _recurrenceIntervalUnit,
-                                  onValueChanged: (value) => setState(
-                                    () => _recurrenceInterval = value,
-                                  ),
-                                  onUnitChanged: (unit) => setState(
-                                    () => _recurrenceIntervalUnit = unit,
-                                  ),
-                                ),
-                              ],
-                              if (_recurrenceType !=
-                                  RecurrenceType.none) ...<Widget>[
-                                const SizedBox(height: 14),
-                                TaskFormMultipleTimesEditor(
-                                  times: _timesOfDay,
-                                  onAdd: _addRepeatTime,
-                                  onRemove: (time) =>
-                                      setState(() => _timesOfDay.remove(time)),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: FilledButton.icon(
-                            onPressed: _saving ? null : _handleSubmitTap,
-                            icon: _saving
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.done_rounded),
-                            label: Text(
-                              widget.initialTask == null
-                                  ? 'Создать задачу'
-                                  : 'Сохранить изменения',
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                child: SafeArea(
+                  top: false,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      _FormPanel(
+                        icon: Icons.edit_note_rounded,
+                        title: 'Содержание',
+                        child: Column(
+                          children: <Widget>[
+                            _TaskTextField(
+                              controller: _titleController,
+                              label: 'Название',
+                              icon: Icons.title_rounded,
+                              textInputAction: TextInputAction.next,
                             ),
+                            const SizedBox(height: 12),
+                            _TaskTextField(
+                              controller: _descriptionController,
+                              label: 'Описание',
+                              icon: Icons.notes_rounded,
+                              minLines: 3,
+                              maxLines: 5,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _FormPanel(
+                        icon: Icons.event_available_rounded,
+                        title: 'Срок',
+                        child: Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: TaskFormPickerButton(
+                                icon: Icons.calendar_today_rounded,
+                                label:
+                                    '${_date.day.toString().padLeft(2, '0')}.${_date.month.toString().padLeft(2, '0')}.${_date.year}',
+                                onTap: _pickDate,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: TaskFormPickerButton(
+                                icon: Icons.schedule_rounded,
+                                label: _time.format(context),
+                                onTap: _pickTime,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _FormPanel(
+                        icon: Icons.tune_rounded,
+                        title: 'Параметры',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            TaskFormSegment<TaskPriority>(
+                              label: 'Приоритет',
+                              value: _priority,
+                              values: TaskPriority.values,
+                              itemLabel: (value) => value.label,
+                              onChanged: (value) =>
+                                  setState(() => _priority = value),
+                            ),
+                            const SizedBox(height: 16),
+                            TaskFormSegment<EnergyLevel>(
+                              label: 'Энергия',
+                              value: _energy,
+                              values: EnergyLevel.values,
+                              itemLabel: (value) => value.label,
+                              onChanged: (value) =>
+                                  setState(() => _energy = value),
+                            ),
+                            const SizedBox(height: 16),
+                            TaskFormCategorySelector(
+                              selected: _category,
+                              customEnabled: _customCategoryEnabled,
+                              customController: _customCategoryController,
+                              onPresetSelected: (category) => setState(() {
+                                _category = category;
+                                _customCategoryEnabled = false;
+                              }),
+                              onCustomSelected: () => setState(() {
+                                _customCategoryEnabled = true;
+                                _category = _customCategory();
+                              }),
+                              onCustomChanged: (_) => setState(() {
+                                if (_customCategoryEnabled) {
+                                  _category = _customCategory();
+                                }
+                              }),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _FormPanel(
+                        icon: Icons.notifications_active_rounded,
+                        title: 'Автоматизация',
+                        child: Column(
+                          children: <Widget>[
+                            _ReminderSwitch(
+                              value: _reminderEnabled,
+                              onChanged: (value) async {
+                                await TaskHaptics.tap();
+                                if (mounted) {
+                                  setState(() => _reminderEnabled = value);
+                                }
+                              },
+                            ),
+                            if (_reminderEnabled) ...<Widget>[
+                              const SizedBox(height: 14),
+                              TaskFormReminderTimingEditor(
+                                value: _reminderLeadValue,
+                                unit: _reminderLeadUnit,
+                                onValueChanged: (value) =>
+                                    setState(() => _reminderLeadValue = value),
+                                onUnitChanged: (unit) =>
+                                    setState(() => _reminderLeadUnit = unit),
+                              ),
+                            ],
+                            const SizedBox(height: 16),
+                            TaskFormSegment<RecurrenceType>(
+                              label: 'Повтор',
+                              value: _recurrenceType,
+                              values: RecurrenceType.values,
+                              itemLabel: (value) => value == RecurrenceType.none
+                                  ? 'Выкл.'
+                                  : value.label,
+                              onChanged: (value) =>
+                                  setState(() => _recurrenceType = value),
+                            ),
+                            if (_recurrenceType ==
+                                RecurrenceType.custom) ...<Widget>[
+                              const SizedBox(height: 14),
+                              TaskFormIntervalEditor(
+                                value: _recurrenceInterval,
+                                unit: _recurrenceIntervalUnit,
+                                onValueChanged: (value) =>
+                                    setState(() => _recurrenceInterval = value),
+                                onUnitChanged: (unit) => setState(
+                                  () => _recurrenceIntervalUnit = unit,
+                                ),
+                              ),
+                            ],
+                            if (_recurrenceType !=
+                                RecurrenceType.none) ...<Widget>[
+                              const SizedBox(height: 14),
+                              TaskFormMultipleTimesEditor(
+                                times: _timesOfDay,
+                                onAdd: _addRepeatTime,
+                                onRemove: (time) =>
+                                    setState(() => _timesOfDay.remove(time)),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 54,
+                        child: FilledButton.icon(
+                          onPressed: _saving ? null : _handleSubmitTap,
+                          icon: _saving
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.done_rounded),
+                          label: Text(
+                            widget.initialTask == null
+                                ? 'Создать задачу'
+                                : 'Сохранить изменения',
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -361,6 +363,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
   }
 
   Future<void> _handleSubmitTap() async {
+    await TaskHaptics.tap();
     FocusManager.instance.primaryFocus?.unfocus();
     await _submit();
   }
@@ -370,9 +373,9 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
       return;
     }
     if (_titleController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Введите название задачи')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Введите название задачи')));
       return;
     }
     setState(() => _saving = true);
@@ -381,15 +384,15 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
         _date.year,
         _date.month,
         _date.day,
-        _time.hour,
-        _time.minute,
+        _effectiveDueTime.hour,
+        _effectiveDueTime.minute,
       );
       await widget.onSubmit(
         TaskFormValue(
           title: _titleController.text.trim(),
           description: _descriptionController.text.trim(),
           dueDate: _date,
-          dueTime: _time,
+          dueTime: _effectiveDueTime,
           priority: _priority,
           category: _customCategoryEnabled ? _customCategory() : _category,
           energyLevel: _energy,
@@ -397,7 +400,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
             type: _recurrenceType,
             interval: _effectiveRecurrenceInterval,
             intervalUnit: _effectiveRecurrenceIntervalUnit,
-            timesOfDay: List<TimeOfDay>.unmodifiable(_timesOfDay),
+            timesOfDay: _effectiveRecurrenceTimes,
             startDate: _date,
             isEnabled: _recurrenceType != RecurrenceType.none,
           ),
@@ -447,6 +450,29 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
         : RecurrenceIntervalUnit.days;
   }
 
+  TimeOfDay get _effectiveDueTime {
+    final times = _effectiveRecurrenceTimes;
+    return times.isEmpty ? _time : times.first;
+  }
+
+  List<TimeOfDay> get _effectiveRecurrenceTimes {
+    if (_recurrenceType == RecurrenceType.none) {
+      return const <TimeOfDay>[];
+    }
+    final source = _timesOfDay.isEmpty ? <TimeOfDay>[_time] : _timesOfDay;
+    final unique = <String, TimeOfDay>{};
+    for (final time in source) {
+      unique['${time.hour}:${time.minute}'] = time;
+    }
+    final times = unique.values.toList()
+      ..sort((a, b) {
+        final left = a.hour * 60 + a.minute;
+        final right = b.hour * 60 + b.minute;
+        return left.compareTo(right);
+      });
+    return List<TimeOfDay>.unmodifiable(times);
+  }
+
   int get _reminderOffsetMinutes {
     final value = _reminderLeadValue.clamp(0, 999).toInt();
     return switch (_reminderLeadUnit) {
@@ -488,13 +514,11 @@ class _SheetHeader extends StatelessWidget {
     required this.title,
     required this.isSaving,
     required this.onClose,
-    required this.onSubmit,
   });
 
   final String title;
   final bool isSaving;
   final VoidCallback onClose;
-  final VoidCallback onSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -529,19 +553,8 @@ class _SheetHeader extends StatelessWidget {
         ),
         IconButton.filledTonal(
           tooltip: 'Закрыть',
-          onPressed: onClose,
+          onPressed: isSaving ? null : onClose,
           icon: const Icon(Icons.close_rounded),
-        ),
-        const SizedBox(width: 8),
-        FilledButton(
-          onPressed: isSaving ? null : onSubmit,
-          child: isSaving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.check_rounded),
         ),
       ],
     );

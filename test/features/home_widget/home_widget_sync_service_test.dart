@@ -9,10 +9,15 @@ import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
 void main() {
   test('widget payload respects task limit and completed visibility', () {
     const service = HomeWidgetSyncService();
+    final today = _today();
     final tasks = <Task>[
       _task(id: 'done', title: 'Done', status: TaskStatus.completed),
-      _task(id: 'late', title: 'Late', date: DateTime(2026, 5, 9)),
-      _task(id: 'next', title: 'Next', date: DateTime(2026, 5, 11)),
+      _task(id: 'late', title: 'Late', date: today),
+      _task(
+        id: 'next',
+        title: 'Next',
+        date: today.add(const Duration(days: 1)),
+      ),
     ];
 
     final payload = service.buildWidgetPayload(
@@ -30,9 +35,15 @@ void main() {
 
   test('widget payload sorts active tasks before completed tasks', () {
     const service = HomeWidgetSyncService();
+    final today = _today();
     final tasks = <Task>[
-      _task(id: 'done', title: 'Done', status: TaskStatus.completed),
-      _task(id: 'active', title: 'Active', date: DateTime(2026, 5, 12)),
+      _task(
+        id: 'done',
+        title: 'Done',
+        status: TaskStatus.completed,
+        completedAt: today,
+      ),
+      _task(id: 'active', title: 'Active', date: today),
     ];
 
     final payload = service.buildWidgetPayload(
@@ -51,6 +62,7 @@ Task _task({
   required String id,
   required String title,
   DateTime? date,
+  DateTime? completedAt,
   TaskStatus status = TaskStatus.active,
 }) {
   return Task(
@@ -59,6 +71,7 @@ Task _task({
     createdAt: DateTime(2026, 5, 10),
     dueDate: date ?? DateTime(2026, 5, 10),
     dueTime: const TimeOfDay(hour: 9, minute: 0),
+    completedAt: completedAt,
     status: status,
     category: const TaskCategory(
       id: 'personal',
@@ -66,4 +79,9 @@ Task _task({
       colorValue: 0xFF8B5CF6,
     ),
   );
+}
+
+DateTime _today() {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day);
 }

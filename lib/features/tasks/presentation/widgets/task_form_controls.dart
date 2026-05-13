@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/features/tasks/domain/entities/task_category.dart';
 import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
+import 'package:qdone/features/tasks/presentation/utils/task_haptics.dart';
 
 class TaskFormPickerButton extends StatelessWidget {
   const TaskFormPickerButton({
@@ -18,11 +19,16 @@ class TaskFormPickerButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
+    Future<void> handleTap() async {
+      await TaskHaptics.tap();
+      onTap();
+    }
+
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
-        onTap: onTap,
+        onTap: handleTap,
         borderRadius: BorderRadius.circular(20),
         splashColor: AppColors.cyan.withValues(alpha: 0.16),
         highlightColor: AppColors.violet.withValues(alpha: 0.12),
@@ -229,7 +235,10 @@ class TaskFormMultipleTimesEditor extends StatelessWidget {
                 ),
                 IconButton.filledTonal(
                   tooltip: 'Добавить время',
-                  onPressed: onAdd,
+                  onPressed: () async {
+                    await TaskHaptics.tap();
+                    onAdd();
+                  },
                   icon: const Icon(Icons.add_rounded),
                 ),
               ],
@@ -248,7 +257,10 @@ class TaskFormMultipleTimesEditor extends StatelessWidget {
                 children: times.map((time) {
                   return InputChip(
                     label: Text(time.format(context)),
-                    onDeleted: () => onRemove(time),
+                    onDeleted: () async {
+                      await TaskHaptics.tap();
+                      onRemove(time);
+                    },
                     avatar: const Icon(Icons.schedule_rounded, size: 16),
                   );
                 }).toList(),
@@ -349,6 +361,11 @@ class _IntervalPanel extends StatelessWidget {
     final label = zeroLabel != null && normalizedValue == 0
         ? zeroLabel!
         : '$normalizedValue ${_unitLabel(unit, normalizedValue)}';
+    Future<void> changeValue(int nextValue) async {
+      await TaskHaptics.tap();
+      onValueChanged(nextValue);
+    }
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.violet.withValues(alpha: 0.10),
@@ -375,7 +392,7 @@ class _IntervalPanel extends StatelessWidget {
                   tooltip: 'Уменьшить',
                   onPressed: isAtMinimum
                       ? null
-                      : () => onValueChanged(normalizedValue - 1),
+                      : () => changeValue(normalizedValue - 1),
                   icon: const Icon(Icons.remove_rounded),
                 ),
                 const SizedBox(width: 8),
@@ -406,7 +423,7 @@ class _IntervalPanel extends StatelessWidget {
                   tooltip: 'Увеличить',
                   onPressed: normalizedValue >= 999
                       ? null
-                      : () => onValueChanged(normalizedValue + 1),
+                      : () => changeValue(normalizedValue + 1),
                   icon: const Icon(Icons.add_rounded),
                 ),
               ],
@@ -459,6 +476,11 @@ class _TaskFormChip extends StatelessWidget {
         : isLight
         ? const Color(0xFF1E1B2E)
         : AppColors.softWhite;
+    Future<void> handleTap() async {
+      await TaskHaptics.tap();
+      onTap();
+    }
+
     return AnimatedScale(
       scale: selected ? 1.02 : 1,
       duration: const Duration(milliseconds: 160),
@@ -467,7 +489,7 @@ class _TaskFormChip extends StatelessWidget {
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
-          onTap: onTap,
+          onTap: handleTap,
           borderRadius: BorderRadius.circular(16),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),

@@ -48,7 +48,8 @@ class TaskMutationService {
       dueDate: dueDate,
       dueTime: dueTime,
       priority: priority,
-      category: category ??
+      category:
+          category ??
           const TaskCategory(
             id: 'personal',
             name: 'Личное',
@@ -79,7 +80,7 @@ class TaskMutationService {
       }
       await notificationService.cancelTask(latest);
       final rescheduled = await _scheduleIfAllowed(
-        latest.copyWith(notificationIds: const <int>[]),
+        _withoutScheduledNotifications(latest),
       );
       final current = await _latestTask(task.id);
       if (current != null && _sameSchedulingInputs(latest, current)) {
@@ -133,35 +134,23 @@ class TaskMutationService {
         after: task.dueDateTime,
       );
       if (nextOccurrence != null) {
-        await repository.upsert(
-          await _scheduleIfAllowed(
-            task.copyWith(
-              dueDate: DateTime(
-                nextOccurrence.year,
-                nextOccurrence.month,
-                nextOccurrence.day,
-              ),
-              dueTime: TimeOfDay(
-                hour: nextOccurrence.hour,
-                minute: nextOccurrence.minute,
-              ),
-              status: TaskStatus.active,
-              clearCompletedAt: true,
-              isArchived: false,
-              notificationIds: const <int>[],
-            ),
-          ),
+        final nextTask = _moveTaskSchedule(task, nextOccurrence).copyWith(
+          status: TaskStatus.active,
+          clearCompletedAt: true,
+          isArchived: false,
         );
+        await repository.upsert(await _scheduleIfAllowed(nextTask));
         return;
       }
     }
 
     await repository.upsert(
-      task.copyWith(
-        status: TaskStatus.completed,
-        completedAt: DateTime.now(),
-        isArchived: false,
-        notificationIds: const <int>[],
+      _withoutScheduledNotifications(
+        task.copyWith(
+          status: TaskStatus.completed,
+          completedAt: DateTime.now(),
+          isArchived: false,
+        ),
       ),
     );
   }
@@ -173,7 +162,6 @@ class TaskMutationService {
           status: TaskStatus.active,
           clearCompletedAt: true,
           isArchived: false,
-          notificationIds: const <int>[],
         ),
       ),
     );
@@ -182,11 +170,12 @@ class TaskMutationService {
   Future<void> archive(Task task) async {
     await notificationService.cancelTask(task);
     await repository.upsert(
-      task.copyWith(
-        status: TaskStatus.archived,
-        completedAt: task.completedAt ?? DateTime.now(),
-        isArchived: true,
-        notificationIds: const <int>[],
+      _withoutScheduledNotifications(
+        task.copyWith(
+          status: TaskStatus.archived,
+          completedAt: task.completedAt ?? DateTime.now(),
+          isArchived: true,
+        ),
       ),
     );
   }
@@ -226,18 +215,12 @@ class TaskMutationService {
 
   Future<void> reschedule(Task task, DateTime dateTime) async {
     await notificationService.cancelTask(task);
-    await repository.upsert(
-      await _scheduleIfAllowed(
-        task.copyWith(
-          dueDate: DateTime(dateTime.year, dateTime.month, dateTime.day),
-          dueTime: TimeOfDay(hour: dateTime.hour, minute: dateTime.minute),
-          status: TaskStatus.active,
-          clearCompletedAt: true,
-          isArchived: false,
-          notificationIds: const <int>[],
-        ),
-      ),
+    final nextTask = _moveTaskSchedule(task, dateTime).copyWith(
+      status: TaskStatus.active,
+      clearCompletedAt: true,
+      isArchived: false,
     );
+    await repository.upsert(await _scheduleIfAllowed(nextTask));
   }
 
   Future<bool> toggleFromWidget(String taskId) async {
@@ -258,9 +241,49 @@ class TaskMutationService {
   Future<Task> _scheduleIfAllowed(Task task) async {
     final settings = await settingsRepository.read();
     if (!settings.notificationsEnabled || task.reminders.isEmpty) {
-      return task.copyWith(notificationIds: const <int>[]);
+      return _withoutScheduledNotifications(task);
     }
     return notificationService.scheduleTask(task);
+  }
+
+  Task _moveTaskSchedule(Task task, DateTime nextDueDateTime) {
+    final delta = nextDueDateTime.difference(task.dueDateTime);
+    final movedReminders = task.reminders.map((reminder) {
+      return Reminder(
+        id: reminder.id,
+        taskId: reminder.taskId,
+        dateTime: reminder.dateTime.add(delta),
+        isEnabled: reminder.isEnabled,
+      );
+    }).toList();
+    return _withoutScheduledNotifications(
+      task.copyWith(
+        dueDate: DateTime(
+          nextDueDateTime.year,
+          nextDueDateTime.month,
+          nextDueDateTime.day,
+        ),
+        dueTime: TimeOfDay(
+          hour: nextDueDateTime.hour,
+          minute: nextDueDateTime.minute,
+        ),
+        reminders: movedReminders,
+      ),
+    );
+  }
+
+  Task _withoutScheduledNotifications(Task task) {
+    return task.copyWith(
+      notificationIds: const <int>[],
+      reminders: task.reminders.map((reminder) {
+        return Reminder(
+          id: reminder.id,
+          taskId: reminder.taskId,
+          dateTime: reminder.dateTime,
+          isEnabled: reminder.isEnabled,
+        );
+      }).toList(),
+    );
   }
 
   bool _needsNotificationRefresh(Task task) {

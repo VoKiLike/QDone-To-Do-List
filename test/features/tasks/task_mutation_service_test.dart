@@ -5,6 +5,7 @@ import 'package:qdone/core/notifications/notification_service.dart';
 import 'package:qdone/features/settings/domain/settings_repository.dart';
 import 'package:qdone/features/settings/domain/user_settings.dart';
 import 'package:qdone/features/tasks/domain/entities/recurrence_rule.dart';
+import 'package:qdone/features/tasks/domain/entities/reminder.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
 import 'package:qdone/features/tasks/domain/entities/task_category.dart';
 import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
@@ -53,6 +54,49 @@ void main() {
     expect(repository.tasks.single.completedAt, isNull);
   });
 
+  test(
+    'complete preserves reminder intent while clearing scheduled ids',
+    () async {
+      final repository = _MemoryTaskRepository(<Task>[
+        _taskWithReminder(
+          id: 'reminded',
+          notificationIds: const <int>[42],
+          reminderNotificationId: 42,
+        ),
+      ]);
+      final service = _service(repository, notificationsEnabled: true);
+
+      await service.complete(repository.tasks.single);
+
+      final task = repository.tasks.single;
+      expect(task.status, TaskStatus.completed);
+      expect(task.reminders, hasLength(1));
+      expect(task.reminders.single.isEnabled, isTrue);
+      expect(task.reminders.single.notificationId, isNull);
+      expect(task.notificationIds, isEmpty);
+    },
+  );
+
+  test('restore reschedules preserved reminders', () async {
+    final repository = _MemoryTaskRepository(<Task>[
+      _taskWithReminder(
+        id: 'done-reminded',
+        status: TaskStatus.completed,
+        completedAt: DateTime(2026, 5, 10),
+      ),
+    ]);
+    final service = _service(repository, notificationsEnabled: true);
+
+    await service.restore(repository.tasks.single);
+
+    final task = repository.tasks.single;
+    expect(task.status, TaskStatus.active);
+    expect(task.completedAt, isNull);
+    expect(task.reminders.single.isEnabled, isTrue);
+    expect(task.reminders.single.notificationId, isNotNull);
+    expect(task.notificationIds, isNotEmpty);
+  });
+
   test('completing recurring task advances to next occurrence', () async {
     final repository = _MemoryTaskRepository(<Task>[
       _task(
@@ -77,11 +121,16 @@ void main() {
   });
 }
 
-TaskMutationService _service(_MemoryTaskRepository repository) {
+TaskMutationService _service(
+  _MemoryTaskRepository repository, {
+  bool notificationsEnabled = false,
+}) {
   return TaskMutationService(
     repository: repository,
     notificationService: _FakeNotificationService(),
-    settingsRepository: _FakeSettingsRepository(),
+    settingsRepository: _FakeSettingsRepository(
+      notificationsEnabled: notificationsEnabled,
+    ),
   );
 }
 
@@ -108,6 +157,28 @@ Task _task({
     ),
     recurrenceRule: recurrenceRule,
     isArchived: isArchived,
+  );
+}
+
+Task _taskWithReminder({
+  required String id,
+  TaskStatus status = TaskStatus.active,
+  DateTime? completedAt,
+  List<int> notificationIds = const <int>[],
+  int? reminderNotificationId,
+}) {
+  final task = _task(id: id, status: status, completedAt: completedAt);
+  return task.copyWith(
+    dueDate: DateTime(2099, 5, 10),
+    reminders: <Reminder>[
+      Reminder(
+        id: 'reminder-$id',
+        taskId: id,
+        dateTime: DateTime(2099, 5, 10, 8, 45),
+        notificationId: reminderNotificationId,
+      ),
+    ],
+    notificationIds: notificationIds,
   );
 }
 
@@ -151,9 +222,13 @@ class _MemoryTaskRepository implements TaskRepository {
 }
 
 class _FakeSettingsRepository implements SettingsRepository {
+  const _FakeSettingsRepository({required this.notificationsEnabled});
+
+  final bool notificationsEnabled;
+
   @override
   Future<UserSettings> read() async {
-    return const UserSettings(notificationsEnabled: false);
+    return UserSettings(notificationsEnabled: notificationsEnabled);
   }
 
   @override
@@ -167,5 +242,23 @@ class _FakeNotificationService extends NotificationService {
   Future<void> cancelTask(Task task) async {}
 
   @override
-  Future<Task> scheduleTask(Task task) async => task;
+  Future<Task> scheduleTask(Task task) async {
+    final ids = <int>[];
+    final reminders = <Reminder>[];
+    for (var index = 0; index < task.reminders.length; index++) {
+      final id = 100 + index;
+      ids.add(id);
+      final reminder = task.reminders[index];
+      reminders.add(
+        Reminder(
+          id: reminder.id,
+          taskId: reminder.taskId,
+          dateTime: reminder.dateTime,
+          notificationId: id,
+          isEnabled: reminder.isEnabled,
+        ),
+      );
+    }
+    return task.copyWith(reminders: reminders, notificationIds: ids);
+  }
 }

@@ -53,7 +53,7 @@ class RecurrenceService {
               time.hour,
               time.minute,
             );
-            if (!occurrence.isBefore(task.dueDateTime) &&
+            if (!_isBeforeTaskStartDay(occurrence, task.dueDateTime) &&
                 !occurrence.isBefore(from) &&
                 !occurrence.isAfter(to) &&
                 !occurrence.isAfter(end)) {
@@ -94,6 +94,16 @@ class RecurrenceService {
       return false;
     }
     return true;
+  }
+
+  bool _isBeforeTaskStartDay(DateTime occurrence, DateTime taskStart) {
+    final occurrenceDay = DateTime(
+      occurrence.year,
+      occurrence.month,
+      occurrence.day,
+    );
+    final startDay = DateTime(taskStart.year, taskStart.month, taskStart.day);
+    return occurrenceDay.isBefore(startDay);
   }
 
   DateTime _advance(DateTime date, RecurrenceRule rule) {
