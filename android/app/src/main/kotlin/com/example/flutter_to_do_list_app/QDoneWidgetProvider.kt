@@ -66,7 +66,7 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
         widgetData: SharedPreferences?
     ) {
         val prefs = flutterPreferences(context)
-        val settings = readSettings(prefs)
+        val settings = readSettings(prefs, widgetData)
         val rows = readWidgetTasks(prefs, settings)
             ?: readWidgetTasks(
                 widgetData?.getString(WIDGET_TASKS_JSON_KEY, "[]"),
@@ -192,13 +192,42 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
             .take(taskLimit.coerceIn(1, 10))
     }
 
-    private fun readSettings(prefs: SharedPreferences): WidgetSettings {
-        val raw = prefs.getString(SETTINGS_KEY, null) ?: return WidgetSettings()
-        val json = runCatching { JSONObject(raw) }.getOrNull() ?: return WidgetSettings()
+    private fun readSettings(
+        prefs: SharedPreferences,
+        widgetData: SharedPreferences?
+    ): WidgetSettings {
+        val raw = prefs.getString(SETTINGS_KEY, null)
+        val json = raw?.let { runCatching { JSONObject(it) }.getOrNull() }
+        val storedSettings = if (json == null) {
+            WidgetSettings()
+        } else {
+            WidgetSettings(
+                showCompleted = json.optBoolean("widgetShowsCompleted", false),
+                taskLimit = json.optInt("widgetTaskLimit", 5).coerceIn(1, 10),
+                compact = json.optBoolean("compactWidget", false)
+            )
+        }
+
+        if (widgetData == null) {
+            return storedSettings
+        }
+
         return WidgetSettings(
-            showCompleted = json.optBoolean("widgetShowsCompleted", false),
-            taskLimit = json.optInt("widgetTaskLimit", 5).coerceIn(1, 10),
-            compact = json.optBoolean("compactWidget", false)
+            showCompleted = if (widgetData.contains(WIDGET_SHOW_COMPLETED_KEY)) {
+                widgetData.getBoolean(WIDGET_SHOW_COMPLETED_KEY, storedSettings.showCompleted)
+            } else {
+                storedSettings.showCompleted
+            },
+            taskLimit = if (widgetData.contains(WIDGET_TASK_LIMIT_KEY)) {
+                widgetData.getInt(WIDGET_TASK_LIMIT_KEY, storedSettings.taskLimit).coerceIn(1, 10)
+            } else {
+                storedSettings.taskLimit
+            },
+            compact = if (widgetData.contains(WIDGET_COMPACT_KEY)) {
+                widgetData.getBoolean(WIDGET_COMPACT_KEY, storedSettings.compact)
+            } else {
+                storedSettings.compact
+            }
         )
     }
 
@@ -326,6 +355,9 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
         private const val SETTINGS_KEY = "flutter.qdone.settings.v1"
         private const val WIDGET_TITLE_KEY = "widget_title"
         private const val WIDGET_TASKS_JSON_KEY = "widget_tasks_json"
+        private const val WIDGET_SHOW_COMPLETED_KEY = "widget_show_completed"
+        private const val WIDGET_TASK_LIMIT_KEY = "widget_task_limit"
+        private const val WIDGET_COMPACT_KEY = "widget_compact"
         private const val STATUS_ACTIVE = "active"
         private const val STATUS_OVERDUE = "overdue"
         private const val STATUS_COMPLETED = "completed"
