@@ -2,16 +2,14 @@ package com.volkoweb.qdone
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
-import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Color
 import android.graphics.Paint
 import android.net.Uri
-import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
+import es.antonborri.home_widget.HomeWidgetBackgroundIntent
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetProvider
 import java.time.LocalDateTime
@@ -19,21 +17,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class QDoneWidgetProvider : HomeWidgetProvider() {
-    override fun onReceive(context: Context, intent: Intent) {
-        Log.d(TAG, "onReceive action=${intent.action}")
-        if (intent.action == ACTION_TOGGLE_TASK) {
-            val taskId = intent.getStringExtra(EXTRA_TASK_ID)
-            Log.d(TAG, "Toggle requested for taskId=$taskId")
-            if (!taskId.isNullOrBlank() && toggleTask(context, taskId)) {
-                updateAllWidgets(context)
-            } else {
-                Log.w(TAG, "Toggle ignored: taskId missing or task not found")
-            }
-            return
-        }
-        super.onReceive(context, intent)
-    }
-
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -158,66 +141,6 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
         }
     }
 
-    private fun toggleTask(context: Context, taskId: String): Boolean {
-        val prefs = flutterPreferences(context)
-        val raw = prefs.getString(TASKS_KEY, null)
-        if (raw.isNullOrBlank()) {
-            Log.w(TAG, "Task store is empty for key=$TASKS_KEY")
-            return false
-        }
-        val tasks = runCatching { JSONArray(raw) }.getOrNull()
-        if (tasks == null) {
-            Log.w(TAG, "Task store JSON is invalid")
-            return false
-        }
-
-        for (index in 0 until tasks.length()) {
-            val task = tasks.optJSONObject(index) ?: continue
-            if (task.optString("id") != taskId) continue
-
-            val completed = task.optBoolean("isArchived", false) ||
-                task.optString("status") == STATUS_COMPLETED ||
-                task.optString("status") == STATUS_ARCHIVED
-
-            if (completed) {
-                task.put("status", restoredStatusFor(task))
-                task.put("isArchived", false)
-                task.put("completedAt", JSONObject.NULL)
-            } else {
-                task.put("status", STATUS_COMPLETED)
-                task.put("isArchived", false)
-                task.put("completedAt", LocalDateTime.now().toString())
-            }
-
-            task.put("notificationIds", JSONArray())
-            val saved = prefs.edit().putString(TASKS_KEY, tasks.toString()).commit()
-            val status = task.optString("status")
-            Log.d(TAG, "Toggle saved=$saved taskId=$taskId status=$status")
-            return true
-        }
-
-        Log.w(TAG, "Task not found in widget toggle taskId=$taskId")
-        return false
-    }
-
-    private fun restoredStatusFor(task: JSONObject): String {
-        val dueDateTime = WidgetTask.dueDateTimeOf(task)
-        return if (dueDateTime?.isBefore(LocalDateTime.now()) == true) {
-            STATUS_OVERDUE
-        } else {
-            STATUS_ACTIVE
-        }
-    }
-
-    private fun updateAllWidgets(context: Context) {
-        val manager = AppWidgetManager.getInstance(context)
-        val component = ComponentName(context, QDoneWidgetProvider::class.java)
-        val ids = manager.getAppWidgetIds(component)
-        ids.forEach { widgetId ->
-            manager.updateAppWidget(widgetId, buildViews(context, null))
-        }
-    }
-
     private fun readWidgetTasks(
         prefs: SharedPreferences,
         settings: WidgetSettings
@@ -283,16 +206,9 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
         context.getSharedPreferences(FLUTTER_PREFS, Context.MODE_PRIVATE)
 
     private fun toggleIntent(context: Context, taskId: String): PendingIntent {
-        val intent = Intent(context, QDoneWidgetProvider::class.java).apply {
-            action = ACTION_TOGGLE_TASK
-            data = Uri.parse("qdone://toggle/$taskId")
-            putExtra(EXTRA_TASK_ID, taskId)
-        }
-        return PendingIntent.getBroadcast(
+        return HomeWidgetBackgroundIntent.getBroadcast(
             context,
-            taskId.hashCode(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            Uri.parse("qdone://toggle/$taskId")
         )
     }
 
@@ -383,9 +299,7 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
             }
 
             fun dueDateTimeOf(json: JSONObject): LocalDateTime? {
-                val dueDate = runCatching {
-                    LocalDateTime.parse(json.optString("dueDate"))
-                }.getOrNull() ?: return null
+                val dueDate = parseDateTime(json.optString("dueDate")) ?: return null
                 val parts = json.optString("dueTime", "9:0").split(":")
                 val hour = parts.getOrNull(0)?.toIntOrNull() ?: 9
                 val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
@@ -407,9 +321,6 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
     }
 
     companion object {
-        private const val TAG = "QDoneWidget"
-        private const val ACTION_TOGGLE_TASK = "com.volkoweb.qdone.ACTION_TOGGLE_TASK"
-        private const val EXTRA_TASK_ID = "task_id"
         private const val FLUTTER_PREFS = "FlutterSharedPreferences"
         private const val TASKS_KEY = "flutter.qdone.tasks.v1"
         private const val SETTINGS_KEY = "flutter.qdone.settings.v1"
