@@ -67,11 +67,13 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
     ) {
         val prefs = flutterPreferences(context)
         val settings = readSettings(prefs, widgetData)
-        val rows = readWidgetTasks(prefs, settings)
-            ?: readWidgetTasks(
-                widgetData?.getString(WIDGET_TASKS_JSON_KEY, "[]"),
-                settings.compact
-            )
+        val rows = readWidgetTasks(
+            raw = widgetData?.getString(WIDGET_TASKS_JSON_KEY, null),
+            compact = settings.compact,
+            showCompleted = settings.showCompleted,
+            taskLimit = settings.taskLimit
+        )
+            ?: readWidgetTasks(prefs, settings)
             ?: emptyList()
 
         if (rows.isEmpty()) {
@@ -98,7 +100,10 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
             row.setTextViewText(R.id.widget_task_time, item.time)
             row.setTextViewText(R.id.widget_task_category, item.category)
             row.setTextViewText(R.id.widget_task_title, item.title)
-            row.setTextViewText(R.id.widget_task_done, if (done) "\u21BA" else "\u2713")
+            row.setTextViewText(
+                R.id.widget_task_done,
+                if (done && item.canToggle) "\u21BA" else "\u2713"
+            )
 
             row.setTextColor(
                 R.id.widget_task_time,
@@ -133,10 +138,12 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
                     Uri.parse("qdone://focus/$taskId")
                 )
             )
-            row.setOnClickPendingIntent(
-                R.id.widget_task_done,
-                toggleIntent(context, taskId)
-            )
+            if (item.canToggle) {
+                row.setOnClickPendingIntent(
+                    R.id.widget_task_done,
+                    toggleIntent(context, taskId)
+                )
+            }
             views.addView(R.id.widget_rows, row)
         }
     }
@@ -264,7 +271,8 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
         val status: String,
         val isCompleted: Boolean,
         val dueDateTime: LocalDateTime?,
-        val completedAt: LocalDateTime?
+        val completedAt: LocalDateTime?,
+        val canToggle: Boolean = true
     ) {
         fun isVisibleToday(showCompleted: Boolean, now: LocalDateTime): Boolean {
             val dueToday = isSameDay(dueDateTime, now)
@@ -295,7 +303,8 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
                         status == STATUS_COMPLETED || status == STATUS_ARCHIVED
                     ),
                     dueDateTime = null,
-                    completedAt = null
+                    completedAt = null,
+                    canToggle = json.optBoolean("canToggle", true)
                 )
             }
 

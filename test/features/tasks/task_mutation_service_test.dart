@@ -116,7 +116,7 @@ void main() {
 
     final task = repository.tasks.single;
     expect(task.status, TaskStatus.active);
-    expect(task.completedAt, isNull);
+    expect(task.completedAt, isNotNull);
     expect(task.dueDate, DateTime(2026, 5, 11));
   });
 }

@@ -5,7 +5,7 @@
 Clean Architecture, local storage, recurring tasks, reminders, a liquid
 glass-inspired interface, and Android home widget groundwork.
 
-Version: **0.4.8**.
+Version: **0.4.9**.
 
 Русская версия ниже.
 
@@ -43,6 +43,7 @@ Version: **0.4.8**.
 - Android transparent home screen widget foundation using `home_widget`.
 - Android widget tasks can be completed or restored from the widget, with completed rows shown as struck-through when enabled.
 - Android widget ordering shows active tasks first by due time, then completed tasks by due time.
+- Android widget now shows recurring tasks completed today as completed rows while keeping their next occurrence scheduled.
 - Android widget settings now sync immediately for task count, completed-task visibility, and compact density; the broken transparency control was removed from the settings UI.
 - Focus Mode foundation for distraction-free task actions.
 - Settings knowledge base that explains the app icons and their actions.
@@ -105,7 +106,7 @@ This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md).
 для задач и календаря: Clean Architecture, локальное хранение, повторяющиеся
 задачи, напоминания, интерфейс в стиле liquid glass и основа Android-виджета.
 
-Версия: **0.4.8**.
+Версия: **0.4.9**.
 
 ## Возможности
 
@@ -137,6 +138,7 @@ This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md).
 - Основа повторяющихся задач: ежедневно, еженедельно, ежемесячно, ежегодно, пользовательские интервалы и несколько времен в день.
 - Основа локальных уведомлений через `flutter_local_notifications` и `timezone`.
 - Основа прозрачного Android home screen widget через `home_widget`.
+- Android-виджет показывает повторяющиеся задачи, выполненные сегодня, как выполненные строки, сохраняя следующее повторение в расписании.
 - Основа Focus Mode для работы с одной задачей без лишних отвлечений.
 - Библиотека знаний в настройках с объяснением значков и действий приложения.
 

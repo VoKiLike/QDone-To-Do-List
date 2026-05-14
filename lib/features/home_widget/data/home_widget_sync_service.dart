@@ -69,11 +69,17 @@ class HomeWidgetSyncService {
             .toList()
           ..sort(_compareForWidget);
 
+    final widgetTasks = visibleTasks.map(WidgetTask.fromTask).toList();
+    if (settings.widgetShowsCompleted) {
+      widgetTasks.addAll(
+        tasks
+            .where((task) => _isRecurringCompletionVisibleToday(task, today))
+            .map(WidgetTask.completedOccurrenceFromTask),
+      );
+    }
+
     return WidgetPayload(
-      tasks: visibleTasks
-          .take(settings.widgetTaskLimit)
-          .map(WidgetTask.fromTask)
-          .toList(),
+      tasks: widgetTasks.take(settings.widgetTaskLimit).toList(),
     );
   }
 
@@ -101,6 +107,13 @@ class HomeWidgetSyncService {
         ? dueToday
         : DateUtils.isSameDay(completedAt, today);
   }
+
+  bool _isRecurringCompletionVisibleToday(Task task, DateTime today) {
+    return !task.isCompleted &&
+        task.recurrenceRule.isEnabled &&
+        task.completedAt != null &&
+        DateUtils.isSameDay(task.completedAt, today);
+  }
 }
 
 class WidgetPayload {
@@ -118,6 +131,7 @@ class WidgetTask {
     required this.status,
     required this.priority,
     required this.isCompleted,
+    this.canToggle = true,
   });
 
   final String id;
@@ -127,16 +141,32 @@ class WidgetTask {
   final String status;
   final String priority;
   final bool isCompleted;
+  final bool canToggle;
 
   factory WidgetTask.fromTask(Task task) {
     return WidgetTask(
       id: task.id,
       title: task.title,
-      time: task.status == TaskStatus.overdue ? 'Проср.' : task.dueTime.format24,
+      time: task.status == TaskStatus.overdue
+          ? 'Проср.'
+          : task.dueTime.format24,
       category: task.category.name,
       status: task.status.name,
       priority: task.priority.name,
       isCompleted: task.isCompleted,
+    );
+  }
+
+  factory WidgetTask.completedOccurrenceFromTask(Task task) {
+    return WidgetTask(
+      id: task.id,
+      title: task.title,
+      time: task.completedAt?.format24 ?? task.dueTime.format24,
+      category: task.category.name,
+      status: TaskStatus.completed.name,
+      priority: task.priority.name,
+      isCompleted: true,
+      canToggle: false,
     );
   }
 
@@ -148,10 +178,16 @@ class WidgetTask {
     'status': status,
     'priority': priority,
     'isCompleted': isCompleted,
+    'canToggle': canToggle,
   };
 }
 
 extension _TaskTimeFormat on TimeOfDay {
+  String get format24 =>
+      '${'$hour'.padLeft(2, '0')}:${'$minute'.padLeft(2, '0')}';
+}
+
+extension _DateTimeFormat on DateTime {
   String get format24 =>
       '${'$hour'.padLeft(2, '0')}:${'$minute'.padLeft(2, '0')}';
 }

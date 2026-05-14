@@ -136,7 +136,7 @@ class TaskMutationService {
       if (nextOccurrence != null) {
         final nextTask = _moveTaskSchedule(task, nextOccurrence).copyWith(
           status: TaskStatus.active,
-          clearCompletedAt: true,
+          completedAt: DateTime.now(),
           isArchived: false,
         );
         await repository.upsert(await _scheduleIfAllowed(nextTask));
