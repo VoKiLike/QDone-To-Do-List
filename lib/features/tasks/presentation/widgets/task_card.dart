@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qdone/core/theme/app_colors.dart';
-import 'package:qdone/core/widgets/glass_panel.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
 import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
 import 'package:qdone/features/tasks/presentation/utils/task_haptics.dart';
@@ -30,152 +29,139 @@ class TaskCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = _accentFor(task.status);
     final muted = task.isCompleted;
+    final isFuture = task.dueDateTime.isAfter(
+      DateTime.now().add(const Duration(days: 1)),
+    );
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 220),
       opacity: muted ? 0.68 : 1,
-      child: GlassPanel(
-        borderRadius: 24,
-        opacity:
-            task.dueDateTime.isAfter(
-              DateTime.now().add(const Duration(days: 1)),
-            )
-            ? 0.08
-            : 0.13,
-        padding: const EdgeInsets.all(14),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: accent.withValues(alpha: muted ? 0.06 : 0.18),
-                blurRadius: 22,
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  _StatusControl(
-                    task: task,
-                    accent: accent,
-                    onDone: onDone,
-                    onRestore: onRestore,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
+      child: _TaskCardSurface(
+        accent: accent,
+        muted: muted,
+        isFuture: isFuture,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                _StatusControl(
+                  task: task,
+                  accent: accent,
+                  onDone: onDone,
+                  onRestore: onRestore,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        task.title,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              decoration: muted
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                            ),
+                      ),
+                      if (task.description?.isNotEmpty ?? false) ...<Widget>[
+                        const SizedBox(height: 4),
                         Text(
-                          task.title,
-                          style: Theme.of(context).textTheme.titleMedium
+                          task.description!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                decoration: muted
-                                    ? TextDecoration.lineThrough
-                                    : null,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                         ),
-                        if (task.description?.isNotEmpty ?? false) ...<Widget>[
-                          const SizedBox(height: 4),
-                          Text(
-                            task.description!,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                        ],
                       ],
-                    ),
+                    ],
                   ),
-                  IconButton.filledTonal(
-                    tooltip: 'Режим фокуса',
-                    onPressed: () async {
-                      await TaskHaptics.tap();
-                      if (context.mounted) {
-                        context.push('/focus/${task.id}');
-                      }
-                    },
-                    icon: const Icon(Icons.center_focus_strong_rounded),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: <Widget>[
-                  _Chip(
-                    icon: Icons.schedule_rounded,
-                    label: _dateLabel(task),
-                    color: accent,
-                  ),
-                  _Chip(
-                    icon: Icons.flag_rounded,
-                    label: task.priority.label,
-                    color: _priorityColor(task.priority),
-                  ),
-                  _Chip(
-                    icon: Icons.category_rounded,
-                    label: task.category.name,
-                    color: Color(task.category.colorValue),
-                  ),
-                  _Chip(
-                    icon: Icons.battery_charging_full_rounded,
-                    label: task.energyLevel.label,
-                    color: _energyColor(task.energyLevel),
-                  ),
-                  _Chip(
-                    icon: Icons.repeat_rounded,
-                    label: task.recurrenceRule.summary,
-                    color: AppColors.neonPurple,
-                  ),
-                  _Chip(
-                    icon: task.reminders.isEmpty
-                        ? Icons.notifications_off_rounded
-                        : Icons.notifications_active_rounded,
-                    label: _reminderLabel(task),
-                    color: AppColors.cyan,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: <Widget>[
-                  _ActionButton(
-                    icon: Icons.edit_rounded,
-                    label: 'Изменить',
-                    onTap: onEdit,
-                  ),
-                  _ActionButton(
-                    icon: Icons.snooze_rounded,
-                    label: 'Отложить',
-                    onTap: onSnooze,
-                  ),
-                  _ActionButton(
-                    icon: Icons.event_repeat_rounded,
-                    label: 'Перенести',
-                    onTap: onReschedule,
-                  ),
-                  _ActionButton(
-                    icon: task.isCompleted
-                        ? Icons.delete_outline_rounded
-                        : Icons.archive_outlined,
-                    label: task.isCompleted ? 'Удалить' : 'В архив',
-                    onTap: onDelete,
-                  ),
-                ],
-              ),
-            ],
-          ),
+                ),
+                IconButton.filledTonal(
+                  tooltip: 'Режим фокуса',
+                  onPressed: () async {
+                    await TaskHaptics.tap();
+                    if (context.mounted) {
+                      context.push('/focus/${task.id}');
+                    }
+                  },
+                  icon: const Icon(Icons.center_focus_strong_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                _Chip(
+                  icon: Icons.schedule_rounded,
+                  label: _dateLabel(task),
+                  color: accent,
+                ),
+                _Chip(
+                  icon: Icons.flag_rounded,
+                  label: task.priority.label,
+                  color: _priorityColor(task.priority),
+                ),
+                _Chip(
+                  icon: Icons.category_rounded,
+                  label: task.category.name,
+                  color: Color(task.category.colorValue),
+                ),
+                _Chip(
+                  icon: Icons.battery_charging_full_rounded,
+                  label: task.energyLevel.label,
+                  color: _energyColor(task.energyLevel),
+                ),
+                _Chip(
+                  icon: Icons.repeat_rounded,
+                  label: task.recurrenceRule.summary,
+                  color: AppColors.neonPurple,
+                ),
+                _Chip(
+                  icon: task.reminders.isEmpty
+                      ? Icons.notifications_off_rounded
+                      : Icons.notifications_active_rounded,
+                  label: _reminderLabel(task),
+                  color: AppColors.cyan,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: <Widget>[
+                _ActionButton(
+                  icon: Icons.edit_rounded,
+                  label: 'Изменить',
+                  onTap: onEdit,
+                ),
+                _ActionButton(
+                  icon: Icons.snooze_rounded,
+                  label: 'Отложить',
+                  onTap: onSnooze,
+                ),
+                _ActionButton(
+                  icon: Icons.event_repeat_rounded,
+                  label: 'Перенести',
+                  onTap: onReschedule,
+                ),
+                _ActionButton(
+                  icon: task.isCompleted
+                      ? Icons.delete_outline_rounded
+                      : Icons.archive_outlined,
+                  label: task.isCompleted ? 'Удалить' : 'В архив',
+                  onTap: onDelete,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -188,6 +174,49 @@ class TaskCard extends StatelessWidget {
       TaskStatus.archived => AppColors.neonPurple,
       TaskStatus.active => AppColors.turquoise,
     };
+  }
+}
+
+class _TaskCardSurface extends StatelessWidget {
+  const _TaskCardSurface({
+    required this.accent,
+    required this.muted,
+    required this.isFuture,
+    required this.child,
+  });
+
+  final Color accent;
+  final bool muted;
+  final bool isFuture;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final surface = isLight ? Colors.white : AppColors.white;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: surface.withValues(
+          alpha: isLight
+              ? 0.70
+              : isFuture
+              ? 0.08
+              : 0.13,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: surface.withValues(alpha: isLight ? 0.50 : 0.14),
+        ),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: accent.withValues(alpha: muted ? 0.05 : 0.12),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(padding: const EdgeInsets.all(14), child: child),
+    );
   }
 }
 

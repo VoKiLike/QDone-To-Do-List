@@ -29,95 +29,114 @@ class TasksPage extends ConsumerWidget {
           final grouped = _GroupedTasks.from(tasks);
           return RefreshIndicator(
             onRefresh: () => ref.read(tasksControllerProvider.notifier).load(),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 112),
-              children: <Widget>[
-                const _Header(),
-                const SizedBox(height: 16),
-                DailyPulseCard(tasks: tasks),
-                const SizedBox(height: 14),
-                TaskSection(
-                  title: strings.text('overdue'),
-                  tasks: grouped.overdue,
-                  icon: Icons.warning_amber_rounded,
-                  accent: AppColors.warning,
-                  initiallyExpanded: grouped.overdue.isNotEmpty,
-                  onDone: (task) =>
-                      ref.read(tasksControllerProvider.notifier).complete(task),
-                  onRestore: (task) =>
-                      ref.read(tasksControllerProvider.notifier).restore(task),
-                  onDelete: (task) =>
-                      ref.read(tasksControllerProvider.notifier).archive(task),
-                  onSnooze: (task) => ref
-                      .read(tasksControllerProvider.notifier)
-                      .snooze(task, const Duration(minutes: 15)),
-                  onReschedule: (task) =>
-                      _rescheduleTask(context, ref, task: task),
-                  onEdit: (task) =>
-                      TaskFormModal.show(context, ref, task: task),
-                ),
-                const SizedBox(height: 14),
-                TaskSection(
-                  title: strings.text('current'),
-                  tasks: grouped.current,
-                  icon: Icons.bolt_rounded,
-                  accent: AppColors.turquoise,
-                  initiallyExpanded: true,
-                  onDone: (task) =>
-                      ref.read(tasksControllerProvider.notifier).complete(task),
-                  onRestore: (task) =>
-                      ref.read(tasksControllerProvider.notifier).restore(task),
-                  onDelete: (task) =>
-                      ref.read(tasksControllerProvider.notifier).archive(task),
-                  onSnooze: (task) => ref
-                      .read(tasksControllerProvider.notifier)
-                      .snooze(task, const Duration(hours: 1)),
-                  onReschedule: (task) =>
-                      _rescheduleTask(context, ref, task: task),
-                  onEdit: (task) =>
-                      TaskFormModal.show(context, ref, task: task),
-                ),
-                const SizedBox(height: 14),
-                TaskSection(
-                  title: strings.text('future'),
-                  tasks: grouped.future,
-                  icon: Icons.next_plan_rounded,
-                  accent: AppColors.cyan,
-                  initiallyExpanded: false,
-                  onDone: (task) =>
-                      ref.read(tasksControllerProvider.notifier).complete(task),
-                  onRestore: (task) =>
-                      ref.read(tasksControllerProvider.notifier).restore(task),
-                  onDelete: (task) =>
-                      ref.read(tasksControllerProvider.notifier).archive(task),
-                  onSnooze: (task) => ref
-                      .read(tasksControllerProvider.notifier)
-                      .snooze(task, const Duration(hours: 1)),
-                  onReschedule: (task) =>
-                      _rescheduleTask(context, ref, task: task),
-                  onEdit: (task) =>
-                      TaskFormModal.show(context, ref, task: task),
-                ),
-                const SizedBox(height: 14),
-                TaskSection(
-                  title: strings.text('completed'),
-                  tasks: grouped.completed,
-                  icon: Icons.inventory_2_rounded,
-                  accent: AppColors.muted,
-                  initiallyExpanded: false,
-                  onDone: (task) =>
-                      ref.read(tasksControllerProvider.notifier).restore(task),
-                  onRestore: (task) =>
-                      ref.read(tasksControllerProvider.notifier).restore(task),
-                  onDelete: (task) =>
-                      ref.read(tasksControllerProvider.notifier).delete(task),
-                  onSnooze: (task) => ref
-                      .read(tasksControllerProvider.notifier)
-                      .snooze(task, const Duration(hours: 1)),
-                  onReschedule: (task) =>
-                      _rescheduleTask(context, ref, task: task),
-                  onEdit: (task) =>
-                      TaskFormModal.show(context, ref, task: task),
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: <Widget>[
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 112),
+                  sliver: SliverMainAxisGroup(
+                    slivers: <Widget>[
+                      const SliverToBoxAdapter(child: _Header()),
+                      _gap(16),
+                      SliverToBoxAdapter(child: DailyPulseCard(tasks: tasks)),
+                      _gap(14),
+                      TaskSection(
+                        title: strings.text('overdue'),
+                        tasks: grouped.overdue,
+                        icon: Icons.warning_amber_rounded,
+                        accent: AppColors.warning,
+                        initiallyExpanded: grouped.overdue.isNotEmpty,
+                        onDone: (task) => ref
+                            .read(tasksControllerProvider.notifier)
+                            .complete(task),
+                        onRestore: (task) => ref
+                            .read(tasksControllerProvider.notifier)
+                            .restore(task),
+                        onDelete: (task) => ref
+                            .read(tasksControllerProvider.notifier)
+                            .archive(task),
+                        onSnooze: (task) => ref
+                            .read(tasksControllerProvider.notifier)
+                            .snooze(task, const Duration(minutes: 15)),
+                        onReschedule: (task) =>
+                            _rescheduleTask(context, ref, task: task),
+                        onEdit: (task) =>
+                            TaskFormModal.show(context, ref, task: task),
+                      ),
+                      _gap(14),
+                      TaskSection(
+                        title: strings.text('current'),
+                        tasks: grouped.current,
+                        icon: Icons.bolt_rounded,
+                        accent: AppColors.turquoise,
+                        initiallyExpanded: true,
+                        onDone: (task) => ref
+                            .read(tasksControllerProvider.notifier)
+                            .complete(task),
+                        onRestore: (task) => ref
+                            .read(tasksControllerProvider.notifier)
+                            .restore(task),
+                        onDelete: (task) => ref
+                            .read(tasksControllerProvider.notifier)
+                            .archive(task),
+                        onSnooze: (task) => ref
+                            .read(tasksControllerProvider.notifier)
+                            .snooze(task, const Duration(hours: 1)),
+                        onReschedule: (task) =>
+                            _rescheduleTask(context, ref, task: task),
+                        onEdit: (task) =>
+                            TaskFormModal.show(context, ref, task: task),
+                      ),
+                      _gap(14),
+                      TaskSection(
+                        title: strings.text('future'),
+                        tasks: grouped.future,
+                        icon: Icons.next_plan_rounded,
+                        accent: AppColors.cyan,
+                        initiallyExpanded: false,
+                        onDone: (task) => ref
+                            .read(tasksControllerProvider.notifier)
+                            .complete(task),
+                        onRestore: (task) => ref
+                            .read(tasksControllerProvider.notifier)
+                            .restore(task),
+                        onDelete: (task) => ref
+                            .read(tasksControllerProvider.notifier)
+                            .archive(task),
+                        onSnooze: (task) => ref
+                            .read(tasksControllerProvider.notifier)
+                            .snooze(task, const Duration(hours: 1)),
+                        onReschedule: (task) =>
+                            _rescheduleTask(context, ref, task: task),
+                        onEdit: (task) =>
+                            TaskFormModal.show(context, ref, task: task),
+                      ),
+                      _gap(14),
+                      TaskSection(
+                        title: strings.text('completed'),
+                        tasks: grouped.completed,
+                        icon: Icons.inventory_2_rounded,
+                        accent: AppColors.muted,
+                        initiallyExpanded: false,
+                        onDone: (task) => ref
+                            .read(tasksControllerProvider.notifier)
+                            .restore(task),
+                        onRestore: (task) => ref
+                            .read(tasksControllerProvider.notifier)
+                            .restore(task),
+                        onDelete: (task) => ref
+                            .read(tasksControllerProvider.notifier)
+                            .delete(task),
+                        onSnooze: (task) => ref
+                            .read(tasksControllerProvider.notifier)
+                            .snooze(task, const Duration(hours: 1)),
+                        onReschedule: (task) =>
+                            _rescheduleTask(context, ref, task: task),
+                        onEdit: (task) =>
+                            TaskFormModal.show(context, ref, task: task),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -126,6 +145,10 @@ class TasksPage extends ConsumerWidget {
       ),
     );
   }
+}
+
+SliverToBoxAdapter _gap(double height) {
+  return SliverToBoxAdapter(child: SizedBox(height: height));
 }
 
 class _Header extends StatelessWidget {
@@ -138,9 +161,7 @@ class _Header extends StatelessWidget {
         Expanded(
           child: Text(
             'QDone',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
               fontFamily: AppFonts.brand,
               fontWeight: FontWeight.w900,
               letterSpacing: 0,
