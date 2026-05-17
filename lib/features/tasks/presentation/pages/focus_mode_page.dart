@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/core/widgets/glass_panel.dart';
 import 'package:qdone/core/widgets/liquid_background.dart';
+import 'package:qdone/core/widgets/neon_controls.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
 import 'package:qdone/features/tasks/presentation/controllers/tasks_controller.dart';
 import 'package:qdone/features/tasks/presentation/utils/task_haptics.dart';
@@ -47,9 +48,11 @@ class _FocusContent extends ConsumerWidget {
       children: <Widget>[
         Row(
           children: <Widget>[
-            IconButton.filledTonal(
+            NeonIconButton(
               onPressed: () => _closeFocus(context),
+              tooltip: 'Закрыть',
               icon: const Icon(Icons.close_rounded),
+              style: NeonControlStyle.danger,
             ),
             const Spacer(),
             Text(
@@ -119,7 +122,7 @@ class _FocusContent extends ConsumerWidget {
         Row(
           children: <Widget>[
             Expanded(
-              child: FilledButton.icon(
+              child: NeonActionButton(
                 onPressed: () async {
                   await TaskHaptics.tap();
                   await ref
@@ -130,12 +133,14 @@ class _FocusContent extends ConsumerWidget {
                   }
                 },
                 icon: const Icon(Icons.done_rounded),
+                style: NeonControlStyle.primary,
+                fullWidth: true,
                 label: const Text('Готово'),
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: FilledButton.tonalIcon(
+              child: NeonActionButton(
                 onPressed: () async {
                   await TaskHaptics.tap();
                   await ref
@@ -143,6 +148,7 @@ class _FocusContent extends ConsumerWidget {
                       .snooze(task, const Duration(minutes: 15));
                 },
                 icon: const Icon(Icons.snooze_rounded),
+                fullWidth: true,
                 label: const Text('15 мин.'),
               ),
             ),
@@ -151,7 +157,7 @@ class _FocusContent extends ConsumerWidget {
         const SizedBox(height: 10),
         SizedBox(
           width: double.infinity,
-          child: OutlinedButton.icon(
+          child: NeonActionButton(
             onPressed: () async {
               await TaskHaptics.tap();
               await ref
@@ -159,6 +165,8 @@ class _FocusContent extends ConsumerWidget {
                   .snooze(task, const Duration(days: 1));
             },
             icon: const Icon(Icons.wb_sunny_rounded),
+            style: NeonControlStyle.quiet,
+            fullWidth: true,
             label: const Text('Завтра утром'),
           ),
         ),

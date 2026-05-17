@@ -46,6 +46,8 @@ class _TaskSectionState extends State<TaskSection> {
       padding: EdgeInsets.zero,
       borderRadius: 26,
       opacity: 0.09,
+      blurSigma: 0,
+      shadowBlurRadius: 8,
       child: Column(
         children: <Widget>[
           InkWell(

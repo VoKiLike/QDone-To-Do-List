@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:qdone/core/localization/qdone_localizations.dart';
 import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/core/widgets/glass_panel.dart';
+import 'package:qdone/core/widgets/neon_controls.dart';
 import 'package:qdone/features/calendar/presentation/controllers/calendar_controller.dart';
 import 'package:qdone/features/settings/domain/user_settings.dart';
 import 'package:qdone/features/settings/presentation/controllers/settings_controller.dart';
@@ -32,18 +33,6 @@ class CalendarPage extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => TaskFormModal.show(
-          context,
-          ref,
-          initialDate: selectedDay,
-          initialTime: const TimeOfDay(hour: 9, minute: 0),
-        ),
-        backgroundColor: AppColors.violet,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Задача'),
-      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 18, 18, 112),
         children: <Widget>[
@@ -202,7 +191,7 @@ class _CalendarHeader extends StatelessWidget {
             ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
           ),
         ),
-        FilledButton.tonalIcon(
+        NeonActionButton(
           onPressed: onToday,
           icon: const Icon(Icons.today_rounded),
           label: Text(strings.text('today')),
@@ -248,10 +237,11 @@ class _SelectedDayPanel extends StatelessWidget {
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
               ),
-              FilledButton.tonalIcon(
+              NeonActionButton(
                 onPressed: onAdd,
                 icon: const Icon(Icons.add_rounded),
                 label: const Text('Добавить'),
+                attentionGlow: true,
               ),
             ],
           ),
@@ -291,7 +281,7 @@ class _EmptyDay extends StatelessWidget {
           ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
         ),
         const SizedBox(height: 10),
-        OutlinedButton.icon(
+        NeonActionButton(
           onPressed: onAdd,
           icon: const Icon(Icons.add_task_rounded),
           label: const Text('Запланировать задачу'),
@@ -359,25 +349,37 @@ class _CalendarTaskTile extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: <Widget>[
-              IconButton(
+              NeonIconButton(
                 tooltip: 'Выполнено',
                 onPressed: task.isCompleted ? null : () => _tapTask(onDone),
                 icon: const Icon(Icons.done_rounded),
+                size: 38,
+                radius: 16,
               ),
-              IconButton(
+              const SizedBox(width: 8),
+              NeonIconButton(
                 tooltip: 'Отложить на 15 минут',
                 onPressed: () => _tapTask(onSnooze),
                 icon: const Icon(Icons.snooze_rounded),
+                size: 38,
+                radius: 16,
               ),
-              IconButton(
+              const SizedBox(width: 8),
+              NeonIconButton(
                 tooltip: 'Изменить',
                 onPressed: () => _tapTask(onEdit),
                 icon: const Icon(Icons.edit_rounded),
+                size: 38,
+                radius: 16,
               ),
-              IconButton(
+              const SizedBox(width: 8),
+              NeonIconButton(
                 tooltip: 'Удалить',
                 onPressed: () => _tapTask(onDelete),
                 icon: const Icon(Icons.delete_outline_rounded),
+                style: NeonControlStyle.danger,
+                size: 38,
+                radius: 16,
               ),
             ],
           ),

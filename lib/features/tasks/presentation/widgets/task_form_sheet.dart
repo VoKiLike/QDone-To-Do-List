@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/core/widgets/modal_glass_surface.dart';
+import 'package:qdone/core/widgets/neon_controls.dart';
 import 'package:qdone/core/widgets/qdone_modal_presenter.dart';
 import 'package:qdone/features/tasks/domain/entities/recurrence_rule.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
@@ -237,7 +238,11 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
                         title: 'Автоматизация',
                         child: Column(
                           children: <Widget>[
-                            _ReminderSwitch(
+                            NeonSwitchTile(
+                              icon: Icons.notifications_active_rounded,
+                              title: 'Напоминание',
+                              subtitle:
+                                  'Локальное уведомление для этой задачи',
                               value: _reminderEnabled,
                               onChanged: (value) async {
                                 await TaskHaptics.tap();
@@ -298,8 +303,11 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
                       SizedBox(
                         width: double.infinity,
                         height: 54,
-                        child: FilledButton.icon(
+                        child: NeonActionButton(
                           onPressed: _saving ? null : _handleSubmitTap,
+                          isLoading: _saving,
+                          style: NeonControlStyle.primary,
+                          fullWidth: true,
                           icon: _saving
                               ? const SizedBox(
                                   width: 18,
@@ -551,10 +559,11 @@ class _SheetHeader extends StatelessWidget {
             ),
           ),
         ),
-        IconButton.filledTonal(
+        NeonIconButton(
           tooltip: 'Закрыть',
           onPressed: isSaving ? null : onClose,
           icon: const Icon(Icons.close_rounded),
+          style: NeonControlStyle.danger,
         ),
       ],
     );
@@ -667,6 +676,8 @@ class _TaskTextField extends StatelessWidget {
   }
 }
 
+// Kept as a fallback for the previous reminder switch layout.
+// ignore: unused_element
 class _ReminderSwitch extends StatelessWidget {
   const _ReminderSwitch({required this.value, required this.onChanged});
 

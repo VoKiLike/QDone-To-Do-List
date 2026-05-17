@@ -29,32 +29,39 @@ class GlassPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
     final surfaceColor = isLight ? Colors.white : AppColors.white;
+    final boxShadows = shadowBlurRadius > 0
+        ? <BoxShadow>[
+            BoxShadow(
+              color: AppColors.violet.withValues(
+                alpha: isLight ? 0.08 : 0.18,
+              ),
+              blurRadius: shadowBlurRadius,
+              offset: const Offset(0, 18),
+            ),
+          ]
+        : const <BoxShadow>[];
+    final decoratedPanel = DecoratedBox(
+      decoration: BoxDecoration(
+        color: surfaceColor.withValues(alpha: isLight ? 0.72 : opacity),
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(
+          color: surfaceColor.withValues(
+            alpha: isLight ? 0.62 : borderOpacity,
+          ),
+        ),
+        boxShadow: boxShadows,
+      ),
+      child: Padding(padding: padding, child: child),
+    );
+    final filteredPanel = blurSigma > 0
+        ? BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
+            child: decoratedPanel,
+          )
+        : decoratedPanel;
     final panel = ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: surfaceColor.withValues(alpha: isLight ? 0.72 : opacity),
-            borderRadius: BorderRadius.circular(borderRadius),
-            border: Border.all(
-              color: surfaceColor.withValues(
-                alpha: isLight ? 0.62 : borderOpacity,
-              ),
-            ),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: AppColors.violet.withValues(
-                  alpha: isLight ? 0.08 : 0.18,
-                ),
-                blurRadius: shadowBlurRadius,
-                offset: const Offset(0, 18),
-              ),
-            ],
-          ),
-          child: Padding(padding: padding, child: child),
-        ),
-      ),
+      child: filteredPanel,
     );
     if (onTap == null) {
       return panel;

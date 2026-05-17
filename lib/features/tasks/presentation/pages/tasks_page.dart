@@ -41,7 +41,7 @@ class TasksPage extends ConsumerWidget {
                   tasks: grouped.overdue,
                   icon: Icons.warning_amber_rounded,
                   accent: AppColors.warning,
-                  initiallyExpanded: grouped.overdue.isNotEmpty,
+                  initiallyExpanded: false,
                   onDone: (task) =>
                       ref.read(tasksControllerProvider.notifier).complete(task),
                   onRestore: (task) =>
@@ -62,7 +62,7 @@ class TasksPage extends ConsumerWidget {
                   tasks: grouped.current,
                   icon: Icons.bolt_rounded,
                   accent: AppColors.turquoise,
-                  initiallyExpanded: true,
+                  initiallyExpanded: false,
                   onDone: (task) =>
                       ref.read(tasksControllerProvider.notifier).complete(task),
                   onRestore: (task) =>

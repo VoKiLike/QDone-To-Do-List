@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qdone/core/theme/app_colors.dart';
+import 'package:qdone/core/widgets/neon_controls.dart';
 import 'package:qdone/features/tasks/domain/entities/task_category.dart';
 import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
 import 'package:qdone/features/tasks/presentation/utils/task_haptics.dart';
@@ -233,7 +234,7 @@ class TaskFormMultipleTimesEditor extends StatelessWidget {
                     ),
                   ),
                 ),
-                IconButton.filledTonal(
+                NeonIconButton(
                   tooltip: 'Добавить время',
                   onPressed: () async {
                     await TaskHaptics.tap();
@@ -388,7 +389,7 @@ class _IntervalPanel extends StatelessWidget {
                     ),
                   ),
                 ),
-                IconButton.filledTonal(
+                NeonIconButton(
                   tooltip: 'Уменьшить',
                   onPressed: isAtMinimum
                       ? null
@@ -419,7 +420,7 @@ class _IntervalPanel extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                IconButton.filledTonal(
+                NeonIconButton(
                   tooltip: 'Увеличить',
                   onPressed: normalizedValue >= 999
                       ? null

@@ -8,6 +8,7 @@ import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/core/widgets/glass_panel.dart';
 import 'package:qdone/core/widgets/liquid_background.dart';
 import 'package:qdone/core/widgets/modal_glass_surface.dart';
+import 'package:qdone/core/widgets/neon_controls.dart';
 import 'package:qdone/core/widgets/qdone_modal_presenter.dart';
 import 'package:qdone/features/settings/domain/qdone_backup.dart';
 import 'package:qdone/features/settings/domain/user_settings.dart';
@@ -161,7 +162,7 @@ class _NotificationSettings extends ConsumerWidget {
           }).toList(),
         ),
         const SizedBox(height: 10),
-        OutlinedButton.icon(
+        NeonActionButton(
           onPressed: () => _requestPermission(context, ref),
           icon: const Icon(Icons.verified_user_rounded),
           label: const Text('Запросить разрешение'),
@@ -286,6 +287,7 @@ class _WidgetSettings extends ConsumerWidget {
                 await controller.setWidgetTaskLimit(value);
               }),
         ),
+        const SizedBox(height: 14),
         _SwitchRow(
           icon: Icons.inventory_2_rounded,
           title: 'Показывать выполненные',
@@ -307,7 +309,7 @@ class _WidgetSettings extends ConsumerWidget {
               }),
         ),
         const SizedBox(height: 8),
-        FilledButton.tonalIcon(
+        NeonActionButton(
           onPressed: () => _syncWidget(context, ref),
           icon: const Icon(Icons.sync_rounded),
           label: const Text('Обновить виджет'),
@@ -377,16 +379,17 @@ class _HistorySettings extends ConsumerWidget {
           spacing: 8,
           runSpacing: 8,
           children: <Widget>[
-            FilledButton.tonalIcon(
+            NeonActionButton(
               onPressed: () => _showHistory(context, ref, completed),
               icon: const Icon(Icons.list_alt_rounded),
               label: const Text('Открыть историю'),
             ),
-            OutlinedButton.icon(
+            NeonActionButton(
               onPressed: completed.isEmpty
                   ? null
                   : () => _clearCompleted(context, ref),
               icon: const Icon(Icons.cleaning_services_rounded),
+              style: NeonControlStyle.danger,
               label: const Text('Очистить'),
             ),
           ],
@@ -434,7 +437,7 @@ class _KnowledgeBaseSettings extends StatelessWidget {
           'Краткие объяснения значков и состояний QDone, чтобы быстрее разобраться в интерфейсе.',
         ),
         const SizedBox(height: 10),
-        FilledButton.tonalIcon(
+        NeonActionButton(
           onPressed: () => _openKnowledgeBase(context),
           icon: const Icon(Icons.auto_stories_rounded),
           label: const Text('Открыть справочник'),
@@ -716,14 +719,15 @@ class _DataManagementSettings extends ConsumerWidget {
           spacing: 8,
           runSpacing: 8,
           children: <Widget>[
-            FilledButton.tonalIcon(
+            NeonActionButton(
               onPressed: () => _exportData(context, ref),
               icon: const Icon(Icons.upload_file_rounded),
               label: const Text('Экспорт'),
             ),
-            OutlinedButton.icon(
+            NeonActionButton(
               onPressed: () => _importData(context, ref),
               icon: const Icon(Icons.download_rounded),
+              style: NeonControlStyle.quiet,
               label: const Text('Импорт'),
             ),
           ],
@@ -1004,11 +1008,10 @@ class _SwitchRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SwitchListTile.adaptive(
-      contentPadding: EdgeInsets.zero,
-      secondary: Icon(icon, color: AppColors.neonPurple),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-      subtitle: Text(subtitle),
+    return NeonSwitchTile(
+      icon: icon,
+      title: title,
+      subtitle: subtitle,
       value: value,
       onChanged: onChanged,
     );
@@ -1040,13 +1043,13 @@ class _NumberStepper extends StatelessWidget {
             style: Theme.of(context).textTheme.labelLarge,
           ),
         ),
-        IconButton.filledTonal(
+        NeonIconButton(
           tooltip: 'Уменьшить',
           onPressed: value <= min ? null : () => onChanged(value - 1),
           icon: const Icon(Icons.remove_rounded),
         ),
         const SizedBox(width: 8),
-        IconButton.filledTonal(
+        NeonIconButton(
           tooltip: 'Увеличить',
           onPressed: value >= max ? null : () => onChanged(value + 1),
           icon: const Icon(Icons.add_rounded),

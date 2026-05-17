@@ -22,8 +22,8 @@ class ModalGlassSurface extends StatelessWidget {
         ? const Color(0xFFF5F1FF).withValues(alpha: 0.96)
         : const Color(0xFF0E0A16).withValues(alpha: 0.97);
     final borderColor = isLight
-        ? Colors.white.withValues(alpha: 0.72)
-        : Colors.white.withValues(alpha: 0.16);
+        ? AppColors.cyan.withValues(alpha: 0.32)
+        : AppColors.cyan.withValues(alpha: 0.22);
 
     return ClipRRect(
       borderRadius: BorderRadius.vertical(top: Radius.circular(borderRadius)),
@@ -51,7 +51,32 @@ class ModalGlassSurface extends StatelessWidget {
               ),
             ],
           ),
-          child: Padding(padding: padding, child: child),
+          child: Stack(
+            children: <Widget>[
+              Positioned(
+                left: 22,
+                right: 22,
+                top: 0,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: <Color>[
+                        AppColors.cyan.withValues(alpha: 0),
+                        AppColors.cyan.withValues(alpha: isLight ? 0.42 : 0.34),
+                        AppColors.neonPurple.withValues(
+                          alpha: isLight ? 0.34 : 0.30,
+                        ),
+                        AppColors.neonPurple.withValues(alpha: 0),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: const SizedBox(height: 2),
+                ),
+              ),
+              Padding(padding: padding, child: child),
+            ],
+          ),
         ),
       ),
     );

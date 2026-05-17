@@ -1,176 +1,129 @@
 # QDone
 
-**QDone** is a premium cross-platform Flutter personal planning app by
-**VolkoWeb studio**. It is built as a modern to-do and calendar foundation with
-Clean Architecture, local storage, recurring tasks, reminders, a liquid
-glass-inspired interface, and Android home widget groundwork.
+> Персональный планировщик на Flutter: задачи, календарь, напоминания,
+> повторы и Android-виджет в одном аккуратном приложении.
 
-Version: **0.4.9**.
+![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-3.10-0175C2?style=for-the-badge&logo=dart&logoColor=white)
+![Version](https://img.shields.io/badge/version-0.4.9-29B37A?style=for-the-badge)
+![License](https://img.shields.io/badge/license-MIT-111827?style=for-the-badge)
 
-Русская версия ниже.
+**QDone** - русскоязычное кроссплатформенное приложение для личного
+планирования от **VolkoWeb studio**. Проект совмещает быстрый список задач,
+календарь, повторяющиеся дела, гибкие напоминания, локальное хранение и
+визуальный стиль с liquid glass-панелями.
 
-## Features
+Приложение сейчас развивается как основа премиального мобильного планировщика:
+чистая архитектура, понятные доменные модели, независимые feature-модули и
+нативная интеграция с Android-виджетом.
 
-- Flutter app for Android and iOS.
-- Russian-first UI.
-- Dark, light, and system theme modes.
-- Custom liquid glass bottom navigation with curved-bar motion and cached tab switching.
-- Calendar vertical scrolling remains responsive while preserving horizontal month swipes.
-- Theme-aware secondary text colors for light and dark modes.
-- Completed and archived tasks can be restored to active tracking from the task status control.
-- Task action buttons support edit, snooze, reschedule, archive, restore, and delete flows.
-- Knowledge base opens as a dedicated full-screen reference view.
-- Knowledge base spacing is tightened for full-screen reading.
-- Calendar page with Monday-first month view, task indicators, selected-day task list, and task creation/editing.
-- Task overview page with daily summary and collapsible task groups.
-- Task completion, restore, archive, snooze, and reschedule actions now refresh locally without replacing the task page with a full loading state.
-- Task status controls now use a brighter animated press highlight and smoother icon transitions.
-- Task group counters and task-list membership changes animate when tasks move between overdue, current, future, and completed sections.
-- Bundled QDone typography now pairs a sharp Latin brand font for `QDone` with a denser Cyrillic UI font for the rest of the app.
-- Custom recurrence in the task form now supports flexible intervals such as every 2 weeks or every 2 months.
-- Per-task reminder timing can now be adjusted in the create/edit form and is applied to recurring task notifications.
-- Reminder preferences now survive completion, archive, restore, snooze, and reschedule flows; only stale scheduled notification IDs are cleared.
-- Task create/edit sheets now use a single bottom save action, keep the header close-only, and avoid double keyboard inset spacing on mobile keyboards.
-- Calendar recurrence handling now keeps explicit same-day repeat times visible even when the primary due time differs.
-- Haptic feedback now covers form controls and section expansion, with native iOS support added alongside the existing Android channel.
-- Task actions use an Android native haptic channel for direct vibration feedback without depending on the system touch-feedback toggle.
-- Android task reminders use a dedicated high-importance notification channel with vibration and exact alarm scheduling when the device grants exact alarm access.
-- Task notification refresh runs in the background after the first task list render, keeping the main task page and task actions responsive.
-- Local task persistence through repository/data-source boundaries.
-- Task model with priority, energy level, category, status, reminders, recurrence, archive state, and notification IDs.
-- Recurring task foundation with daily, weekly, monthly, yearly, custom intervals, and multiple times per day.
-- Local notification service foundation using `flutter_local_notifications` and `timezone`.
-- Android transparent home screen widget foundation using `home_widget`.
-- Android widget tasks can be completed or restored from the widget, with completed rows shown as struck-through when enabled.
-- Android widget ordering shows active tasks first by due time, then completed tasks by due time.
-- Android widget now shows recurring tasks completed today as completed rows while keeping their next occurrence scheduled.
-- Android widget settings now sync immediately for task count, completed-task visibility, and compact density; the broken transparency control was removed from the settings UI.
-- Focus Mode foundation for distraction-free task actions.
-- Settings knowledge base that explains the app icons and their actions.
+## Что внутри
 
-## Architecture
+| Направление | Возможности |
+| --- | --- |
+| Задачи | приоритеты, энергия, категории, статусы, архив, восстановление, отложить и перенести |
+| Календарь | месяц с понедельника, индикаторы задач, список выбранного дня, создание и редактирование |
+| Повторы | ежедневно, еженедельно, ежемесячно, ежегодно, свои интервалы и несколько времен в день |
+| Напоминания | локальные уведомления, настройка времени для каждой задачи, точные Android-alarms при разрешении |
+| Виджет | прозрачный Android home widget, быстрые действия, активные и выполненные задачи |
+| Интерфейс | светлая, темная и системная темы, liquid glass-навигация, haptic feedback, анимации |
 
-The project is organized around Clean Architecture-style feature boundaries:
+## Почему проект интересен
 
-- `lib/core` - theme, constants, localization, notifications, storage notes, and shared UI primitives.
-- `lib/features/tasks` - task entities, repositories, recurrence service, controller, pages, and widgets.
-- `lib/features/calendar` - calendar state and calendar presentation.
-- `lib/features/settings` - user settings and settings UI.
-- `lib/features/home_widget` - widget data sync foundation.
-- `lib/shared` - app shell and shared components.
+- **Русский интерфейс первым делом.** Локализация уже есть в `app_ru.arb`, а
+  приложение использует русский сценарий как основной.
+- **Clean Architecture без фанатизма.** Бизнес-логика задач, повторов,
+  хранилища и UI разделены по feature-границам.
+- **Локальная приватность.** Текущая persistence-основа хранит данные локально
+  через `shared_preferences` и репозиторные интерфейсы.
+- **Живые task actions.** Выполнение, архив, восстановление, перенос и snooze
+  обновляют экран локально, без полного состояния загрузки.
+- **Готовность к росту.** Текущую JSON-persistence можно заменить на Drift или
+  другой storage-слой без переписывания presentation-контроллеров.
 
-## Tech Stack
-
-- `flutter_riverpod` for state management.
-- `go_router` for navigation.
-- `shared_preferences` for the current local persistence foundation.
-- `table_calendar` for the calendar UI.
-- `flutter_local_notifications` and `timezone` for notification groundwork.
-- `home_widget` for Android widget integration.
-- `flutter_animate` for UI polish.
-
-## Run
+## Быстрый старт
 
 ```bash
 flutter pub get
 flutter run
 ```
 
-## Validation
+Для Android debug-сборки:
+
+```bash
+flutter build apk --debug
+```
+
+## Проверка качества
 
 ```bash
 flutter analyze
 flutter test
-flutter build apk --debug
 ```
 
-## Current Notes
-
-- The app is currently Russian-first and uses Russian as the fixed app locale.
-- Persistence is implemented behind repository interfaces using local JSON in `shared_preferences`; this can be migrated to Drift without changing presentation controllers.
-- Android widget support includes native launcher actions backed by the same local task store as the app.
-- Production release still needs final Android signing, store metadata, and final iOS notification permission review.
-- Huawei/HarmonyOS devices may still require manual permission checks: allow notifications, exact alarms/reminders, autostart, indirect launch, and background activity for QDone.
-- After installing an update, open QDone once so existing reminders can be rescheduled onto the current Android notification channel.
-
-## License
-
-This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md).
-
----
-
-# QDone на русском
-
-**QDone** - премиальное кроссплатформенное Flutter-приложение для личного
-планирования от **VolkoWeb studio**. Проект построен как современная основа
-для задач и календаря: Clean Architecture, локальное хранение, повторяющиеся
-задачи, напоминания, интерфейс в стиле liquid glass и основа Android-виджета.
-
-Версия: **0.4.9**.
-
-## Возможности
-
-- Flutter-приложение для Android и iOS.
-- Русскоязычный интерфейс по умолчанию.
-- Темная, светлая и системная темы.
-- Кастомная нижняя навигация в стиле liquid glass с curved-анимацией и сохранением вкладок.
-- Вертикальный скролл календаря работает стабильно при сохранении горизонтального свайпа месяцев.
-- Вторичные тексты используют цвета темы и читаются в светлом и темном режимах.
-- Выполненные и архивные задачи можно вернуть в активное отслеживание через статусный элемент задачи.
-- Кнопки задач поддерживают редактирование, откладывание, перенос, архив, восстановление и удаление.
-- Справочник знаний открывается как отдельный полноэкранный экран.
-- Отступы справочника знаний уменьшены для полноэкранного чтения.
-- Страница календаря: месяц с началом недели в понедельник, точки задач, список задач выбранного дня, создание и редактирование задач.
-- Главная страница задач: сводка дня и сворачиваемые группы задач.
-- Действия выполнения, восстановления, архивации, откладывания и переноса задач теперь обновляют список локально без полной загрузки страницы задач.
-- Статусная кнопка задачи получила более яркую анимацию нажатия и плавную смену значка.
-- Счетчики групп и перемещение задач между просроченными, текущими, будущими и выполненными секциями теперь анимируются.
-- В приложение встроена новая типографика QDone: резкий латинский шрифт для бренда `QDone` и более плотный кириллический UI-шрифт для остального интерфейса.
-- Настраиваемый повтор в форме задачи теперь поддерживает гибкие интервалы, например раз в 2 недели или раз в 2 месяца.
-- Время напоминания можно настраивать для каждой задачи в форме создания/изменения; это смещение применяется и к повторяющимся уведомлениям.
-- Настройка напоминания сохраняется при выполнении, архивации, восстановлении, откладывании и переносе задачи.
-- Модальные окна создания и изменения задач оставляют в шапке только крестик закрытия, а сохранение выполняется нижней кнопкой.
-- Формы задач не добавляют двойной отступ при открытии мобильной клавиатуры.
-- Календарь корректно показывает повторы на тот же день, даже если время повтора отличается от основного срока.
-- Виброотклик добавлен для элементов формы и раскрытия секций; для iOS добавлен нативный haptic-канал.
-- Локальное сохранение задач через repository/data-source слой.
-- Модель задачи с приоритетом, уровнем энергии, категорией, статусом, напоминаниями, повтором, архивом и ID уведомлений.
-- Основа повторяющихся задач: ежедневно, еженедельно, ежемесячно, ежегодно, пользовательские интервалы и несколько времен в день.
-- Основа локальных уведомлений через `flutter_local_notifications` и `timezone`.
-- Основа прозрачного Android home screen widget через `home_widget`.
-- Android-виджет показывает повторяющиеся задачи, выполненные сегодня, как выполненные строки, сохраняя следующее повторение в расписании.
-- Основа Focus Mode для работы с одной задачей без лишних отвлечений.
-- Библиотека знаний в настройках с объяснением значков и действий приложения.
+В проекте уже есть тесты для повторяющихся задач, сериализации, локального
+репозитория, настроек, backup-модели, reminder-времени, формы задачи и
+синхронизации Android-виджета.
 
 ## Архитектура
 
-Проект организован по feature-first Clean Architecture:
+```text
+lib/
+  app/                 app providers, router, root widget
+  core/                theme, localization, notifications, storage, shared UI
+  features/
+    tasks/             entities, repositories, recurrence, use cases, UI
+    calendar/          calendar state and presentation
+    settings/          user settings, backup model, settings UI
+    home_widget/       Android widget sync and presentation contracts
+  shared/              shell, components, extensions, common models
+```
 
-- `lib/core` - тема, константы, локализация, уведомления, заметки по storage и общие UI-примитивы.
-- `lib/features/tasks` - сущности задач, репозитории, сервис повторов, контроллер, страницы и виджеты.
-- `lib/features/calendar` - состояние и UI календаря.
-- `lib/features/settings` - пользовательские настройки и экран меню.
-- `lib/features/home_widget` - синхронизация данных для Android-виджета.
-- `lib/shared` - оболочка приложения и общие компоненты.
+Ключевой принцип: каждая большая зона приложения живет в своем feature-модуле,
+а общие вещи остаются в `core` и `shared`.
 
 ## Стек
 
-- `flutter_riverpod` для состояния.
-- `go_router` для навигации.
-- `shared_preferences` для текущей основы локального хранения.
-- `table_calendar` для календаря.
-- `flutter_local_notifications` и `timezone` для основы уведомлений.
-- `home_widget` для Android-виджета.
-- `flutter_animate` для анимаций интерфейса.
+- `flutter_riverpod` - состояние и dependency wiring.
+- `go_router` - навигация.
+- `shared_preferences` - текущая локальная persistence-основа.
+- `table_calendar` - календарный UI.
+- `flutter_local_notifications`, `timezone`, `flutter_timezone` - уведомления и
+  часовые пояса.
+- `home_widget` - Android-виджет.
+- `flutter_animate` - мягкие анимации интерфейса.
+- `intl` - форматирование и локализация.
 
-## Запуск
+## Текущий статус
+
+Версия: **0.4.9+49**.
+
+Проект уже содержит рабочую основу задач, календаря, настроек, напоминаний и
+Android-виджета. Перед production-релизом еще нужны финальная Android-подпись,
+store metadata, финальная проверка iOS permission flow для уведомлений и
+полевые проверки на устройствах Huawei/HarmonyOS.
+
+Для Huawei/HarmonyOS может потребоваться вручную разрешить уведомления, точные
+будильники/напоминания, autostart, indirect launch и фоновую активность для
+QDone. После установки обновления лучше открыть приложение один раз, чтобы
+существующие напоминания пересоздались на актуальном Android notification
+channel.
+
+## English
+
+**QDone** is a Russian-first cross-platform Flutter planning app by
+**VolkoWeb studio**. It combines tasks, calendar planning, recurring schedules,
+local reminders, local persistence, animated liquid glass UI, and Android home
+widget groundwork.
+
+Run it with:
 
 ```bash
 flutter pub get
 flutter run
 ```
 
-## Проверка
+Validate it with:
 
 ```bash
 flutter analyze
@@ -178,13 +131,6 @@ flutter test
 flutter build apk --debug
 ```
 
-## Текущие заметки
-
-- Приложение сейчас ориентировано на русский язык и использует русский как фиксированную локаль.
-- Хранение реализовано через repository-интерфейсы и локальный JSON в `shared_preferences`; позже это можно заменить на Drift без переписывания presentation controllers.
-- Android-виджет добавлен как основа. Прямое выполнение задачи из виджета требует завершения native callback-логики.
-- Для production-релиза еще нужны финальная Android-подпись, store metadata и финальная проверка iOS permission flow для уведомлений.
-
 ## Лицензия
 
-Проект распространяется по лицензии MIT. См. [LICENSE.md](LICENSE.md).
+Проект распространяется по лицензии MIT. Подробности в [LICENSE.md](LICENSE.md).

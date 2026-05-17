@@ -11,6 +11,7 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+Будущий апдейт v0.5.0.md
 
 # IntelliJ related
 *.iml

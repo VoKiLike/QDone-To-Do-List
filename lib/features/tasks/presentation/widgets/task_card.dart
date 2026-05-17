@@ -30,31 +30,30 @@ class TaskCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = _accentFor(task.status);
     final muted = task.isCompleted;
-    return AnimatedOpacity(
-      duration: const Duration(milliseconds: 220),
-      opacity: muted ? 0.68 : 1,
-      child: GlassPanel(
-        borderRadius: 24,
-        opacity:
-            task.dueDateTime.isAfter(
-              DateTime.now().add(const Duration(days: 1)),
-            )
-            ? 0.08
-            : 0.13,
-        padding: const EdgeInsets.all(14),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: accent.withValues(alpha: muted ? 0.06 : 0.18),
-                blurRadius: 22,
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
+    final isDistant = task.dueDateTime.isAfter(
+      DateTime.now().add(const Duration(days: 1)),
+    );
+    final panelOpacity = muted ? 0.07 : isDistant ? 0.08 : 0.13;
+    final accentShadowAlpha = muted ? 0.02 : 0.08;
+    return GlassPanel(
+      borderRadius: 24,
+      opacity: panelOpacity,
+      blurSigma: 0,
+      shadowBlurRadius: 0,
+      padding: const EdgeInsets.all(14),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: accent.withValues(alpha: accentShadowAlpha),
+              blurRadius: muted ? 4 : 8,
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
@@ -174,8 +173,7 @@ class TaskCard extends StatelessWidget {
                   ),
                 ],
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );

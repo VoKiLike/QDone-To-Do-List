@@ -237,28 +237,6 @@ class _CurvedLiquidNavigationBarState extends State<_CurvedLiquidNavigationBar>
             alignment: Alignment.bottomCenter,
             children: <Widget>[
               Positioned(
-                bottom: _navBarHeight - 105,
-                left: textDirection == TextDirection.rtl
-                    ? null
-                    : _pos * maxWidth,
-                right: textDirection == TextDirection.rtl
-                    ? _pos * maxWidth
-                    : null,
-                width: maxWidth / _length,
-                child: Center(
-                  child: Transform.translate(
-                    offset: Offset(0, (_buttonHide - 1) * 80),
-                    child: Opacity(
-                      opacity: (1 - _buttonHide).clamp(0.0, 1.0),
-                      child: _FloatingLiquidButton(
-                        icon: widget.items[_visibleButtonIndex].icon,
-                        isLight: widget.isLight,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,
@@ -295,6 +273,28 @@ class _CurvedLiquidNavigationBarState extends State<_CurvedLiquidNavigationBar>
                             ),
                           ],
                         ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: _navBarHeight - 105,
+                left: textDirection == TextDirection.rtl
+                    ? null
+                    : _pos * maxWidth,
+                right: textDirection == TextDirection.rtl
+                    ? _pos * maxWidth
+                    : null,
+                width: maxWidth / _length,
+                child: Center(
+                  child: Transform.translate(
+                    offset: Offset(0, (_buttonHide - 1) * 80),
+                    child: Opacity(
+                      opacity: (1 - _buttonHide).clamp(0.0, 1.0),
+                      child: _FloatingLiquidButton(
+                        icon: widget.items[_visibleButtonIndex].icon,
+                        isLight: widget.isLight,
                       ),
                     ),
                   ),
