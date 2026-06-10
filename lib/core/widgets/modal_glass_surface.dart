@@ -16,17 +16,24 @@ class ModalGlassSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final surfaceColor = isLight ? Colors.white : AppColors.darkPanelSolid;
-    final lineColor = isLight ? AppColors.lightLine : AppColors.darkLine;
+    final surfaceColor = AppColors.elevatedSurface(context);
+    final lineColor = AppColors.line(context);
+    final primary = AppColors.primaryFor(context);
+    final secondary = AppColors.secondaryFor(context);
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: surfaceColor.withValues(alpha: isLight ? 0.96 : 0.98),
+        color: surfaceColor.withValues(alpha: isLight ? 0.99 : 0.98),
         borderRadius: BorderRadius.vertical(top: Radius.circular(borderRadius)),
-        border: Border.all(color: lineColor.withValues(alpha: 0.78)),
+        border: Border.all(
+          color: lineColor.withValues(alpha: isLight ? 1 : 0.78),
+          width: isLight ? 1.2 : 1,
+        ),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: Colors.black.withValues(alpha: isLight ? 0.12 : 0.36),
+            color: AppColors.shadowFor(
+              context,
+            ).withValues(alpha: isLight ? 0.14 : 0.36),
             blurRadius: 26,
             offset: const Offset(0, -12),
           ),
@@ -44,14 +51,10 @@ class ModalGlassSurface extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: <Color>[
-                      AppColors.electricBlue.withValues(alpha: 0),
-                      AppColors.electricBlue.withValues(
-                        alpha: isLight ? 0.34 : 0.30,
-                      ),
-                      AppColors.magenta.withValues(
-                        alpha: isLight ? 0.25 : 0.28,
-                      ),
-                      AppColors.magenta.withValues(alpha: 0),
+                      primary.withValues(alpha: 0),
+                      primary.withValues(alpha: isLight ? 0.34 : 0.30),
+                      secondary.withValues(alpha: isLight ? 0.25 : 0.28),
+                      secondary.withValues(alpha: 0),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(99),

@@ -27,7 +27,8 @@ class GlassPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final surfaceColor = isLight ? Colors.white : AppColors.darkPanelSolid;
+    final surfaceColor = AppColors.surface(context);
+    final tapAccent = AppColors.primaryFor(context);
     final radius = BorderRadius.circular(borderRadius);
 
     Widget buildPanel(bool tapped) {
@@ -35,16 +36,15 @@ class GlassPanel extends StatelessWidget {
           ? <BoxShadow>[
               if (shadowBlurRadius > 0)
                 BoxShadow(
-                  color: (isLight ? AppColors.lightBlue : Colors.black)
-                      .withValues(alpha: isLight ? 0.07 : 0.18),
+                  color: AppColors.shadowFor(
+                    context,
+                  ).withValues(alpha: isLight ? 0.10 : 0.18),
                   blurRadius: shadowBlurRadius.clamp(6, 14),
                   offset: const Offset(0, 7),
                 ),
               if (tapped)
                 BoxShadow(
-                  color: AppColors.cyan.withValues(
-                    alpha: isLight ? 0.16 : 0.24,
-                  ),
+                  color: tapAccent.withValues(alpha: isLight ? 0.16 : 0.24),
                   blurRadius: 20,
                   offset: const Offset(0, 7),
                 ),
@@ -57,17 +57,17 @@ class GlassPanel extends StatelessWidget {
           curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
             color: Color.alphaBlend(
-              AppColors.cyan.withValues(alpha: tapped ? 0.08 : 0),
-              surfaceColor.withValues(alpha: 0.84),
+              tapAccent.withValues(alpha: tapped ? 0.08 : 0),
+              surfaceColor.withValues(alpha: isLight ? 0.96 : 0.84),
             ),
             borderRadius: radius,
             border: Border.all(
               color: tapped
-                  ? AppColors.cyan.withValues(alpha: 0.72)
-                  : (isLight ? AppColors.lightLine : AppColors.darkLine)
-                        .withValues(
-                          alpha: isLight ? 0.88 : borderOpacity + 0.22,
-                        ),
+                  ? tapAccent.withValues(alpha: 0.72)
+                  : AppColors.line(
+                      context,
+                    ).withValues(alpha: isLight ? 1 : borderOpacity + 0.22),
+              width: isLight ? 1.1 : 1,
             ),
             boxShadow: boxShadows,
           ),

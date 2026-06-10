@@ -73,6 +73,8 @@ class _NeonActionButtonState extends State<NeonActionButton>
   Widget build(BuildContext context) {
     final theme = _NeonTokens.from(context, widget.style, _enabled);
     final tappedTheme = theme.tapped();
+    final primary = AppColors.primaryFor(context);
+    final secondary = AppColors.secondaryFor(context);
     final attentionController = _attentionController;
     final radius = BorderRadius.circular(18);
 
@@ -155,12 +157,10 @@ class _NeonActionButtonState extends State<NeonActionButton>
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: <Color>[
-                                    AppColors.cyan.withValues(alpha: 0),
-                                    AppColors.cyan.withValues(alpha: 0.50),
-                                    AppColors.neonPurple.withValues(
-                                      alpha: 0.36,
-                                    ),
-                                    AppColors.neonPurple.withValues(alpha: 0),
+                                    primary.withValues(alpha: 0),
+                                    primary.withValues(alpha: 0.50),
+                                    secondary.withValues(alpha: 0.36),
+                                    secondary.withValues(alpha: 0),
                                   ],
                                 ),
                                 borderRadius: BorderRadius.circular(99),
@@ -281,39 +281,44 @@ class NeonSwitchTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final border = value ? AppColors.cyan : AppColors.neonPurple;
+    final primary = AppColors.primaryFor(context);
+    final secondary = AppColors.secondaryFor(context);
+    final border = value ? primary : secondary;
     return QDoneTapFeedback(
       onTap: () => onChanged(!value),
       borderRadius: BorderRadius.circular(20),
       builder: (context, tapped) {
-        final activeBorder = tapped ? AppColors.cyan : border;
+        final activeBorder = tapped ? primary : border;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 160),
           curve: Curves.easeOutCubic,
           margin: const EdgeInsets.symmetric(vertical: 4),
           padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
           decoration: BoxDecoration(
-            color: isLight
-                ? Colors.white.withValues(
-                    alpha: tapped
-                        ? 0.90
-                        : value
-                        ? 0.80
-                        : 0.58,
-                  )
-                : Colors.white.withValues(
-                    alpha: tapped
-                        ? 0.105
-                        : value
-                        ? 0.075
-                        : 0.045,
-                  ),
+            color: Color.alphaBlend(
+              activeBorder.withValues(
+                alpha: tapped
+                    ? isLight
+                          ? 0.12
+                          : 0.14
+                    : value
+                    ? isLight
+                          ? 0.07
+                          : 0.09
+                    : 0,
+              ),
+              value
+                  ? AppColors.elevatedSurface(context)
+                  : AppColors.surface(context),
+            ),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: activeBorder.withValues(
                 alpha: tapped
                     ? 0.58
                     : value
+                    ? 0.42
+                    : isLight
                     ? 0.42
                     : 0.20,
               ),
@@ -381,20 +386,20 @@ class NeonSwitchTile extends StatelessWidget {
               IgnorePointer(
                 child: Switch.adaptive(
                   value: value,
-                  activeThumbColor: AppColors.cyan,
-                  activeTrackColor: AppColors.cyan.withValues(
-                    alpha: tapped ? 0.46 : 0.34,
+                  activeThumbColor: primary,
+                  activeTrackColor: primary.withValues(
+                    alpha: tapped
+                        ? 0.58
+                        : isLight
+                        ? 0.46
+                        : 0.34,
                   ),
                   inactiveThumbColor: tapped
-                      ? AppColors.neonPurple
-                      : isLight
-                      ? const Color(0xFF6D7182)
-                      : Colors.white.withValues(alpha: 0.72),
+                      ? secondary
+                      : AppColors.subdued(context),
                   inactiveTrackColor: tapped
-                      ? AppColors.neonPurple.withValues(alpha: 0.24)
-                      : isLight
-                      ? const Color(0xFFD8DCE8)
-                      : Colors.white.withValues(alpha: 0.12),
+                      ? secondary.withValues(alpha: 0.28)
+                      : AppColors.mutedSurface(context),
                   onChanged: onChanged,
                 ),
               ),
@@ -413,6 +418,7 @@ class _AttentionSweep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = AppColors.primaryFor(context);
     return FractionalTranslation(
       translation: Offset(-1.15 + value * 2.3, 0),
       child: Align(
@@ -425,7 +431,7 @@ class _AttentionSweep extends StatelessWidget {
                 colors: <Color>[
                   Colors.white.withValues(alpha: 0),
                   Colors.white.withValues(alpha: 0.24),
-                  AppColors.cyan.withValues(alpha: 0.18),
+                  accent.withValues(alpha: 0.18),
                   Colors.white.withValues(alpha: 0),
                 ],
               ),
@@ -494,6 +500,8 @@ class _NeonTokens {
     required this.splash,
     required this.gradient,
     required this.shadows,
+    this.tapAccent = AppColors.cyan,
+    this.tapShadow = AppColors.neonPurple,
     this.isDanger = false,
   });
 
@@ -506,11 +514,13 @@ class _NeonTokens {
   final Color splash;
   final Gradient? gradient;
   final List<BoxShadow> shadows;
+  final Color tapAccent;
+  final Color tapShadow;
   final bool isDanger;
 
   _NeonTokens tapped() {
-    final pressAccent = isDanger ? _dangerRed : AppColors.cyan;
-    final pressShadow = isDanger ? _dangerRed : AppColors.neonPurple;
+    final pressAccent = isDanger ? _dangerRed : tapAccent;
+    final pressShadow = isDanger ? _dangerRed : tapShadow;
     return _NeonTokens(
       fill: Color.alphaBlend(border.withValues(alpha: 0.30), fill),
       border: Color.alphaBlend(pressAccent.withValues(alpha: 0.42), border),
@@ -525,13 +535,16 @@ class _NeonTokens {
                 Color.alphaBlend(pressShadow.withValues(alpha: 0.18), fill),
               ],
             )
-          : const LinearGradient(
+          : LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: <Color>[
-                AppColors.cyan,
-                AppColors.violet,
-                AppColors.neonPurple,
+                pressAccent,
+                Color.alphaBlend(
+                  pressShadow.withValues(alpha: 0.44),
+                  pressAccent,
+                ),
+                pressShadow,
               ],
             ),
       shadows:
@@ -560,6 +573,8 @@ class _NeonTokens {
               ),
             ),
       isDanger: isDanger,
+      tapAccent: tapAccent,
+      tapShadow: tapShadow,
     );
   }
 
@@ -567,11 +582,11 @@ class _NeonTokens {
     final pulse = 1 - (2 * value - 1).abs();
     return _NeonTokens(
       fill: Color.alphaBlend(
-        AppColors.cyan.withValues(alpha: 0.025 + pulse * 0.035),
+        tapAccent.withValues(alpha: 0.025 + pulse * 0.035),
         fill,
       ),
       border: Color.alphaBlend(
-        AppColors.cyan.withValues(alpha: 0.20 + pulse * 0.22),
+        tapAccent.withValues(alpha: 0.20 + pulse * 0.22),
         border,
       ),
       foreground: foreground,
@@ -580,11 +595,13 @@ class _NeonTokens {
       shadows: <BoxShadow>[
         ...shadows,
         BoxShadow(
-          color: AppColors.cyan.withValues(alpha: 0.10 + pulse * 0.12),
+          color: tapAccent.withValues(alpha: 0.10 + pulse * 0.12),
           blurRadius: 18 + pulse * 8,
           offset: const Offset(0, 7),
         ),
       ],
+      tapAccent: tapAccent,
+      tapShadow: tapShadow,
     );
   }
 
@@ -594,58 +611,60 @@ class _NeonTokens {
     bool enabled,
   ) {
     final isLight = Theme.of(context).brightness == Brightness.light;
+    final primary = AppColors.primaryFor(context);
+    final secondary = AppColors.secondaryFor(context);
     if (!enabled) {
       return _NeonTokens(
-        fill: isLight
-            ? Colors.white.withValues(alpha: 0.68)
-            : Colors.white.withValues(alpha: 0.045),
-        border: isLight
-            ? AppColors.lightLine.withValues(alpha: 0.82)
-            : Colors.white.withValues(alpha: 0.10),
-        foreground: Theme.of(
+        fill: AppColors.mutedSurface(context),
+        border: AppColors.line(context).withValues(alpha: isLight ? 1 : 0.72),
+        foreground: AppColors.subdued(
           context,
-        ).colorScheme.onSurface.withValues(alpha: isLight ? 0.52 : 0.30),
+        ).withValues(alpha: isLight ? 0.72 : 0.54),
         splash: Colors.transparent,
         gradient: null,
         shadows: const <BoxShadow>[],
+        tapAccent: primary,
+        tapShadow: secondary,
       );
     }
 
     return switch (style) {
       NeonControlStyle.primary => _NeonTokens(
-        fill: AppColors.violet,
+        fill: secondary,
         border: Colors.white.withValues(alpha: isLight ? 0.62 : 0.36),
-        foreground: Colors.white,
-        splash: AppColors.cyan.withValues(alpha: 0.20),
-        gradient: AppColors.liquidGradient,
+        foreground: AppColors.accentForegroundFor(context),
+        splash: primary.withValues(alpha: 0.20),
+        gradient: AppColors.liquidGradientFor(context),
         shadows: <BoxShadow>[
           BoxShadow(
-            color: AppColors.cyan.withValues(alpha: isLight ? 0.20 : 0.26),
+            color: primary.withValues(alpha: isLight ? 0.18 : 0.26),
             blurRadius: 16,
             offset: const Offset(0, 7),
           ),
           BoxShadow(
-            color: AppColors.violet.withValues(alpha: isLight ? 0.14 : 0.22),
+            color: secondary.withValues(alpha: isLight ? 0.14 : 0.22),
             blurRadius: 22,
             offset: const Offset(0, 10),
           ),
         ],
+        tapAccent: primary,
+        tapShadow: secondary,
       ),
       NeonControlStyle.secondary => _NeonTokens(
-        fill: isLight
-            ? Colors.white.withValues(alpha: 0.76)
-            : Colors.white.withValues(alpha: 0.065),
-        border: AppColors.cyan.withValues(alpha: isLight ? 0.48 : 0.34),
-        foreground: isLight ? const Color(0xFF1F2440) : AppColors.softWhite,
-        splash: AppColors.cyan.withValues(alpha: 0.18),
+        fill: AppColors.elevatedSurface(context),
+        border: primary.withValues(alpha: isLight ? 0.72 : 0.34),
+        foreground: AppColors.foreground(context),
+        splash: primary.withValues(alpha: 0.18),
         gradient: null,
         shadows: <BoxShadow>[
           BoxShadow(
-            color: AppColors.cyan.withValues(alpha: isLight ? 0.10 : 0.14),
+            color: primary.withValues(alpha: isLight ? 0.12 : 0.14),
             blurRadius: 14,
             offset: const Offset(0, 7),
           ),
         ],
+        tapAccent: primary,
+        tapShadow: secondary,
       ),
       NeonControlStyle.danger => _NeonTokens(
         fill: _NeonTokens._dangerRed.withValues(alpha: isLight ? 0.11 : 0.10),
@@ -664,17 +683,19 @@ class _NeonTokens {
             offset: const Offset(0, 7),
           ),
         ],
+        tapAccent: _NeonTokens._dangerRed,
+        tapShadow: _NeonTokens._dangerDeepRed,
         isDanger: true,
       ),
       NeonControlStyle.quiet => _NeonTokens(
-        fill: isLight
-            ? Colors.white.withValues(alpha: 0.58)
-            : Colors.white.withValues(alpha: 0.040),
-        border: AppColors.neonPurple.withValues(alpha: isLight ? 0.32 : 0.24),
-        foreground: isLight ? const Color(0xFF2E2944) : AppColors.softWhite,
-        splash: AppColors.neonPurple.withValues(alpha: 0.16),
+        fill: AppColors.surface(context),
+        border: secondary.withValues(alpha: isLight ? 0.54 : 0.24),
+        foreground: AppColors.foreground(context),
+        splash: secondary.withValues(alpha: 0.16),
         gradient: null,
         shadows: const <BoxShadow>[],
+        tapAccent: primary,
+        tapShadow: secondary,
       ),
     };
   }

@@ -25,11 +25,11 @@ class DailyPulseCard extends StatelessWidget {
             width: 58,
             height: 58,
             decoration: BoxDecoration(
-              gradient: AppColors.liquidGradient,
+              gradient: AppColors.liquidGradientFor(context),
               borderRadius: BorderRadius.circular(22),
               boxShadow: <BoxShadow>[
                 BoxShadow(
-                  color: AppColors.cyan.withValues(alpha: 0.28),
+                  color: AppColors.primaryFor(context).withValues(alpha: 0.24),
                   blurRadius: 22,
                 ),
               ],
@@ -61,9 +61,10 @@ class DailyPulseCard extends StatelessWidget {
                   summary.remaining == 0
                       ? 'День закрыт. Можно выдохнуть.'
                       : 'Выберите следующее спокойное действие.',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelMedium?.copyWith(color: AppColors.turquoise),
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: AppColors.primaryFor(context),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),

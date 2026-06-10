@@ -62,10 +62,10 @@ class _TaskSectionState extends State<TaskSection>
           child: RepaintBoundary(
             child: GlassPanel(
               padding: EdgeInsets.zero,
-              borderRadius: 26,
+              borderRadius: 22,
               opacity: 0.09,
               blurSigma: 0,
-              shadowBlurRadius: 8,
+              shadowBlurRadius: 6,
               onTap: () {
                 TaskHaptics.tap();
                 if (mounted) {
@@ -73,19 +73,22 @@ class _TaskSectionState extends State<TaskSection>
                 }
               },
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 11,
+                ),
                 child: Row(
                   children: <Widget>[
                     Container(
-                      width: 38,
-                      height: 38,
+                      width: 34,
+                      height: 34,
                       decoration: BoxDecoration(
                         color: widget.accent.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(widget.icon, color: widget.accent),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         widget.title,
@@ -112,18 +115,18 @@ class _TaskSectionState extends State<TaskSection>
         if (_expanded && widget.tasks.isEmpty)
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
               child: Text(
                 'Здесь пока пусто',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.subdued(context),
+                ),
               ),
             ),
           ),
         if (_expanded && widget.tasks.isNotEmpty)
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+            padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
             sliver: SliverList.builder(
               itemCount: widget.tasks.length,
               itemBuilder: (context, index) {
@@ -136,7 +139,7 @@ class _TaskSectionState extends State<TaskSection>
                 return RepaintBoundary(
                   key: ValueKey<String>(task.id),
                   child: Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.only(bottom: 6),
                     child: TaskCard(
                       task: task,
                       onDone: () => widget.onDone(task),

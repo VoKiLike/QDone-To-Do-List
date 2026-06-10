@@ -1,39 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:qdone/core/theme/qdone_theme_tokens.dart';
 
 class AppColors {
   const AppColors._();
 
-  static const darkInk = Color(0xFF03040B);
+  static const darkInk = Color(0xFF050812);
   static const darkVoid = darkInk;
-  static const darkNavy = Color(0xFF071226);
-  static const darkPanelSolid = Color(0xFF101936);
-  static const darkPanel = Color(0xE6101936);
-  static const deepBlue = Color(0xFF1D3F8F);
-  static const electricBlue = Color(0xFF45C9FF);
-  static const electricViolet = Color(0xFF5A35F2);
-  static const indigoViolet = Color(0xFF6E46FF);
-  static const magenta = Color(0xFF8B5CFF);
-  static const darkText = Color(0xFFF4F7FF);
-  static const darkMuted = Color(0xFFA8B4D8);
-  static const darkLine = Color(0xFF263A72);
+  static const darkNavy = Color(0xFF080F20);
+  static const darkPanelSolid = Color(0xFF10182B);
+  static const darkPanel = Color(0xE610182B);
+  static const deepBlue = Color(0xFF172747);
+  static const electricBlue = Color(0xFF55C4EE);
+  static const electricViolet = Color(0xFF6546D8);
+  static const indigoViolet = Color(0xFF8874F1);
+  static const magenta = Color(0xFFA078E8);
+  static const darkText = Color(0xFFF3F6FC);
+  static const darkMuted = Color(0xFFADB8D0);
+  static const darkLine = Color(0xFF32446B);
 
-  static const lightMist = Color(0xFFF2FBFF);
-  static const lightIce = Color(0xFFDDF5FF);
-  static const lightSky = Color(0xFF8EDBFF);
-  static const lightBlue = Color(0xFF2E9BFF);
-  static const lightViolet = Color(0xFF5946D2);
-  static const lightMagenta = Color(0xFF7357F5);
-  static const lightHighlight = Color(0xFFFFF0C7);
-  static const lightText = Color(0xFF11172B);
-  static const lightMuted = Color(0xFF66708B);
-  static const lightLine = Color(0xFFC9E6F6);
+  static const lightMist = Color(0xFFDDE5EB);
+  static const lightIce = Color(0xFFD3DEE6);
+  static const lightSky = Color(0xFF78A8C2);
+  static const lightBlue = Color(0xFF23658D);
+  static const lightViolet = Color(0xFF51449A);
+  static const lightMagenta = Color(0xFF6950A4);
+  static const lightHighlight = Color(0xFFB9CDD9);
+  static const lightText = Color(0xFF182235);
+  static const lightMuted = Color(0xFF4E5D72);
+  static const lightLine = Color(0xFF99AABC);
+  static const lightSurface = Color(0xFFE7EDF2);
+  static const lightElevatedSurface = Color(0xFFF0F3F5);
+  static const lightSurfaceMuted = Color(0xFFCAD6DF);
+  static const lightWarning = Color(0xFFA64E1C);
+  static const lightSuccess = Color(0xFF176B50);
 
   static const white = Color(0xFFFFFFFF);
-  static const softWhite = lightMist;
+  static const softWhite = Color(0xFFF2FBFF);
   static const violet = electricViolet;
   static const neonPurple = indigoViolet;
   static const cyan = electricBlue;
-  static const turquoise = lightSky;
+  static const turquoise = Color(0xFF8EDBFF);
   static const softBlueGreen = Color(0xFF9DEBFF);
   static const warning = Color(0xFFF4A261);
   static const success = Color(0xFF54D6A7);
@@ -48,39 +54,99 @@ class AppColors {
   static const darkAuroraGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: <Color>[darkInk, darkNavy, darkPanelSolid, deepBlue],
+    colors: <Color>[darkInk, Color(0xFF091126), Color(0xFF101A31), deepBlue],
     stops: <double>[0, 0.38, 0.72, 1],
   );
 
   static const lightAuroraGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: <Color>[lightMist, lightIce, lightSky, lightBlue],
+    colors: <Color>[lightMist, lightIce, Color(0xFFC3D4DE), Color(0xFFAFC7D6)],
     stops: <double>[0, 0.42, 0.78, 1],
   );
 
+  static const lightLiquidGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: <Color>[lightViolet, lightBlue, Color(0xFF2F708F)],
+  );
+
   static Color surface(BuildContext context) {
-    final light = Theme.of(context).brightness == Brightness.light;
-    return light ? white.withValues(alpha: 0.82) : darkPanelSolid;
+    return tokens(context).surface;
   }
 
   static Color elevatedSurface(BuildContext context) {
-    final light = Theme.of(context).brightness == Brightness.light;
-    return light ? white.withValues(alpha: 0.92) : const Color(0xFF121D3B);
+    return tokens(context).elevatedSurface;
+  }
+
+  static Color mutedSurface(BuildContext context) {
+    return tokens(context).mutedSurface;
+  }
+
+  static Color primaryFor(BuildContext context) {
+    return tokens(context).primary;
+  }
+
+  static Color secondaryFor(BuildContext context) {
+    return tokens(context).secondary;
+  }
+
+  static Color tertiaryFor(BuildContext context) {
+    return tokens(context).tertiary;
+  }
+
+  static Color warningFor(BuildContext context) {
+    return tokens(context).warning;
+  }
+
+  static Color successFor(BuildContext context) {
+    return tokens(context).success;
+  }
+
+  static LinearGradient liquidGradientFor(BuildContext context) {
+    return tokens(context).accentGradient;
+  }
+
+  static LinearGradient backgroundGradientFor(BuildContext context) {
+    return tokens(context).backgroundGradient;
+  }
+
+  static List<Color> ribbonColorsFor(BuildContext context) {
+    return tokens(context).ribbonColors;
+  }
+
+  static Color navBarFor(BuildContext context) {
+    return tokens(context).navBar;
+  }
+
+  static Color navBorderFor(BuildContext context) {
+    return tokens(context).navBorder;
+  }
+
+  static Color shadowFor(BuildContext context) {
+    return tokens(context).shadow;
+  }
+
+  static Color accentForegroundFor(BuildContext context) {
+    return tokens(context).accentForeground;
   }
 
   static Color line(BuildContext context) {
-    final light = Theme.of(context).brightness == Brightness.light;
-    return light ? lightLine : darkLine;
+    return tokens(context).line;
   }
 
   static Color foreground(BuildContext context) {
-    final light = Theme.of(context).brightness == Brightness.light;
-    return light ? lightText : darkText;
+    return tokens(context).foreground;
   }
 
   static Color subdued(BuildContext context) {
-    final light = Theme.of(context).brightness == Brightness.light;
-    return light ? lightMuted : darkMuted;
+    return tokens(context).subdued;
+  }
+
+  static QDoneThemeTokens tokens(BuildContext context) {
+    return Theme.of(context).extension<QDoneThemeTokens>() ??
+        (Theme.of(context).brightness == Brightness.light
+            ? QDoneThemeTokens.light
+            : QDoneThemeTokens.graphite);
   }
 }

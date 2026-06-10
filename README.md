@@ -1,45 +1,146 @@
 # QDone
 
-> Персональный планировщик на Flutter: задачи, календарь, напоминания,
-> повторы и Android-виджет в одном аккуратном приложении.
+> Быстрый персональный планировщик на Flutter: задачи, календарь, повторения,
+> локальные напоминания и Android-виджет без облачной зависимости.
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.10-0175C2?style=for-the-badge&logo=dart&logoColor=white)
-![Version](https://img.shields.io/badge/version-0.4.9-29B37A?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-0.5.3-29B37A?style=for-the-badge)
+![Tests](https://img.shields.io/badge/tests-58%20passed-29B37A?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT-111827?style=for-the-badge)
 
-**QDone** - русскоязычное кроссплатформенное приложение для личного
-планирования от **VolkoWeb studio**. Проект совмещает быстрый список задач,
+**QDone** — русскоязычное кроссплатформенное приложение для личного
+планирования от **VolkoWeb studio**. Оно объединяет компактный список задач,
 календарь, повторяющиеся дела, гибкие напоминания, локальное хранение и
-визуальный стиль с liquid glass-панелями.
+нативный Android-виджет.
 
-Приложение сейчас развивается как основа премиального мобильного планировщика:
-чистая архитектура, понятные доменные модели, независимые feature-модули и
-нативная интеграция с Android-виджетом.
+Версия **0.5.3+53** рассчитана на стабильную работу с большими списками:
+задачи хранятся в SQLite через Drift, экран использует ленивые sliver-списки и
+пагинацию, а системные уведомления ограничены безопасным глобальным бюджетом.
 
-## Что внутри
+## Интерфейс и темы
 
-| Направление | Возможности |
+В приложении доступны четыре самостоятельные палитры и системный режим.
+Палитры построены на общих семантических токенах, поэтому поверхности,
+текст, статусы, формы, кнопки и навигация сохраняют контролируемый контраст.
+
+<table>
+  <tr>
+    <th>Графит</th>
+    <th>Светлая</th>
+    <th>Индиго</th>
+    <th>Бирюза</th>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/theme_graphite.png" alt="Графитовая тема QDone" width="220"></td>
+    <td><img src="docs/screenshots/theme_light.png" alt="Светлая тема QDone" width="220"></td>
+    <td><img src="docs/screenshots/theme_indigo.png" alt="Индиго-тема QDone" width="220"></td>
+    <td><img src="docs/screenshots/theme_turquoise.png" alt="Бирюзовая тема QDone" width="220"></td>
+  </tr>
+</table>
+
+Выбор темы оформлен визуальными карточками. Отдельная системная карточка
+автоматически следует светлому или тёмному режиму устройства.
+
+<p align="center">
+  <img src="docs/screenshots/theme_selector.png" alt="Выбор темы QDone" width="360">
+</p>
+
+Переключение палитры выполняет только единичную перестройку интерфейса. Новые
+темы не добавляют фоновых процессов, изображений или тяжёлых blur-эффектов и
+не создают постоянной нагрузки на FPS.
+
+## Возможности
+
+| Направление | Реализация |
 | --- | --- |
-| Задачи | приоритеты, энергия, категории, статусы, архив, восстановление, отложить и перенести |
-| Календарь | месяц с понедельника, индикаторы задач, список выбранного дня, создание и редактирование |
-| Повторы | ежедневно, еженедельно, ежемесячно, ежегодно, свои интервалы и несколько времен в день |
-| Напоминания | локальные уведомления, настройка времени для каждой задачи, точные Android-alarms при разрешении |
-| Виджет | прозрачный Android home widget, быстрые действия, активные и выполненные задачи |
-| Интерфейс | светлая, темная и системная темы, liquid glass-навигация, haptic feedback, анимации |
+| Задачи | приоритет, энергия, категория, описание, статусы, архив, восстановление, перенос и snooze |
+| Компактный список | сворачиваемые карточки, быстрые действия, focus mode и ленивый `SliverList` |
+| Календарь | видимый месяц и выбранный день без чтения всей базы |
+| Повторения | ежедневно, еженедельно, ежемесячно, ежегодно, свои интервалы и несколько времён в день |
+| Напоминания | локальные уведомления, exact/inexact fallback, автоматическое восстановление расписания |
+| Виджет | нативный Android home widget на Kotlin, быстрые действия и синхронизация цветового акцента |
+| Импорт и экспорт | актуальный backup-формат и совместимость со старыми JSON-файлами QDone |
+| Брендинг | Orbitron для токенов `QDone`/`QDONE`, Bahnschrift для основного текста |
 
-## Почему проект интересен
+## Производительность
 
-- **Русский интерфейс первым делом.** Локализация уже есть в `app_ru.arb`, а
-  приложение использует русский сценарий как основной.
-- **Clean Architecture без фанатизма.** Бизнес-логика задач, повторов,
-  хранилища и UI разделены по feature-границам.
-- **Локальная приватность.** Текущая persistence-основа хранит данные локально
-  через `shared_preferences` и репозиторные интерфейсы.
-- **Живые task actions.** Выполнение, архив, восстановление, перенос и snooze
-  обновляют экран локально, без полного состояния загрузки.
-- **Готовность к росту.** Текущую JSON-persistence можно заменить на Drift или
-  другой storage-слой без переписывания presentation-контроллеров.
+- Задачи хранятся в индексированной SQLite-базе через `drift`.
+- Экран получает страницы по `50` записей через cursor pagination.
+- Карточки создаются только для видимой области списка.
+- Календарь, статистика, история и виджет используют ограниченные SQL-запросы.
+- Для карточек применён `RepaintBoundary`; тяжёлые тени и blur убраны из
+  прокручиваемых элементов.
+- Тестовая база из `10 000` задач не загружается целиком в дерево виджетов.
+
+## Уведомления
+
+`NotificationScheduler` поддерживает ограниченное и идемпотентное расписание:
+
+- не более `48` ожидающих системных alarms на всё приложение;
+- горизонт планирования — `30` дней;
+- максимум `4` ближайших события для одной задачи;
+- `exactAllowWhileIdle` используется только при наличии Android-разрешения;
+- без exact-разрешения применяется автоматический `inexactAllowWhileIdle`;
+- расписание сверяется после изменения задачи, при запуске приложения,
+  возврате из фона и каждые `12` часов через WorkManager.
+
+При обновлении со старой версии устаревшие alarms очищаются и создаются заново
+в пределах бюджета. Это предотвращает ошибку Android
+`Maximum limit of concurrent alarms 500 reached`.
+
+## Данные и совместимость
+
+Основные таблицы Drift:
+
+- `tasks`;
+- `reminders`;
+- `notification_schedule`;
+- `metadata`.
+
+Настройки приложения и компактный payload Android-виджета остаются в
+`SharedPreferences`.
+
+При первом запуске новой архитектуры QDone транзакционно переносит старые
+данные `qdone.tasks.v1` из `SharedPreferences` в SQLite. Исходный JSON удаляется
+только после успешной проверки количества записей. При ошибке импорт
+откатывается, а исходные данные сохраняются.
+
+Экспортированные старыми версиями JSON-файлы поддерживаются. Устаревшее поле
+`notificationIds` принимается для совместимости, но новое расписание
+уведомлений строится независимо от него. Перед импортом проверяются версия
+схемы и дублирующиеся идентификаторы задач.
+
+## Архитектура
+
+```text
+lib/
+  app/                 providers, router, root widget
+  core/                theme tokens, notifications, Drift database, shared UI
+  features/
+    tasks/             domain, repositories, recurrence, use cases, paged UI
+    calendar/          limited calendar queries and presentation
+    settings/          preferences, backup/import/export and menu UI
+    home_widget/       Android widget synchronization contracts
+  shared/              shell, components, extensions and common models
+```
+
+Feature-модули не зависят от представления друг друга. Настройки, база задач,
+scheduler уведомлений и Android-виджет синхронизируются через отдельные
+контракты и сервисы.
+
+## Стек
+
+- `flutter_riverpod` — состояние и dependency wiring.
+- `go_router` — навигация.
+- `drift`, `drift_flutter` — SQLite, миграции и реактивные запросы.
+- `shared_preferences` — настройки и компактные платформенные payload.
+- `flutter_local_notifications`, `timezone`, `flutter_timezone` — локальные
+  уведомления и часовые пояса.
+- `workmanager` — периодическое восстановление расписания.
+- `home_widget` — мост между Flutter и Android-виджетом.
+- `table_calendar` — календарный интерфейс.
+- `flutter_animate` — короткие контролируемые анимации.
 
 ## Быстрый старт
 
@@ -48,7 +149,7 @@ flutter pub get
 flutter run
 ```
 
-Для Android debug-сборки:
+Android debug-сборка:
 
 ```bash
 flutter build apk --debug
@@ -59,77 +160,36 @@ flutter build apk --debug
 ```bash
 flutter analyze
 flutter test
+flutter build apk --debug
+git diff --check
 ```
 
-В проекте уже есть тесты для повторяющихся задач, сериализации, локального
-репозитория, настроек, backup-модели, reminder-времени, формы задачи и
-синхронизации Android-виджета.
+Текущая проверка версии `0.5.3+53`:
 
-## Архитектура
+- `flutter analyze` — без замечаний;
+- `58` автоматических тестов — пройдены;
+- Android debug APK — собран и установлен на эмулятор;
+- протестированы scheduler, миграция старых данных, backup-совместимость,
+  Kotlin-виджет, темы и ленивый список на `10 000` задач.
 
-```text
-lib/
-  app/                 app providers, router, root widget
-  core/                theme, localization, notifications, storage, shared UI
-  features/
-    tasks/             entities, repositories, recurrence, use cases, UI
-    calendar/          calendar state and presentation
-    settings/          user settings, backup model, settings UI
-    home_widget/       Android widget sync and presentation contracts
-  shared/              shell, components, extensions, common models
-```
+## Статус платформ
 
-Ключевой принцип: каждая большая зона приложения живет в своем feature-модуле,
-а общие вещи остаются в `core` и `shared`.
+Основная приёмка текущего релиза ориентирована на Android. iOS продолжает
+собираться, но отдельная platform-specific проверка уведомлений и фонового
+расписания запланирована позднее.
 
-## Стек
-
-- `flutter_riverpod` - состояние и dependency wiring.
-- `go_router` - навигация.
-- `shared_preferences` - текущая локальная persistence-основа.
-- `table_calendar` - календарный UI.
-- `flutter_local_notifications`, `timezone`, `flutter_timezone` - уведомления и
-  часовые пояса.
-- `home_widget` - Android-виджет.
-- `flutter_animate` - мягкие анимации интерфейса.
-- `intl` - форматирование и локализация.
-
-## Текущий статус
-
-Версия: **0.4.9+49**.
-
-Проект уже содержит рабочую основу задач, календаря, настроек, напоминаний и
-Android-виджета. Перед production-релизом еще нужны финальная Android-подпись,
-store metadata, финальная проверка iOS permission flow для уведомлений и
-полевые проверки на устройствах Huawei/HarmonyOS.
-
-Для Huawei/HarmonyOS может потребоваться вручную разрешить уведомления, точные
-будильники/напоминания, autostart, indirect launch и фоновую активность для
-QDone. После установки обновления лучше открыть приложение один раз, чтобы
-существующие напоминания пересоздались на актуальном Android notification
-channel.
+На Huawei/HarmonyOS может потребоваться вручную разрешить уведомления, точные
+будильники, autostart и фоновую активность для QDone. После обновления
+рекомендуется один раз открыть приложение, чтобы расписание уведомлений было
+восстановлено.
 
 ## English
 
-**QDone** is a Russian-first cross-platform Flutter planning app by
-**VolkoWeb studio**. It combines tasks, calendar planning, recurring schedules,
-local reminders, local persistence, animated liquid glass UI, and Android home
-widget groundwork.
-
-Run it with:
-
-```bash
-flutter pub get
-flutter run
-```
-
-Validate it with:
-
-```bash
-flutter analyze
-flutter test
-flutter build apk --debug
-```
+**QDone** is a Russian-first Flutter personal planning app by
+**VolkoWeb studio**. Version `0.5.3+53` provides Drift/SQLite persistence,
+cursor-paginated task lists, bounded Android notification scheduling, legacy
+JSON import compatibility, a native Kotlin home widget and four
+contrast-controlled interface palettes.
 
 ## Лицензия
 

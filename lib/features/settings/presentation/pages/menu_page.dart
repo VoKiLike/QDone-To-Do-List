@@ -9,6 +9,7 @@ import 'package:qdone/core/localization/qdone_localizations.dart';
 import 'package:qdone/core/notifications/notification_scheduler.dart';
 import 'package:qdone/core/notifications/notification_service.dart';
 import 'package:qdone/core/theme/app_colors.dart';
+import 'package:qdone/core/theme/qdone_theme_tokens.dart';
 import 'package:qdone/core/widgets/glass_panel.dart';
 import 'package:qdone/core/widgets/liquid_background.dart';
 import 'package:qdone/core/widgets/modal_glass_surface.dart';
@@ -92,29 +93,287 @@ class _ThemeSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    const paletteModes = <AppThemeMode>[
+      AppThemeMode.dark,
+      AppThemeMode.light,
+      AppThemeMode.indigo,
+      AppThemeMode.turquoise,
+    ];
+    final controller = ref.read(settingsControllerProvider.notifier);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         const _SectionTitle(icon: Icons.contrast_rounded, title: 'Тема'),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: AppThemeMode.values
-              .map(
-                (mode) => _QDoneOptionChip(
-                  selected: settings.themeMode == mode,
-                  label: Text(mode.label),
-                  onSelected: (_) => ref
-                      .read(settingsControllerProvider.notifier)
-                      .setThemeMode(mode),
+        const SizedBox(height: 4),
+        Text(
+          'Выберите палитру интерфейса',
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColors.subdued(context)),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            for (var index = 0; index < paletteModes.length; index++) ...[
+              if (index > 0) const SizedBox(width: 8),
+              Expanded(
+                child: _ThemePaletteCard(
+                  mode: paletteModes[index],
+                  tokens: _tokensForThemeMode(paletteModes[index]),
+                  selected: settings.themeMode == paletteModes[index],
+                  onTap: () => controller.setThemeMode(paletteModes[index]),
                 ),
-              )
-              .toList(),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 10),
+        _SystemThemeCard(
+          selected: settings.themeMode == AppThemeMode.system,
+          onTap: () => controller.setThemeMode(AppThemeMode.system),
         ),
       ],
     );
   }
+}
+
+class _ThemePaletteCard extends StatelessWidget {
+  const _ThemePaletteCard({
+    required this.mode,
+    required this.tokens,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final AppThemeMode mode;
+  final QDoneThemeTokens tokens;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(18);
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: 'Тема ${mode.label}',
+      child: QDoneTapFeedback(
+        onTap: onTap,
+        borderRadius: radius,
+        builder: (context, tapped) {
+          final border = selected
+              ? tokens.primary
+              : tapped
+              ? AppColors.primaryFor(context)
+              : AppColors.line(context);
+          return AnimatedScale(
+            scale: tapped ? 0.97 : 1,
+            duration: const Duration(milliseconds: 140),
+            curve: Curves.easeOutCubic,
+            child: Column(
+              children: <Widget>[
+                AnimatedContainer(
+                  height: 76,
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
+                  decoration: BoxDecoration(
+                    gradient: tokens.backgroundGradient,
+                    borderRadius: radius,
+                    border: Border.all(
+                      color: border,
+                      width: selected ? 2 : 1.1,
+                    ),
+                    boxShadow: selected
+                        ? <BoxShadow>[
+                            BoxShadow(
+                              color: tokens.primary.withValues(alpha: 0.24),
+                              blurRadius: 14,
+                              offset: const Offset(0, 7),
+                            ),
+                          ]
+                        : const <BoxShadow>[],
+                  ),
+                  child: Stack(
+                    children: <Widget>[
+                      Positioned(
+                        left: 9,
+                        right: 9,
+                        top: 11,
+                        child: Container(
+                          height: 9,
+                          decoration: BoxDecoration(
+                            color: tokens.elevatedSurface,
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 9,
+                        right: 22,
+                        top: 28,
+                        child: Container(
+                          height: 22,
+                          decoration: BoxDecoration(
+                            color: tokens.surface,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: tokens.line.withValues(alpha: 0.82),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        right: 7,
+                        bottom: 7,
+                        child: AnimatedContainer(
+                          width: 20,
+                          height: 20,
+                          duration: const Duration(milliseconds: 160),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? tokens.primary
+                                : tokens.elevatedSurface,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: selected ? tokens.primary : tokens.line,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.check_rounded,
+                            size: 13,
+                            color: selected
+                                ? tokens.accentForeground
+                                : tokens.subdued,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  mode.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: selected
+                        ? AppColors.foreground(context)
+                        : AppColors.subdued(context),
+                    fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _SystemThemeCard extends StatelessWidget {
+  const _SystemThemeCard({required this.selected, required this.onTap});
+
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(18);
+    final accent = AppColors.primaryFor(context);
+    return QDoneTapFeedback(
+      onTap: onTap,
+      borderRadius: radius,
+      builder: (context, tapped) {
+        final border = selected || tapped ? accent : AppColors.line(context);
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppColors.elevatedSurface(context),
+            borderRadius: radius,
+            border: Border.all(color: border, width: selected ? 1.8 : 1.1),
+          ),
+          child: Row(
+            children: <Widget>[
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: <Color>[
+                      Color(0xFFE7EDF2),
+                      Color(0xFFE7EDF2),
+                      Color(0xFF10182B),
+                      Color(0xFF10182B),
+                    ],
+                    stops: <double>[0, 0.49, 0.51, 1],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.line(context)),
+                ),
+                child: Icon(
+                  Icons.brightness_auto_rounded,
+                  color: selected ? accent : AppColors.foreground(context),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      AppThemeMode.system.label,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Следует настройке устройства',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.subdued(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              AnimatedContainer(
+                width: 24,
+                height: 24,
+                duration: const Duration(milliseconds: 160),
+                decoration: BoxDecoration(
+                  color: selected ? accent : AppColors.mutedSurface(context),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: border),
+                ),
+                child: Icon(
+                  Icons.check_rounded,
+                  size: 16,
+                  color: selected
+                      ? AppColors.accentForegroundFor(context)
+                      : AppColors.subdued(context),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+QDoneThemeTokens _tokensForThemeMode(AppThemeMode mode) {
+  return switch (mode) {
+    AppThemeMode.light => QDoneThemeTokens.light,
+    AppThemeMode.indigo => QDoneThemeTokens.indigo,
+    AppThemeMode.turquoise => QDoneThemeTokens.turquoise,
+    AppThemeMode.dark || AppThemeMode.system => QDoneThemeTokens.graphite,
+  };
 }
 
 class _LanguageInfo extends StatelessWidget {
@@ -268,10 +527,10 @@ class _StartupPreview extends StatelessWidget {
         ? AppColors.lightMuted
         : AppColors.white.withValues(alpha: 0.78);
     final badgeFill = useDarkText
-        ? AppColors.white.withValues(alpha: 0.70)
+        ? AppColors.lightElevatedSurface
         : AppColors.white.withValues(alpha: 0.18);
     final badgeBorder = useDarkText
-        ? AppColors.lightText.withValues(alpha: 0.10)
+        ? AppColors.lightLine
         : AppColors.white.withValues(alpha: 0.24);
     final cacheWidth =
         (MediaQuery.sizeOf(context).width *
@@ -288,9 +547,7 @@ class _StartupPreview extends StatelessWidget {
           children: <Widget>[
             DecoratedBox(
               decoration: BoxDecoration(
-                gradient: isLight
-                    ? AppColors.lightAuroraGradient
-                    : AppColors.darkAuroraGradient,
+                gradient: AppColors.backgroundGradientFor(context),
               ),
             ),
             if (hasImage)
@@ -306,7 +563,7 @@ class _StartupPreview extends StatelessWidget {
                 color: hasImage
                     ? Colors.black.withValues(alpha: 0.38)
                     : useDarkText
-                    ? AppColors.white.withValues(alpha: 0.18)
+                    ? AppColors.lightSurface.withValues(alpha: 0.22)
                     : Colors.transparent,
               ),
             ),
@@ -508,10 +765,10 @@ class _NotificationDiagnosticsState
         final scheduler = data?.scheduler;
         return DecoratedBox(
           decoration: BoxDecoration(
-            color: AppColors.electricBlue.withValues(alpha: 0.075),
+            color: AppColors.primaryFor(context).withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: AppColors.electricBlue.withValues(alpha: 0.18),
+              color: AppColors.primaryFor(context).withValues(alpha: 0.28),
             ),
           ),
           child: Padding(
@@ -661,7 +918,7 @@ class _DiagnosticLine extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: <Widget>[
-        Icon(icon, size: 18, color: AppColors.electricBlue),
+        Icon(icon, size: 18, color: AppColors.primaryFor(context)),
         const SizedBox(width: 8),
         Expanded(
           child: Text(label, style: Theme.of(context).textTheme.labelLarge),
@@ -1073,7 +1330,10 @@ class _KnowledgeBasePage extends StatelessWidget {
             children: <Widget>[
               Row(
                 children: <Widget>[
-                  const Icon(Icons.menu_book_rounded, color: AppColors.cyan),
+                  Icon(
+                    Icons.menu_book_rounded,
+                    color: AppColors.primaryFor(context),
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -1146,12 +1406,14 @@ class _KnowledgeTile extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: AppColors.violet.withValues(alpha: 0.08),
+          color: AppColors.secondaryFor(context).withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.violet.withValues(alpha: 0.14)),
+          border: Border.all(
+            color: AppColors.secondaryFor(context).withValues(alpha: 0.24),
+          ),
         ),
         child: ListTile(
-          leading: Icon(item.icon, color: AppColors.neonPurple),
+          leading: Icon(item.icon, color: AppColors.secondaryFor(context)),
           title: Text(
             item.title,
             style: const TextStyle(fontWeight: FontWeight.w800),
@@ -1388,9 +1650,9 @@ class _AboutPanel extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           'Создано ${AppConstants.studioName}',
-          style: Theme.of(
-            context,
-          ).textTheme.labelLarge?.copyWith(color: AppColors.turquoise),
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: AppColors.primaryFor(context),
+          ),
         ),
       ],
     );
@@ -1767,7 +2029,7 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: <Widget>[
-        Icon(icon, color: AppColors.cyan),
+        Icon(icon, color: AppColors.primaryFor(context)),
         const SizedBox(width: 8),
         Text(
           title,
@@ -1877,17 +2139,15 @@ class _QDoneOptionChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = onSelected != null;
     final isLight = Theme.of(context).brightness == Brightness.light;
+    final primary = AppColors.primaryFor(context);
+    final secondary = AppColors.secondaryFor(context);
     final radius = BorderRadius.circular(16);
-    final baseFill = selected
-        ? (isLight ? AppColors.lightViolet : AppColors.neonPurple)
-        : isLight
-        ? AppColors.white.withValues(alpha: 0.68)
-        : AppColors.white.withValues(alpha: 0.055);
+    final baseFill = selected ? secondary : AppColors.elevatedSurface(context);
     final baseBorder = selected
-        ? AppColors.neonPurple.withValues(alpha: isLight ? 0.52 : 0.42)
-        : AppColors.line(context).withValues(alpha: isLight ? 0.72 : 0.50);
+        ? secondary.withValues(alpha: isLight ? 0.72 : 0.42)
+        : AppColors.line(context).withValues(alpha: isLight ? 1 : 0.50);
     final foreground = selected
-        ? AppColors.white
+        ? Theme.of(context).colorScheme.onSecondary
         : enabled
         ? AppColors.foreground(context)
         : AppColors.subdued(context).withValues(alpha: isLight ? 0.78 : 0.60);
@@ -1903,11 +2163,11 @@ class _QDoneOptionChip extends StatelessWidget {
       builder: (context, tapped) {
         final fill = tapped
             ? Color.alphaBlend(
-                AppColors.cyan.withValues(alpha: isLight ? 0.20 : 0.26),
+                primary.withValues(alpha: isLight ? 0.20 : 0.26),
                 baseFill,
               )
             : baseFill;
-        final border = tapped ? AppColors.cyan : baseBorder;
+        final border = tapped ? primary : baseBorder;
         return AnimatedScale(
           scale: tapped && enabled ? 0.98 : 1,
           duration: const Duration(milliseconds: 130),
@@ -1924,16 +2184,15 @@ class _QDoneOptionChip extends StatelessWidget {
               boxShadow: selected || tapped
                   ? <BoxShadow>[
                       BoxShadow(
-                        color: (tapped ? AppColors.cyan : AppColors.neonPurple)
-                            .withValues(
-                              alpha: tapped
-                                  ? isLight
-                                        ? 0.20
-                                        : 0.28
-                                  : isLight
-                                  ? 0.18
-                                  : 0.22,
-                            ),
+                        color: (tapped ? primary : secondary).withValues(
+                          alpha: tapped
+                              ? isLight
+                                    ? 0.20
+                                    : 0.28
+                              : isLight
+                              ? 0.18
+                              : 0.22,
+                        ),
                         blurRadius: tapped ? 22 : 18,
                         offset: const Offset(0, 8),
                       ),

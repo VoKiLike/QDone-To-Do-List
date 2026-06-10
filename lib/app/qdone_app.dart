@@ -15,6 +15,7 @@ import 'package:qdone/features/settings/domain/user_settings.dart';
 import 'package:qdone/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:qdone/features/startup/presentation/qdone_startup_gate.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
+import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
 import 'package:qdone/features/tasks/presentation/controllers/tasks_controller.dart';
 
 class QDoneApp extends ConsumerStatefulWidget {
@@ -61,14 +62,20 @@ class _QDoneAppState extends ConsumerState<QDoneApp>
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(settingsControllerProvider);
+    final settings =
+        ref.watch(settingsControllerProvider).valueOrNull ??
+        const UserSettings();
     ref.listen(settingsControllerProvider, (_, _) => _syncHomeWidget(ref));
     ref.listen(tasksControllerProvider, (_, _) => _syncHomeWidget(ref));
     return MaterialApp.router(
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
+      darkTheme: switch (settings.themeMode) {
+        AppThemeMode.indigo => AppTheme.indigo(),
+        AppThemeMode.turquoise => AppTheme.turquoise(),
+        _ => AppTheme.dark(),
+      },
       themeMode: ref.watch(effectiveThemeModeProvider),
       locale: const Locale('ru'),
       supportedLocales: QDoneLocalizations.supportedLocales,

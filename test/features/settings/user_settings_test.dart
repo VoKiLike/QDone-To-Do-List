@@ -57,4 +57,16 @@ void main() {
     expect(restored.selectedStartupBackgroundPath, isNull);
     expect(restored.startupUseCustomBackground, isFalse);
   });
+
+  test('serializes additional palette modes', () {
+    for (final mode in const <AppThemeMode>[
+      AppThemeMode.indigo,
+      AppThemeMode.turquoise,
+    ]) {
+      final restored = UserSettings.fromJson(
+        UserSettings(themeMode: mode).toJson(),
+      );
+      expect(restored.themeMode, mode);
+    }
+  });
 }

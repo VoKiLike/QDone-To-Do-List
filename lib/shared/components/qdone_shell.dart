@@ -206,9 +206,9 @@ class _CurvedLiquidNavigationBarState extends State<_CurvedLiquidNavigationBar>
       TargetPlatform.iOS || TargetPlatform.macOS => 0.45,
       _ => 0.55,
     };
-    final inactiveColor = widget.isLight
-        ? AppColors.lightText.withValues(alpha: 0.78)
-        : AppColors.darkText.withValues(alpha: 0.74);
+    final inactiveColor = AppColors.foreground(
+      context,
+    ).withValues(alpha: widget.isLight ? 0.84 : 0.76);
     final labelStyle = TextStyle(
       color: inactiveColor,
       fontFamily: AppFonts.text,
@@ -217,12 +217,12 @@ class _CurvedLiquidNavigationBarState extends State<_CurvedLiquidNavigationBar>
       fontWeight: FontWeight.w800,
       letterSpacing: 0,
     );
-    final barColor = widget.isLight
-        ? AppColors.lightIce.withValues(alpha: 0.94)
-        : AppColors.darkNavy.withValues(alpha: 0.94);
-    final borderColor = widget.isLight
-        ? AppColors.lightLine.withValues(alpha: 0.86)
-        : AppColors.darkLine.withValues(alpha: 0.84);
+    final barColor = AppColors.navBarFor(
+      context,
+    ).withValues(alpha: widget.isLight ? 0.98 : 0.96);
+    final borderColor = AppColors.navBorderFor(
+      context,
+    ).withValues(alpha: widget.isLight ? 1 : 0.90);
     final bottomCornerRadius = widget.edgeToEdge ? 0.0 : 26.0;
 
     return SizedBox(
@@ -262,7 +262,7 @@ class _CurvedLiquidNavigationBarState extends State<_CurvedLiquidNavigationBar>
                         boxShadow: <BoxShadow>[
                           BoxShadow(
                             color: Colors.black.withValues(
-                              alpha: widget.isLight ? 0.08 : 0.28,
+                              alpha: widget.isLight ? 0.14 : 0.28,
                             ),
                             blurRadius: 18,
                             offset: const Offset(0, 10),
@@ -336,23 +336,14 @@ class _FloatingLiquidButton extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[
-              isLight ? AppColors.lightHighlight : AppColors.magenta,
-              isLight ? AppColors.lightBlue : AppColors.electricViolet,
-              AppColors.electricBlue,
-            ],
-          ),
+          gradient: AppColors.liquidGradientFor(context),
           border: Border.all(
-            color: Colors.white.withValues(alpha: isLight ? 0.76 : 0.34),
+            color: Colors.white.withValues(alpha: isLight ? 0.58 : 0.34),
             width: 1.2,
           ),
           boxShadow: <BoxShadow>[
             BoxShadow(
-              color: (isLight ? AppColors.lightBlue : AppColors.electricViolet)
-                  .withValues(alpha: 0.34),
+              color: AppColors.primaryFor(context).withValues(alpha: 0.34),
               blurRadius: 18,
               offset: const Offset(0, 9),
             ),
@@ -361,11 +352,7 @@ class _FloatingLiquidButton extends StatelessWidget {
         child: SizedBox(
           width: 58,
           height: 58,
-          child: Icon(
-            icon,
-            color: isLight ? AppColors.darkText : Colors.white,
-            size: 27,
-          ),
+          child: Icon(icon, color: Colors.white, size: 27),
         ),
       ),
     );

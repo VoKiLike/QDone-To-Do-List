@@ -21,6 +21,8 @@ class TaskFormPickerButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
+    final primary = AppColors.primaryFor(context);
+    final secondary = AppColors.secondaryFor(context);
     void handleTap() {
       TaskHaptics.tap();
       onTap();
@@ -32,10 +34,13 @@ class TaskFormPickerButton extends StatelessWidget {
       borderRadius: radius,
       builder: (context, tapped) {
         final fill = isLight
-            ? Colors.white.withValues(alpha: tapped ? 0.94 : 0.78)
+            ? Color.alphaBlend(
+                primary.withValues(alpha: tapped ? 0.12 : 0),
+                AppColors.lightElevatedSurface,
+              )
             : Color.alphaBlend(
-                AppColors.cyan.withValues(alpha: tapped ? 0.16 : 0),
-                AppColors.violet.withValues(alpha: 0.10),
+                primary.withValues(alpha: tapped ? 0.16 : 0),
+                AppColors.surface(context),
               );
         return AnimatedScale(
           scale: tapped ? 0.98 : 1,
@@ -49,13 +54,15 @@ class TaskFormPickerButton extends StatelessWidget {
               color: fill,
               borderRadius: radius,
               border: Border.all(
-                color: (tapped ? AppColors.cyan : AppColors.neonPurple)
-                    .withValues(alpha: tapped ? 0.72 : 0.34),
+                color: (tapped ? primary : secondary).withValues(
+                  alpha: tapped ? 0.72 : 0.34,
+                ),
+                width: isLight ? 1.2 : 1,
               ),
               boxShadow: tapped
                   ? <BoxShadow>[
                       BoxShadow(
-                        color: AppColors.cyan.withValues(alpha: 0.24),
+                        color: primary.withValues(alpha: 0.24),
                         blurRadius: 18,
                         offset: const Offset(0, 7),
                       ),
@@ -66,18 +73,14 @@ class TaskFormPickerButton extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                Icon(
-                  icon,
-                  size: 18,
-                  color: tapped ? AppColors.cyan : AppColors.neonPurple,
-                ),
+                Icon(icon, size: 18, color: tapped ? primary : secondary),
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
                     label,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: tapped ? AppColors.cyan : AppColors.neonPurple,
+                      color: tapped ? primary : secondary,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -115,7 +118,7 @@ class TaskFormSegment<T> extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: AppColors.turquoise,
+            color: AppColors.primaryFor(context),
             fontWeight: FontWeight.w900,
           ),
         ),
@@ -163,7 +166,7 @@ class TaskFormCategorySelector extends StatelessWidget {
         Text(
           'Для чего задача',
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: AppColors.turquoise,
+            color: AppColors.primaryFor(context),
             fontWeight: FontWeight.w900,
           ),
         ),
@@ -194,21 +197,23 @@ class TaskFormCategorySelector extends StatelessWidget {
               labelText: 'Название категории',
               prefixIcon: const Icon(Icons.edit_note_rounded),
               filled: true,
-              fillColor: isLight
-                  ? Colors.white.withValues(alpha: 0.82)
-                  : Colors.white.withValues(alpha: 0.075),
+              fillColor: AppColors.elevatedSurface(context),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(20),
                 borderSide: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.12),
+                  color: AppColors.line(context),
+                  width: isLight ? 1.2 : 1,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(20),
-                borderSide: const BorderSide(color: AppColors.cyan, width: 1.4),
+                borderSide: BorderSide(
+                  color: AppColors.primaryFor(context),
+                  width: 1.5,
+                ),
               ),
             ),
           ),
@@ -235,11 +240,12 @@ class TaskFormMultipleTimesEditor extends StatelessWidget {
     final isLight = Theme.of(context).brightness == Brightness.light;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: isLight
-            ? Colors.white.withValues(alpha: 0.66)
-            : Colors.white.withValues(alpha: 0.055),
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        border: Border.all(
+          color: AppColors.line(context),
+          width: isLight ? 1.1 : 1,
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -252,7 +258,7 @@ class TaskFormMultipleTimesEditor extends StatelessWidget {
                   child: Text(
                     'Время в течение дня',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: AppColors.turquoise,
+                      color: AppColors.primaryFor(context),
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -270,9 +276,9 @@ class TaskFormMultipleTimesEditor extends StatelessWidget {
             if (times.isEmpty)
               Text(
                 'Добавьте одно или несколько времен повтора',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.subdued(context),
+                ),
               )
             else
               Wrap(
@@ -380,6 +386,8 @@ class _IntervalPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final primary = AppColors.primaryFor(context);
     final normalizedValue = value.clamp(min, 999).toInt();
     final isAtMinimum = normalizedValue <= min;
     final label = zeroLabel != null && normalizedValue == 0
@@ -392,9 +400,12 @@ class _IntervalPanel extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.violet.withValues(alpha: 0.10),
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.violet.withValues(alpha: 0.16)),
+        border: Border.all(
+          color: AppColors.line(context),
+          width: isLight ? 1.1 : 1,
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -407,7 +418,7 @@ class _IntervalPanel extends StatelessWidget {
                   child: Text(
                     title,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: AppColors.turquoise,
+                      color: primary,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -422,10 +433,10 @@ class _IntervalPanel extends StatelessWidget {
                 const SizedBox(width: 8),
                 DecoratedBox(
                   decoration: BoxDecoration(
-                    color: AppColors.cyan.withValues(alpha: 0.16),
+                    color: primary.withValues(alpha: isLight ? 0.12 : 0.16),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: AppColors.cyan.withValues(alpha: 0.28),
+                      color: primary.withValues(alpha: isLight ? 0.48 : 0.28),
                     ),
                   ),
                   child: Padding(
@@ -436,7 +447,7 @@ class _IntervalPanel extends StatelessWidget {
                     child: Text(
                       label,
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: AppColors.cyan,
+                        color: primary,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -495,11 +506,13 @@ class _TaskFormChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
+    final primary = AppColors.primaryFor(context);
+    final secondary = AppColors.secondaryFor(context);
     final foreground = selected
-        ? AppColors.darkVoid
+        ? Theme.of(context).colorScheme.onPrimary
         : isLight
-        ? const Color(0xFF1E1B2E)
-        : AppColors.softWhite;
+        ? AppColors.lightText
+        : AppColors.foreground(context);
     void handleTap() {
       TaskHaptics.tap();
       onTap();
@@ -511,15 +524,10 @@ class _TaskFormChip extends StatelessWidget {
       borderRadius: radius,
       builder: (context, tapped) {
         final baseFill = selected
-            ? AppColors.cyan
-            : isLight
-            ? Colors.white.withValues(alpha: 0.72)
-            : Colors.white.withValues(alpha: 0.055);
+            ? primary
+            : AppColors.elevatedSurface(context);
         final fill = tapped
-            ? Color.alphaBlend(
-                AppColors.neonPurple.withValues(alpha: 0.26),
-                baseFill,
-              )
+            ? Color.alphaBlend(secondary.withValues(alpha: 0.26), baseFill)
             : baseFill;
         return AnimatedScale(
           scale: tapped
@@ -538,16 +546,18 @@ class _TaskFormChip extends StatelessWidget {
               borderRadius: radius,
               border: Border.all(
                 color: tapped
-                    ? AppColors.neonPurple
+                    ? secondary
                     : selected
-                    ? AppColors.cyan
-                    : Colors.white.withValues(alpha: 0.38),
+                    ? primary
+                    : AppColors.line(context),
+                width: isLight ? 1.1 : 1,
               ),
               boxShadow: selected || tapped
                   ? <BoxShadow>[
                       BoxShadow(
-                        color: (tapped ? AppColors.neonPurple : AppColors.cyan)
-                            .withValues(alpha: 0.28),
+                        color: (tapped ? secondary : primary).withValues(
+                          alpha: 0.28,
+                        ),
                         blurRadius: tapped ? 22 : 18,
                         offset: const Offset(0, 8),
                       ),

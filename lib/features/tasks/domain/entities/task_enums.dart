@@ -73,11 +73,15 @@ enum RecurrenceIntervalUnit {
 enum AppThemeMode {
   dark,
   light,
+  indigo,
+  turquoise,
   system;
 
   String get label => switch (this) {
-    AppThemeMode.dark => 'Темная',
+    AppThemeMode.dark => 'Графит',
     AppThemeMode.light => 'Светлая',
+    AppThemeMode.indigo => 'Индиго',
+    AppThemeMode.turquoise => 'Бирюза',
     AppThemeMode.system => 'Системная',
   };
 }

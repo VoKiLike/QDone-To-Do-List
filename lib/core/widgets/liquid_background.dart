@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:qdone/core/theme/app_colors.dart';
 
 class LiquidBackground extends StatelessWidget {
@@ -9,40 +9,37 @@ class LiquidBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
+    final ribbonColors = AppColors.ribbonColorsFor(context);
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: isLight
-            ? AppColors.lightAuroraGradient
-            : AppColors.darkAuroraGradient,
+        gradient: AppColors.backgroundGradientFor(context),
       ),
-      child: CustomPaint(painter: _AuroraRibbonPainter(isLight), child: child),
+      child: CustomPaint(
+        painter: _AuroraRibbonPainter(isLight: isLight, colors: ribbonColors),
+        child: child,
+      ),
     );
   }
 }
 
 class _AuroraRibbonPainter extends CustomPainter {
-  const _AuroraRibbonPainter(this.isLight);
+  const _AuroraRibbonPainter({required this.isLight, required this.colors});
 
   final bool isLight;
+  final List<Color> colors;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 46
+      ..strokeWidth = isLight ? 40 : 46
       ..strokeCap = StrokeCap.round
       ..shader = LinearGradient(
-        colors: isLight
-            ? <Color>[
-                AppColors.lightViolet.withValues(alpha: 0.14),
-                AppColors.lightSky.withValues(alpha: 0.18),
-                AppColors.lightHighlight.withValues(alpha: 0.12),
-              ]
-            : <Color>[
-                AppColors.electricViolet.withValues(alpha: 0.14),
-                AppColors.electricBlue.withValues(alpha: 0.16),
-                AppColors.magenta.withValues(alpha: 0.10),
-              ],
+        colors: <Color>[
+          colors[0].withValues(alpha: isLight ? 0.09 : 0.10),
+          colors[1].withValues(alpha: isLight ? 0.12 : 0.12),
+          colors[2].withValues(alpha: isLight ? 0.08 : 0.08),
+        ],
       ).createShader(Offset.zero & size);
 
     final path = Path()
@@ -68,6 +65,6 @@ class _AuroraRibbonPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _AuroraRibbonPainter oldDelegate) {
-    return oldDelegate.isLight != isLight;
+    return oldDelegate.isLight != isLight || oldDelegate.colors != colors;
   }
 }

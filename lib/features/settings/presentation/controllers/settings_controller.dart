@@ -20,6 +20,8 @@ final effectiveThemeModeProvider = Provider<ThemeMode>((ref) {
   return switch (settings.themeMode) {
     AppThemeMode.dark => ThemeMode.dark,
     AppThemeMode.light => ThemeMode.light,
+    AppThemeMode.indigo => ThemeMode.dark,
+    AppThemeMode.turquoise => ThemeMode.dark,
     AppThemeMode.system => ThemeMode.system,
   };
 });

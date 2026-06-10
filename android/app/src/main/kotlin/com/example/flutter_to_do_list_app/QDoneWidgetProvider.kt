@@ -66,6 +66,7 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
     ) {
         val prefs = flutterPreferences(context)
         val settings = readSettings(prefs, widgetData)
+        val palette = WidgetPalette.forTheme(settings.theme)
         val rows = readWidgetTasks(
             raw = widgetData?.getString(WIDGET_TASKS_JSON_KEY, null),
             compact = settings.compact,
@@ -107,18 +108,18 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
             row.setTextColor(
                 R.id.widget_task_time,
                 when {
-                    done -> Color.rgb(94, 234, 212)
-                    item.status == STATUS_OVERDUE -> Color.rgb(251, 146, 60)
-                    else -> Color.rgb(103, 232, 249)
+                    done -> palette.success
+                    item.status == STATUS_OVERDUE -> palette.warning
+                    else -> palette.primary
                 }
             )
             row.setTextColor(
                 R.id.widget_task_category,
-                if (done) Color.rgb(190, 242, 100) else Color.rgb(233, 213, 255)
+                if (done) palette.completedCategory else palette.secondary
             )
             row.setTextColor(
                 R.id.widget_task_title,
-                if (done) Color.rgb(191, 233, 219) else Color.WHITE
+                if (done) palette.completedTitle else palette.foreground
             )
             row.setInt(
                 R.id.widget_task_done,
@@ -186,7 +187,8 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
             WidgetSettings(
                 showCompleted = json.optBoolean("widgetShowsCompleted", false),
                 taskLimit = json.optInt("widgetTaskLimit", 5).coerceIn(1, 10),
-                compact = json.optBoolean("compactWidget", false)
+                compact = json.optBoolean("compactWidget", false),
+                theme = json.optString("themeMode", THEME_DARK)
             )
         }
 
@@ -209,6 +211,12 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
                 widgetData.getBoolean(WIDGET_COMPACT_KEY, storedSettings.compact)
             } else {
                 storedSettings.compact
+            },
+            theme = if (widgetData.contains(WIDGET_THEME_KEY)) {
+                widgetData.getString(WIDGET_THEME_KEY, storedSettings.theme)
+                    ?: storedSettings.theme
+            } else {
+                storedSettings.theme
             }
         )
     }
@@ -235,8 +243,51 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
     private data class WidgetSettings(
         val showCompleted: Boolean = false,
         val taskLimit: Int = 5,
-        val compact: Boolean = false
+        val compact: Boolean = false,
+        val theme: String = THEME_DARK
     )
+
+    private data class WidgetPalette(
+        val primary: Int,
+        val secondary: Int,
+        val warning: Int,
+        val success: Int,
+        val foreground: Int,
+        val completedTitle: Int,
+        val completedCategory: Int
+    ) {
+        companion object {
+            fun forTheme(theme: String): WidgetPalette = when (theme) {
+                THEME_INDIGO -> WidgetPalette(
+                    primary = Color.rgb(169, 140, 245),
+                    secondary = Color.rgb(192, 132, 252),
+                    warning = Color.rgb(243, 166, 107),
+                    success = Color.rgb(103, 215, 178),
+                    foreground = Color.rgb(247, 243, 252),
+                    completedTitle = Color.rgb(195, 185, 216),
+                    completedCategory = Color.rgb(169, 140, 245)
+                )
+                THEME_TURQUOISE -> WidgetPalette(
+                    primary = Color.rgb(82, 211, 206),
+                    secondary = Color.rgb(88, 180, 207),
+                    warning = Color.rgb(241, 162, 97),
+                    success = Color.rgb(97, 213, 169),
+                    foreground = Color.rgb(240, 249, 250),
+                    completedTitle = Color.rgb(169, 196, 201),
+                    completedCategory = Color.rgb(101, 214, 168)
+                )
+                else -> WidgetPalette(
+                    primary = Color.rgb(85, 196, 238),
+                    secondary = Color.rgb(136, 116, 241),
+                    warning = Color.rgb(242, 160, 91),
+                    success = Color.rgb(93, 214, 172),
+                    foreground = Color.rgb(243, 246, 252),
+                    completedTitle = Color.rgb(173, 184, 208),
+                    completedCategory = Color.rgb(160, 120, 232)
+                )
+            }
+        }
+    }
 
     private data class WidgetTask(
         val id: String,
@@ -273,9 +324,13 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
         private const val WIDGET_SHOW_COMPLETED_KEY = "widget_show_completed"
         private const val WIDGET_TASK_LIMIT_KEY = "widget_task_limit"
         private const val WIDGET_COMPACT_KEY = "widget_compact"
+        private const val WIDGET_THEME_KEY = "widget_theme"
         private const val STATUS_ACTIVE = "active"
         private const val STATUS_OVERDUE = "overdue"
         private const val STATUS_COMPLETED = "completed"
         private const val STATUS_ARCHIVED = "archived"
+        private const val THEME_DARK = "dark"
+        private const val THEME_INDIGO = "indigo"
+        private const val THEME_TURQUOISE = "turquoise"
     }
 }

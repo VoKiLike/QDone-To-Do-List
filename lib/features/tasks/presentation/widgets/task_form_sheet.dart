@@ -96,7 +96,6 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
     final title = widget.initialTask == null
         ? 'Новая задача'
         : 'Изменить задачу';
-    final isLight = Theme.of(context).brightness == Brightness.light;
     return ModalGlassSurface(
       borderRadius: 34,
       padding: EdgeInsets.zero,
@@ -110,9 +109,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
               width: 44,
               height: 5,
               decoration: BoxDecoration(
-                color: (isLight ? AppColors.violet : Colors.white).withValues(
-                  alpha: isLight ? 0.24 : 0.24,
-                ),
+                color: AppColors.secondaryFor(context).withValues(alpha: 0.24),
                 borderRadius: BorderRadius.circular(99),
               ),
             ),
@@ -535,11 +532,11 @@ class _SheetHeader extends StatelessWidget {
           width: 42,
           height: 42,
           decoration: BoxDecoration(
-            gradient: AppColors.liquidGradient,
+            gradient: AppColors.liquidGradientFor(context),
             borderRadius: BorderRadius.circular(16),
             boxShadow: <BoxShadow>[
               BoxShadow(
-                color: AppColors.cyan.withValues(alpha: 0.24),
+                color: AppColors.primaryFor(context).withValues(alpha: 0.24),
                 blurRadius: 22,
               ),
             ],
@@ -585,18 +582,17 @@ class _FormPanel extends StatelessWidget {
     final isLight = Theme.of(context).brightness == Brightness.light;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: isLight
-            ? Colors.white.withValues(alpha: 0.70)
-            : Colors.white.withValues(alpha: 0.055),
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isLight
-              ? Colors.white.withValues(alpha: 0.78)
-              : Colors.white.withValues(alpha: 0.12),
+          color: AppColors.line(context),
+          width: isLight ? 1.1 : 1,
         ),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.16),
+            color: (isLight ? AppColors.lightText : Colors.black).withValues(
+              alpha: isLight ? 0.10 : 0.16,
+            ),
             blurRadius: 20,
             offset: const Offset(0, 12),
           ),
@@ -609,12 +605,12 @@ class _FormPanel extends StatelessWidget {
           children: <Widget>[
             Row(
               children: <Widget>[
-                Icon(icon, size: 18, color: AppColors.cyan),
+                Icon(icon, size: 18, color: AppColors.primaryFor(context)),
                 const SizedBox(width: 8),
                 Text(
                   title,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppColors.turquoise,
+                    color: AppColors.primaryFor(context),
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -658,17 +654,21 @@ class _TaskTextField extends StatelessWidget {
         labelText: label,
         prefixIcon: Icon(icon),
         filled: true,
-        fillColor: isLight
-            ? Colors.white.withValues(alpha: 0.82)
-            : Colors.white.withValues(alpha: 0.075),
+        fillColor: AppColors.elevatedSurface(context),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+          borderSide: BorderSide(
+            color: AppColors.line(context),
+            width: isLight ? 1.2 : 1,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(color: AppColors.cyan, width: 1.4),
+          borderSide: BorderSide(
+            color: AppColors.primaryFor(context),
+            width: 1.5,
+          ),
         ),
       ),
     );

@@ -1,95 +1,123 @@
 import 'package:flutter/material.dart';
-import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/core/theme/app_fonts.dart';
+import 'package:qdone/core/theme/qdone_theme_tokens.dart';
 
 class AppTheme {
   const AppTheme._();
 
-  static ThemeData dark() {
-    final base = ThemeData.dark(useMaterial3: true);
+  static ThemeData light() => _build(QDoneThemeTokens.light);
+
+  static ThemeData dark() => _build(QDoneThemeTokens.graphite);
+
+  static ThemeData indigo() => _build(QDoneThemeTokens.indigo);
+
+  static ThemeData turquoise() => _build(QDoneThemeTokens.turquoise);
+
+  static ThemeData _build(QDoneThemeTokens tokens) {
+    final brightness = tokens.isLight ? Brightness.light : Brightness.dark;
+    final base = ThemeData(brightness: brightness, useMaterial3: true);
+    final colorScheme = tokens.isLight
+        ? ColorScheme.light(
+            primary: tokens.primary,
+            onPrimary: tokens.accentForeground,
+            primaryContainer: tokens.mutedSurface,
+            onPrimaryContainer: tokens.foreground,
+            secondary: tokens.secondary,
+            onSecondary: tokens.accentForeground,
+            secondaryContainer: tokens.surface,
+            onSecondaryContainer: tokens.foreground,
+            tertiary: tokens.tertiary,
+            onTertiary: tokens.accentForeground,
+            surface: tokens.surface,
+            onSurface: tokens.foreground,
+            onSurfaceVariant: tokens.subdued,
+            error: tokens.warning,
+            onError: tokens.accentForeground,
+            outline: tokens.line,
+            outlineVariant: tokens.mutedSurface,
+            shadow: tokens.shadow,
+          )
+        : ColorScheme.dark(
+            primary: tokens.primary,
+            onPrimary: tokens.canvas,
+            primaryContainer: tokens.mutedSurface,
+            onPrimaryContainer: tokens.foreground,
+            secondary: tokens.secondary,
+            onSecondary: tokens.canvas,
+            secondaryContainer: tokens.mutedSurface,
+            onSecondaryContainer: tokens.foreground,
+            tertiary: tokens.tertiary,
+            onTertiary: tokens.canvas,
+            surface: tokens.surface,
+            onSurface: tokens.foreground,
+            onSurfaceVariant: tokens.subdued,
+            error: tokens.warning,
+            onError: tokens.canvas,
+            outline: tokens.line,
+            outlineVariant: tokens.mutedSurface,
+            shadow: tokens.shadow,
+          );
+
     return base.copyWith(
-      scaffoldBackgroundColor: AppColors.darkVoid,
+      scaffoldBackgroundColor: tokens.canvas,
       splashFactory: NoSplash.splashFactory,
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
-      colorScheme: const ColorScheme.dark(
-        primary: AppColors.electricBlue,
-        secondary: AppColors.electricViolet,
-        tertiary: AppColors.magenta,
-        surface: AppColors.darkPanelSolid,
-        onSurface: AppColors.darkText,
-        onSurfaceVariant: AppColors.darkMuted,
-        error: AppColors.warning,
-      ),
-      textTheme: _textTheme(base.textTheme, AppColors.darkText),
+      colorScheme: colorScheme,
+      extensions: <ThemeExtension<dynamic>>[tokens],
+      textTheme: _textTheme(base.textTheme, tokens.foreground),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
       ),
-      bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: Colors.transparent,
-        modalBackgroundColor: Colors.transparent,
-      ),
-      dialogTheme: _dialogTheme(false),
-      datePickerTheme: _datePickerTheme(false),
-      inputDecorationTheme: _inputDecorationTheme(false),
-      snackBarTheme: _snackBarTheme(false),
-      textButtonTheme: TextButtonThemeData(style: _tapReleaseButtonStyle()),
-      filledButtonTheme: FilledButtonThemeData(style: _tapReleaseButtonStyle()),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: _tapReleaseButtonStyle(),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: _tapReleaseButtonStyle(),
-      ),
-      iconButtonTheme: IconButtonThemeData(style: _tapReleaseButtonStyle()),
-    );
-  }
-
-  static ThemeData light() {
-    final base = ThemeData.light(useMaterial3: true);
-    return base.copyWith(
-      scaffoldBackgroundColor: AppColors.lightMist,
-      splashFactory: NoSplash.splashFactory,
-      splashColor: Colors.transparent,
-      highlightColor: Colors.transparent,
-      colorScheme: const ColorScheme.light(
-        primary: AppColors.lightBlue,
-        secondary: AppColors.lightViolet,
-        tertiary: AppColors.lightMagenta,
-        surface: AppColors.lightMist,
-        onSurface: AppColors.lightText,
-        onSurfaceVariant: AppColors.lightMuted,
-        error: AppColors.warning,
-      ),
-      textTheme: _textTheme(base.textTheme, AppColors.lightText),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: false,
+      dividerTheme: DividerThemeData(
+        color: tokens.line.withValues(alpha: tokens.isLight ? 0.62 : 0.72),
+        thickness: 1,
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: Colors.transparent,
         modalBackgroundColor: Colors.transparent,
       ),
-      dialogTheme: _dialogTheme(true),
-      datePickerTheme: _datePickerTheme(true),
-      inputDecorationTheme: _inputDecorationTheme(true),
-      snackBarTheme: _snackBarTheme(true),
-      textButtonTheme: TextButtonThemeData(style: _tapReleaseButtonStyle()),
-      filledButtonTheme: FilledButtonThemeData(style: _tapReleaseButtonStyle()),
+      dialogTheme: _dialogTheme(tokens),
+      datePickerTheme: _datePickerTheme(tokens),
+      inputDecorationTheme: _inputDecorationTheme(tokens),
+      snackBarTheme: _snackBarTheme(tokens),
+      textButtonTheme: TextButtonThemeData(
+        style: _tapReleaseButtonStyle(foregroundColor: tokens.primary),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: _tapReleaseButtonStyle(
+          foregroundColor: tokens.accentForeground,
+          backgroundColor: tokens.primary,
+        ),
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
-        style: _tapReleaseButtonStyle(),
+        style: _tapReleaseButtonStyle(
+          foregroundColor: tokens.foreground,
+          backgroundColor: tokens.elevatedSurface,
+          side: BorderSide(color: tokens.line, width: 1.2),
+          elevation: 0,
+        ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
-        style: _tapReleaseButtonStyle(),
+        style: _tapReleaseButtonStyle(
+          foregroundColor: tokens.foreground,
+          side: BorderSide(color: tokens.primary, width: 1.2),
+        ),
       ),
-      iconButtonTheme: IconButtonThemeData(style: _tapReleaseButtonStyle()),
+      iconButtonTheme: IconButtonThemeData(
+        style: _tapReleaseButtonStyle(foregroundColor: tokens.foreground),
+      ),
     );
   }
 
-  static ButtonStyle _tapReleaseButtonStyle() {
+  static ButtonStyle _tapReleaseButtonStyle({
+    Color? foregroundColor,
+    Color? backgroundColor,
+    BorderSide? side,
+    double? elevation,
+  }) {
     return ButtonStyle(
       splashFactory: NoSplash.splashFactory,
       overlayColor: WidgetStateProperty.resolveWith((states) {
@@ -98,6 +126,14 @@ class AppTheme {
         }
         return null;
       }),
+      foregroundColor: foregroundColor == null
+          ? null
+          : WidgetStatePropertyAll(foregroundColor),
+      backgroundColor: backgroundColor == null
+          ? null
+          : WidgetStatePropertyAll(backgroundColor),
+      side: side == null ? null : WidgetStatePropertyAll(side),
+      elevation: elevation == null ? null : WidgetStatePropertyAll(elevation),
     );
   }
 
@@ -143,112 +179,114 @@ class AppTheme {
         );
   }
 
-  static InputDecorationTheme _inputDecorationTheme(bool light) {
+  static InputDecorationTheme _inputDecorationTheme(QDoneThemeTokens tokens) {
     return InputDecorationTheme(
       filled: true,
-      fillColor: light
-          ? Colors.white.withValues(alpha: 0.86)
-          : AppColors.darkPanelSolid.withValues(alpha: 0.92),
+      fillColor: tokens.elevatedSurface,
+      labelStyle: TextStyle(color: tokens.subdued),
+      hintStyle: TextStyle(color: tokens.subdued.withValues(alpha: 0.86)),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
         borderSide: BorderSide(
-          color: light ? AppColors.lightLine : AppColors.darkLine,
+          color: tokens.line,
+          width: tokens.isLight ? 1.2 : 1,
         ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
         borderSide: BorderSide(
-          color: light ? AppColors.lightLine : AppColors.darkLine,
+          color: tokens.line,
+          width: tokens.isLight ? 1.2 : 1,
         ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: AppColors.electricBlue, width: 1.4),
+        borderSide: BorderSide(color: tokens.primary, width: 1.6),
       ),
     );
   }
 
-  static DialogThemeData _dialogTheme(bool light) {
-    final background = light ? Colors.white : AppColors.darkPanelSolid;
+  static DialogThemeData _dialogTheme(QDoneThemeTokens tokens) {
     return DialogThemeData(
-      backgroundColor: background,
+      backgroundColor: tokens.elevatedSurface,
       surfaceTintColor: Colors.transparent,
       elevation: 18,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
     );
   }
 
-  static DatePickerThemeData _datePickerTheme(bool light) {
-    final background = light ? Colors.white : AppColors.darkPanelSolid;
-    final headerBackground = light ? AppColors.lightIce : AppColors.darkNavy;
-    final foreground = light ? AppColors.lightText : AppColors.darkText;
-    final muted = light ? AppColors.lightMuted : AppColors.darkMuted;
-    final selectedForeground = Colors.white;
-
+  static DatePickerThemeData _datePickerTheme(QDoneThemeTokens tokens) {
     return DatePickerThemeData(
-      backgroundColor: background,
+      backgroundColor: tokens.elevatedSurface,
       surfaceTintColor: Colors.transparent,
       elevation: 18,
-      shadowColor: Colors.black.withValues(alpha: light ? 0.14 : 0.46),
+      shadowColor: tokens.shadow.withValues(
+        alpha: tokens.isLight ? 0.14 : 0.46,
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      headerBackgroundColor: headerBackground,
-      headerForegroundColor: foreground,
-      weekdayStyle: TextStyle(color: muted, fontWeight: FontWeight.w700),
+      headerBackgroundColor: tokens.mutedSurface,
+      headerForegroundColor: tokens.foreground,
+      weekdayStyle: TextStyle(
+        color: tokens.subdued,
+        fontWeight: FontWeight.w700,
+      ),
       dayForegroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return selectedForeground;
+          return tokens.accentForeground;
         }
         if (states.contains(WidgetState.disabled)) {
-          return muted.withValues(alpha: 0.42);
+          return tokens.subdued.withValues(alpha: 0.42);
         }
-        return foreground;
+        return tokens.foreground;
       }),
       dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return AppColors.electricBlue;
+          return tokens.primary;
         }
         if (states.contains(WidgetState.hovered) ||
             states.contains(WidgetState.focused)) {
-          return AppColors.electricBlue.withValues(alpha: light ? 0.12 : 0.22);
+          return tokens.primary.withValues(alpha: tokens.isLight ? 0.14 : 0.22);
         }
         return Colors.transparent;
       }),
       todayForegroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return selectedForeground;
+          return tokens.accentForeground;
         }
-        return AppColors.electricBlue;
+        return tokens.primary;
       }),
-      todayBorder: const BorderSide(color: AppColors.electricBlue, width: 1.4),
+      todayBorder: BorderSide(color: tokens.primary, width: 1.4),
       yearForegroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return selectedForeground;
+          return tokens.accentForeground;
         }
         if (states.contains(WidgetState.disabled)) {
-          return muted.withValues(alpha: 0.42);
+          return tokens.subdued.withValues(alpha: 0.42);
         }
-        return foreground;
+        return tokens.foreground;
       }),
       yearBackgroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return AppColors.electricBlue;
+          return tokens.primary;
         }
         return Colors.transparent;
       }),
       cancelButtonStyle: TextButton.styleFrom(
-        foregroundColor: AppColors.neonPurple,
+        foregroundColor: tokens.secondary,
       ),
       confirmButtonStyle: TextButton.styleFrom(
-        foregroundColor: AppColors.neonPurple,
+        foregroundColor: tokens.secondary,
       ),
     );
   }
 
-  static SnackBarThemeData _snackBarTheme(bool light) {
+  static SnackBarThemeData _snackBarTheme(QDoneThemeTokens tokens) {
     return SnackBarThemeData(
-      backgroundColor: light ? AppColors.lightText : AppColors.darkPanelSolid,
+      backgroundColor: tokens.isLight
+          ? tokens.foreground
+          : tokens.elevatedSurface,
       contentTextStyle: TextStyle(
-        color: light ? Colors.white : AppColors.darkText,
+        color: tokens.isLight ? Colors.white : tokens.foreground,
         fontFamily: AppFonts.text,
         fontWeight: FontWeight.w700,
       ),

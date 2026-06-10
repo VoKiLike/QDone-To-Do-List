@@ -92,15 +92,15 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
               ),
               calendarStyle: CalendarStyle(
                 todayDecoration: BoxDecoration(
-                  color: AppColors.cyan.withValues(alpha: 0.25),
+                  color: AppColors.primaryFor(context).withValues(alpha: 0.22),
                   shape: BoxShape.circle,
                 ),
-                selectedDecoration: const BoxDecoration(
-                  gradient: AppColors.liquidGradient,
+                selectedDecoration: BoxDecoration(
+                  gradient: AppColors.liquidGradientFor(context),
                   shape: BoxShape.circle,
                 ),
-                markerDecoration: const BoxDecoration(
-                  color: AppColors.turquoise,
+                markerDecoration: BoxDecoration(
+                  color: AppColors.primaryFor(context),
                   shape: BoxShape.circle,
                 ),
                 outsideDaysVisible: false,
@@ -122,7 +122,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                           margin: const EdgeInsets.symmetric(horizontal: 1.5),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: marker.color,
+                            color: marker.type.colorFor(context),
                           ),
                         );
                       }).toList(),
@@ -298,7 +298,7 @@ class _EmptyDay extends StatelessWidget {
           'На этот день задач нет',
           style: Theme.of(
             context,
-          ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+          ).textTheme.bodyMedium?.copyWith(color: AppColors.subdued(context)),
         ),
         const SizedBox(height: 10),
         NeonActionButton(
@@ -328,7 +328,7 @@ class _CalendarTaskTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _colorFor(task);
+    final color = _colorFor(context, task);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
@@ -426,17 +426,17 @@ class _CalendarTaskTile extends StatelessWidget {
     return Icons.circle_rounded;
   }
 
-  Color _colorFor(Task task) {
+  Color _colorFor(BuildContext context, Task task) {
     if (task.status == TaskStatus.completed) {
-      return AppColors.success;
+      return AppColors.successFor(context);
     }
     if (task.status == TaskStatus.overdue) {
-      return AppColors.warning;
+      return AppColors.warningFor(context);
     }
     if (task.recurrenceRule.isEnabled) {
-      return AppColors.neonPurple;
+      return AppColors.secondaryFor(context);
     }
-    return AppColors.cyan;
+    return AppColors.primaryFor(context);
   }
 }
 
@@ -481,11 +481,11 @@ enum _CalendarMarkerType {
     _CalendarMarkerType.recurring,
   ];
 
-  Color get color => switch (this) {
-    _CalendarMarkerType.overdue => AppColors.warning,
-    _CalendarMarkerType.completed => AppColors.success,
-    _CalendarMarkerType.active => AppColors.cyan,
-    _CalendarMarkerType.recurring => AppColors.neonPurple,
+  Color colorFor(BuildContext context) => switch (this) {
+    _CalendarMarkerType.overdue => AppColors.warningFor(context),
+    _CalendarMarkerType.completed => AppColors.successFor(context),
+    _CalendarMarkerType.active => AppColors.primaryFor(context),
+    _CalendarMarkerType.recurring => AppColors.secondaryFor(context),
   };
 }
 
@@ -493,8 +493,6 @@ class _CalendarMarker {
   const _CalendarMarker({required this.type});
 
   final _CalendarMarkerType type;
-
-  Color get color => type.color;
 }
 
 String _calendarTitle(DateTime date, dynamic locale) {
