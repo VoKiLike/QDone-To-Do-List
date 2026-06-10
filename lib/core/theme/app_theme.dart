@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/core/theme/app_fonts.dart';
 
@@ -9,14 +9,19 @@ class AppTheme {
     final base = ThemeData.dark(useMaterial3: true);
     return base.copyWith(
       scaffoldBackgroundColor: AppColors.darkVoid,
+      splashFactory: NoSplash.splashFactory,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
       colorScheme: const ColorScheme.dark(
-        primary: AppColors.violet,
-        secondary: AppColors.cyan,
-        tertiary: AppColors.turquoise,
-        surface: AppColors.darkPanel,
+        primary: AppColors.electricBlue,
+        secondary: AppColors.electricViolet,
+        tertiary: AppColors.magenta,
+        surface: AppColors.darkPanelSolid,
+        onSurface: AppColors.darkText,
+        onSurfaceVariant: AppColors.darkMuted,
         error: AppColors.warning,
       ),
-      textTheme: _textTheme(base.textTheme, AppColors.white),
+      textTheme: _textTheme(base.textTheme, AppColors.darkText),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -29,21 +34,36 @@ class AppTheme {
       dialogTheme: _dialogTheme(false),
       datePickerTheme: _datePickerTheme(false),
       inputDecorationTheme: _inputDecorationTheme(false),
+      snackBarTheme: _snackBarTheme(false),
+      textButtonTheme: TextButtonThemeData(style: _tapReleaseButtonStyle()),
+      filledButtonTheme: FilledButtonThemeData(style: _tapReleaseButtonStyle()),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: _tapReleaseButtonStyle(),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: _tapReleaseButtonStyle(),
+      ),
+      iconButtonTheme: IconButtonThemeData(style: _tapReleaseButtonStyle()),
     );
   }
 
   static ThemeData light() {
     final base = ThemeData.light(useMaterial3: true);
     return base.copyWith(
-      scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+      scaffoldBackgroundColor: AppColors.lightMist,
+      splashFactory: NoSplash.splashFactory,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
       colorScheme: const ColorScheme.light(
-        primary: AppColors.violet,
-        secondary: AppColors.turquoise,
-        tertiary: AppColors.cyan,
-        surface: AppColors.softWhite,
+        primary: AppColors.lightBlue,
+        secondary: AppColors.lightViolet,
+        tertiary: AppColors.lightMagenta,
+        surface: AppColors.lightMist,
+        onSurface: AppColors.lightText,
+        onSurfaceVariant: AppColors.lightMuted,
         error: AppColors.warning,
       ),
-      textTheme: _textTheme(base.textTheme, const Color(0xFF15151F)),
+      textTheme: _textTheme(base.textTheme, AppColors.lightText),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -56,6 +76,28 @@ class AppTheme {
       dialogTheme: _dialogTheme(true),
       datePickerTheme: _datePickerTheme(true),
       inputDecorationTheme: _inputDecorationTheme(true),
+      snackBarTheme: _snackBarTheme(true),
+      textButtonTheme: TextButtonThemeData(style: _tapReleaseButtonStyle()),
+      filledButtonTheme: FilledButtonThemeData(style: _tapReleaseButtonStyle()),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: _tapReleaseButtonStyle(),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: _tapReleaseButtonStyle(),
+      ),
+      iconButtonTheme: IconButtonThemeData(style: _tapReleaseButtonStyle()),
+    );
+  }
+
+  static ButtonStyle _tapReleaseButtonStyle() {
+    return ButtonStyle(
+      splashFactory: NoSplash.splashFactory,
+      overlayColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.pressed)) {
+          return Colors.transparent;
+        }
+        return null;
+      }),
     );
   }
 
@@ -105,29 +147,29 @@ class AppTheme {
     return InputDecorationTheme(
       filled: true,
       fillColor: light
-          ? Colors.white.withValues(alpha: 0.8)
-          : Colors.white.withValues(alpha: 0.08),
+          ? Colors.white.withValues(alpha: 0.86)
+          : AppColors.darkPanelSolid.withValues(alpha: 0.92),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
         borderSide: BorderSide(
-          color: Colors.white.withValues(alpha: light ? 0.45 : 0.14),
+          color: light ? AppColors.lightLine : AppColors.darkLine,
         ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
         borderSide: BorderSide(
-          color: Colors.white.withValues(alpha: light ? 0.55 : 0.12),
+          color: light ? AppColors.lightLine : AppColors.darkLine,
         ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(color: AppColors.cyan, width: 1.4),
+        borderSide: const BorderSide(color: AppColors.electricBlue, width: 1.4),
       ),
     );
   }
 
   static DialogThemeData _dialogTheme(bool light) {
-    final background = light ? Colors.white : const Color(0xFF11101B);
+    final background = light ? Colors.white : AppColors.darkPanelSolid;
     return DialogThemeData(
       backgroundColor: background,
       surfaceTintColor: Colors.transparent,
@@ -137,12 +179,10 @@ class AppTheme {
   }
 
   static DatePickerThemeData _datePickerTheme(bool light) {
-    final background = light ? Colors.white : const Color(0xFF11101B);
-    final headerBackground = light
-        ? const Color(0xFFF3EFFF)
-        : const Color(0xFF171326);
-    final foreground = light ? const Color(0xFF15151F) : AppColors.white;
-    final muted = light ? const Color(0xFF5F6474) : const Color(0xFFC8C6D6);
+    final background = light ? Colors.white : AppColors.darkPanelSolid;
+    final headerBackground = light ? AppColors.lightIce : AppColors.darkNavy;
+    final foreground = light ? AppColors.lightText : AppColors.darkText;
+    final muted = light ? AppColors.lightMuted : AppColors.darkMuted;
     final selectedForeground = Colors.white;
 
     return DatePickerThemeData(
@@ -165,12 +205,11 @@ class AppTheme {
       }),
       dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return AppColors.violet;
+          return AppColors.electricBlue;
         }
         if (states.contains(WidgetState.hovered) ||
-            states.contains(WidgetState.focused) ||
-            states.contains(WidgetState.pressed)) {
-          return AppColors.violet.withValues(alpha: light ? 0.12 : 0.22);
+            states.contains(WidgetState.focused)) {
+          return AppColors.electricBlue.withValues(alpha: light ? 0.12 : 0.22);
         }
         return Colors.transparent;
       }),
@@ -178,9 +217,9 @@ class AppTheme {
         if (states.contains(WidgetState.selected)) {
           return selectedForeground;
         }
-        return AppColors.cyan;
+        return AppColors.electricBlue;
       }),
-      todayBorder: const BorderSide(color: AppColors.cyan, width: 1.4),
+      todayBorder: const BorderSide(color: AppColors.electricBlue, width: 1.4),
       yearForegroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
           return selectedForeground;
@@ -192,7 +231,7 @@ class AppTheme {
       }),
       yearBackgroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return AppColors.violet;
+          return AppColors.electricBlue;
         }
         return Colors.transparent;
       }),
@@ -202,6 +241,19 @@ class AppTheme {
       confirmButtonStyle: TextButton.styleFrom(
         foregroundColor: AppColors.neonPurple,
       ),
+    );
+  }
+
+  static SnackBarThemeData _snackBarTheme(bool light) {
+    return SnackBarThemeData(
+      backgroundColor: light ? AppColors.lightText : AppColors.darkPanelSolid,
+      contentTextStyle: TextStyle(
+        color: light ? Colors.white : AppColors.darkText,
+        fontFamily: AppFonts.text,
+        fontWeight: FontWeight.w700,
+      ),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
     );
   }
 }

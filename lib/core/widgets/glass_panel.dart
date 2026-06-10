@@ -1,7 +1,6 @@
-﻿import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:qdone/core/theme/app_colors.dart';
+import 'package:qdone/core/widgets/qdone_tap_feedback.dart';
 
 class GlassPanel extends StatelessWidget {
   const GlassPanel({
@@ -28,51 +27,62 @@ class GlassPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final surfaceColor = isLight ? Colors.white : AppColors.white;
-    final boxShadows = shadowBlurRadius > 0
-        ? <BoxShadow>[
-            BoxShadow(
-              color: AppColors.violet.withValues(
-                alpha: isLight ? 0.08 : 0.18,
-              ),
-              blurRadius: shadowBlurRadius,
-              offset: const Offset(0, 18),
+    final surfaceColor = isLight ? Colors.white : AppColors.darkPanelSolid;
+    final radius = BorderRadius.circular(borderRadius);
+
+    Widget buildPanel(bool tapped) {
+      final boxShadows = shadowBlurRadius > 0 || tapped
+          ? <BoxShadow>[
+              if (shadowBlurRadius > 0)
+                BoxShadow(
+                  color: (isLight ? AppColors.lightBlue : Colors.black)
+                      .withValues(alpha: isLight ? 0.07 : 0.18),
+                  blurRadius: shadowBlurRadius.clamp(6, 14),
+                  offset: const Offset(0, 7),
+                ),
+              if (tapped)
+                BoxShadow(
+                  color: AppColors.cyan.withValues(
+                    alpha: isLight ? 0.16 : 0.24,
+                  ),
+                  blurRadius: 20,
+                  offset: const Offset(0, 7),
+                ),
+            ]
+          : const <BoxShadow>[];
+      return ClipRRect(
+        borderRadius: radius,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOutCubic,
+          decoration: BoxDecoration(
+            color: Color.alphaBlend(
+              AppColors.cyan.withValues(alpha: tapped ? 0.08 : 0),
+              surfaceColor.withValues(alpha: 0.84),
             ),
-          ]
-        : const <BoxShadow>[];
-    final decoratedPanel = DecoratedBox(
-      decoration: BoxDecoration(
-        color: surfaceColor.withValues(alpha: isLight ? 0.72 : opacity),
-        borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(
-          color: surfaceColor.withValues(
-            alpha: isLight ? 0.62 : borderOpacity,
+            borderRadius: radius,
+            border: Border.all(
+              color: tapped
+                  ? AppColors.cyan.withValues(alpha: 0.72)
+                  : (isLight ? AppColors.lightLine : AppColors.darkLine)
+                        .withValues(
+                          alpha: isLight ? 0.88 : borderOpacity + 0.22,
+                        ),
+            ),
+            boxShadow: boxShadows,
           ),
+          child: Padding(padding: padding, child: child),
         ),
-        boxShadow: boxShadows,
-      ),
-      child: Padding(padding: padding, child: child),
-    );
-    final filteredPanel = blurSigma > 0
-        ? BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-            child: decoratedPanel,
-          )
-        : decoratedPanel;
-    final panel = ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: filteredPanel,
-    );
-    if (onTap == null) {
-      return panel;
+      );
     }
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: panel,
-      ),
+
+    if (onTap == null) {
+      return buildPanel(false);
+    }
+    return QDoneTapFeedback(
+      onTap: onTap,
+      borderRadius: radius,
+      builder: (context, tapped) => buildPanel(tapped),
     );
   }
 }

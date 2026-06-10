@@ -241,8 +241,7 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
                             NeonSwitchTile(
                               icon: Icons.notifications_active_rounded,
                               title: 'Напоминание',
-                              subtitle:
-                                  'Локальное уведомление для этой задачи',
+                              subtitle: 'Локальное уведомление для этой задачи',
                               value: _reminderEnabled,
                               onChanged: (value) async {
                                 await TaskHaptics.tap();
@@ -671,43 +670,6 @@ class _TaskTextField extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: AppColors.cyan, width: 1.4),
         ),
-      ),
-    );
-  }
-}
-
-// Kept as a fallback for the previous reminder switch layout.
-// ignore: unused_element
-class _ReminderSwitch extends StatelessWidget {
-  const _ReminderSwitch({required this.value, required this.onChanged});
-
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final isLight = Theme.of(context).brightness == Brightness.light;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: isLight
-            ? AppColors.violet.withValues(alpha: 0.08)
-            : AppColors.violet.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.violet.withValues(alpha: 0.16)),
-      ),
-      child: SwitchListTile.adaptive(
-        value: value,
-        contentPadding: const EdgeInsets.only(left: 12, right: 8),
-        secondary: const Icon(
-          Icons.notifications_active_rounded,
-          color: AppColors.neonPurple,
-        ),
-        title: const Text(
-          'Напоминание',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
-        subtitle: const Text('Локальное уведомление для этой задачи'),
-        onChanged: onChanged,
       ),
     );
   }

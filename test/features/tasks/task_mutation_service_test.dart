@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:qdone/core/notifications/notification_service.dart';
-import 'package:qdone/features/settings/domain/settings_repository.dart';
-import 'package:qdone/features/settings/domain/user_settings.dart';
+import 'package:qdone/core/notifications/notification_scheduler.dart';
 import 'package:qdone/features/tasks/domain/entities/recurrence_rule.dart';
 import 'package:qdone/features/tasks/domain/entities/reminder.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
@@ -22,7 +19,8 @@ void main() {
         completedAt: DateTime(2026, 5, 10),
       ),
     ]);
-    final service = _service(repository);
+    final scheduler = _FakeScheduler();
+    final service = _service(repository, scheduler);
 
     await service.reschedule(
       repository.tasks.single,
@@ -33,8 +31,8 @@ void main() {
     expect(task.status, TaskStatus.active);
     expect(task.isArchived, isFalse);
     expect(task.completedAt, isNull);
-    expect(task.notificationIds, isEmpty);
     expect(task.dueTime, const TimeOfDay(hour: 14, minute: 30));
+    expect(scheduler.reconciliations, 1);
   });
 
   test('widget toggle restores completed task', () async {
@@ -45,56 +43,32 @@ void main() {
         completedAt: DateTime(2026, 5, 10),
       ),
     ]);
-    final service = _service(repository);
+    final scheduler = _FakeScheduler();
 
-    final changed = await service.toggleFromWidget('done');
+    final changed = await _service(
+      repository,
+      scheduler,
+    ).toggleFromWidget('done');
 
     expect(changed, isTrue);
     expect(repository.tasks.single.status, TaskStatus.active);
     expect(repository.tasks.single.completedAt, isNull);
+    expect(scheduler.reconciliations, 1);
   });
 
-  test(
-    'complete preserves reminder intent while clearing scheduled ids',
-    () async {
-      final repository = _MemoryTaskRepository(<Task>[
-        _taskWithReminder(
-          id: 'reminded',
-          notificationIds: const <int>[42],
-          reminderNotificationId: 42,
-        ),
-      ]);
-      final service = _service(repository, notificationsEnabled: true);
-
-      await service.complete(repository.tasks.single);
-
-      final task = repository.tasks.single;
-      expect(task.status, TaskStatus.completed);
-      expect(task.reminders, hasLength(1));
-      expect(task.reminders.single.isEnabled, isTrue);
-      expect(task.reminders.single.notificationId, isNull);
-      expect(task.notificationIds, isEmpty);
-    },
-  );
-
-  test('restore reschedules preserved reminders', () async {
+  test('complete preserves reminder intent', () async {
     final repository = _MemoryTaskRepository(<Task>[
-      _taskWithReminder(
-        id: 'done-reminded',
-        status: TaskStatus.completed,
-        completedAt: DateTime(2026, 5, 10),
-      ),
+      _taskWithReminder(id: 'reminded'),
     ]);
-    final service = _service(repository, notificationsEnabled: true);
+    final scheduler = _FakeScheduler();
 
-    await service.restore(repository.tasks.single);
+    await _service(repository, scheduler).complete(repository.tasks.single);
 
     final task = repository.tasks.single;
-    expect(task.status, TaskStatus.active);
-    expect(task.completedAt, isNull);
+    expect(task.status, TaskStatus.completed);
+    expect(task.reminders, hasLength(1));
     expect(task.reminders.single.isEnabled, isTrue);
-    expect(task.reminders.single.notificationId, isNotNull);
-    expect(task.notificationIds, isNotEmpty);
+    expect(scheduler.reconciliations, 1);
   });
 
   test('completing recurring task advances to next occurrence', () async {
@@ -110,27 +84,49 @@ void main() {
         ),
       ),
     ]);
-    final service = _service(repository);
 
-    await service.complete(repository.tasks.single);
+    await _service(
+      repository,
+      _FakeScheduler(),
+    ).complete(repository.tasks.single);
 
     final task = repository.tasks.single;
     expect(task.status, TaskStatus.active);
     expect(task.completedAt, isNotNull);
     expect(task.dueDate, DateTime(2026, 5, 11));
   });
+
+  test('delete removes latest task and reconciles schedule', () async {
+    final repository = _MemoryTaskRepository(<Task>[
+      _taskWithReminder(id: 'delete-me'),
+    ]);
+    final scheduler = _FakeScheduler();
+
+    await _service(repository, scheduler).delete(_task(id: 'delete-me'));
+
+    expect(repository.tasks, isEmpty);
+    expect(scheduler.reconciliations, 1);
+  });
+
+  test('cancel all clears schedule through coordinator', () async {
+    final scheduler = _FakeScheduler();
+
+    await _service(
+      _MemoryTaskRepository(const <Task>[]),
+      scheduler,
+    ).cancelAllNotifications();
+
+    expect(scheduler.clears, 1);
+  });
 }
 
 TaskMutationService _service(
-  _MemoryTaskRepository repository, {
-  bool notificationsEnabled = false,
-}) {
+  _MemoryTaskRepository repository,
+  _FakeScheduler scheduler,
+) {
   return TaskMutationService(
     repository: repository,
-    notificationService: _FakeNotificationService(),
-    settingsRepository: _FakeSettingsRepository(
-      notificationsEnabled: notificationsEnabled,
-    ),
+    notificationScheduler: scheduler,
   );
 }
 
@@ -160,35 +156,39 @@ Task _task({
   );
 }
 
-Task _taskWithReminder({
-  required String id,
-  TaskStatus status = TaskStatus.active,
-  DateTime? completedAt,
-  List<int> notificationIds = const <int>[],
-  int? reminderNotificationId,
-}) {
-  final task = _task(id: id, status: status, completedAt: completedAt);
-  return task.copyWith(
+Task _taskWithReminder({required String id}) {
+  return _task(id: id).copyWith(
     dueDate: DateTime(2099, 5, 10),
     reminders: <Reminder>[
       Reminder(
         id: 'reminder-$id',
         taskId: id,
         dateTime: DateTime(2099, 5, 10, 8, 45),
-        notificationId: reminderNotificationId,
       ),
     ],
-    notificationIds: notificationIds,
   );
 }
 
 class _MemoryTaskRepository implements TaskRepository {
-  _MemoryTaskRepository(this.tasks);
+  _MemoryTaskRepository(List<Task> tasks) : tasks = List<Task>.of(tasks);
 
   final List<Task> tasks;
 
   @override
-  Future<bool> hasSavedTasks() async => true;
+  Future<void> initialize() async {}
+
+  @override
+  Future<Task?> getById(String taskId) async {
+    for (final task in tasks) {
+      if (task.id == taskId) {
+        return task;
+      }
+    }
+    return null;
+  }
+
+  @override
+  Future<List<Task>> readAll() async => List<Task>.of(tasks);
 
   @override
   Future<void> clearCompleted() async {
@@ -218,47 +218,69 @@ class _MemoryTaskRepository implements TaskRepository {
   }
 
   @override
-  Future<List<Task>> watchAll() async => List<Task>.of(tasks);
-}
-
-class _FakeSettingsRepository implements SettingsRepository {
-  const _FakeSettingsRepository({required this.notificationsEnabled});
-
-  final bool notificationsEnabled;
+  Future<TaskCounts> readCounts() async => TaskCounts(
+    current: tasks.where((task) => !task.isCompleted).length,
+    completed: tasks.where((task) => task.isCompleted).length,
+  );
 
   @override
-  Future<UserSettings> read() async {
-    return UserSettings(notificationsEnabled: notificationsEnabled);
+  Future<TaskDailySummary> readDailySummary() async => const TaskDailySummary();
+
+  @override
+  Future<TaskPage> readSectionPage(
+    TaskSectionKind section, {
+    TaskPageCursor? cursor,
+    int limit = TaskRepository.defaultPageSize,
+  }) async => TaskPage(tasks: tasks.take(limit).toList());
+
+  @override
+  Future<List<Task>> readForDay(DateTime day) async => List<Task>.of(tasks);
+
+  @override
+  Future<List<Task>> readForRange(DateTime from, DateTime to) async =>
+      List<Task>.of(tasks);
+
+  @override
+  Future<List<Task>> readNotificationCandidates(
+    DateTime from,
+    DateTime to,
+  ) async => List<Task>.of(tasks);
+
+  @override
+  Future<List<Task>> readCompletedPage({
+    int limit = 50,
+    int offset = 0,
+  }) async =>
+      tasks.where((task) => task.isCompleted).skip(offset).take(limit).toList();
+
+  @override
+  Future<void> reloadExternal() async {}
+}
+
+class _FakeScheduler implements NotificationScheduleCoordinator {
+  int reconciliations = 0;
+  int clears = 0;
+
+  @override
+  Future<NotificationSchedulerStatus> reconcile({
+    bool forceReset = false,
+  }) async {
+    reconciliations++;
+    return status();
   }
 
   @override
-  Future<void> save(UserSettings settings) async {}
-}
-
-class _FakeNotificationService extends NotificationService {
-  _FakeNotificationService() : super(FlutterLocalNotificationsPlugin());
-
-  @override
-  Future<void> cancelTask(Task task) async {}
+  Future<NotificationSchedulerStatus> clear() async {
+    clears++;
+    return status();
+  }
 
   @override
-  Future<Task> scheduleTask(Task task) async {
-    final ids = <int>[];
-    final reminders = <Reminder>[];
-    for (var index = 0; index < task.reminders.length; index++) {
-      final id = 100 + index;
-      ids.add(id);
-      final reminder = task.reminders[index];
-      reminders.add(
-        Reminder(
-          id: reminder.id,
-          taskId: reminder.taskId,
-          dateTime: reminder.dateTime,
-          notificationId: id,
-          isEnabled: reminder.isEnabled,
-        ),
-      );
-    }
-    return task.copyWith(reminders: reminders, notificationIds: ids);
+  Future<NotificationSchedulerStatus> status() async {
+    return const NotificationSchedulerStatus(
+      scheduledCount: 0,
+      maxScheduledCount: 48,
+      lastSyncedAt: null,
+    );
   }
 }

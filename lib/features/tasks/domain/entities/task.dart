@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:qdone/features/tasks/domain/entities/recurrence_rule.dart';
 import 'package:qdone/features/tasks/domain/entities/reminder.dart';
 import 'package:qdone/features/tasks/domain/entities/task_category.dart';
@@ -18,7 +18,6 @@ class Task {
     required this.category,
     this.recurrenceRule = const RecurrenceRule(),
     this.reminders = const <Reminder>[],
-    this.notificationIds = const <int>[],
     this.energyLevel = EnergyLevel.medium,
     this.isArchived = false,
   });
@@ -35,7 +34,6 @@ class Task {
   final TaskCategory category;
   final RecurrenceRule recurrenceRule;
   final List<Reminder> reminders;
-  final List<int> notificationIds;
   final EnergyLevel energyLevel;
   final bool isArchived;
 
@@ -80,7 +78,6 @@ class Task {
     TaskCategory? category,
     RecurrenceRule? recurrenceRule,
     List<Reminder>? reminders,
-    List<int>? notificationIds,
     EnergyLevel? energyLevel,
     bool? isArchived,
   }) {
@@ -97,7 +94,6 @@ class Task {
       category: category ?? this.category,
       recurrenceRule: recurrenceRule ?? this.recurrenceRule,
       reminders: reminders ?? this.reminders,
-      notificationIds: notificationIds ?? this.notificationIds,
       energyLevel: energyLevel ?? this.energyLevel,
       isArchived: isArchived ?? this.isArchived,
     );
@@ -116,7 +112,6 @@ class Task {
     'category': category.toJson(),
     'recurrenceRule': recurrenceRule.toJson(),
     'reminders': reminders.map((reminder) => reminder.toJson()).toList(),
-    'notificationIds': notificationIds,
     'energyLevel': energyLevel.name,
     'isArchived': isArchived,
   };
@@ -126,7 +121,6 @@ class Task {
     final category = json['category'];
     final recurrenceRule = json['recurrenceRule'];
     final reminders = json['reminders'];
-    final notificationIds = json['notificationIds'];
     return Task(
       id:
           json['id'] as String? ??
@@ -156,10 +150,6 @@ class Task {
       reminders: (reminders is List ? reminders : const <Object?>[])
           .whereType<Map>()
           .map((item) => Reminder.fromJson(Map<String, dynamic>.from(item)))
-          .toList(),
-      notificationIds:
-          (notificationIds is List ? notificationIds : const <Object?>[])
-          .whereType<int>()
           .toList(),
       energyLevel: _enumByName(
         EnergyLevel.values,

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:qdone/core/localization/qdone_localizations.dart';
@@ -16,14 +16,25 @@ import 'package:qdone/features/tasks/presentation/utils/task_haptics.dart';
 import 'package:qdone/features/tasks/presentation/widgets/task_form_modal.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-class CalendarPage extends ConsumerWidget {
+class CalendarPage extends ConsumerStatefulWidget {
   const CalendarPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CalendarPage> createState() => _CalendarPageState();
+}
+
+class _CalendarPageState extends ConsumerState<CalendarPage> {
+  late DateTime _focusedMonth = ref.read(selectedCalendarDayProvider);
+
+  @override
+  Widget build(BuildContext context) {
     final selectedDay = ref.watch(selectedCalendarDayProvider);
-    final tasks =
-        ref.watch(tasksControllerProvider).valueOrNull ?? const <Task>[];
+    final range = TaskDateRange(
+      DateTime(_focusedMonth.year, _focusedMonth.month - 1, 1),
+      DateTime(_focusedMonth.year, _focusedMonth.month + 2, 0, 23, 59, 59),
+    );
+    final rangeState = ref.watch(tasksForRangeProvider(range));
+    final tasks = rangeState.valueOrNull ?? const <Task>[];
     final settings =
         ref.watch(settingsControllerProvider).valueOrNull ??
         const UserSettings();
@@ -53,7 +64,7 @@ class CalendarPage extends ConsumerWidget {
               locale: 'ru_RU',
               startingDayOfWeek: StartingDayOfWeek.monday,
               availableGestures: AvailableGestures.horizontalSwipe,
-              focusedDay: selectedDay,
+              focusedDay: _focusedMonth,
               firstDay: DateTime.now().subtract(const Duration(days: 365)),
               lastDay: DateTime.now().add(const Duration(days: 365 * 3)),
               selectedDayPredicate: (day) => isSameDay(day, selectedDay),
@@ -62,11 +73,15 @@ class CalendarPage extends ConsumerWidget {
                 settings,
               ),
               onDaySelected: (selected, focused) {
+                setState(() => _focusedMonth = focused);
                 ref.read(selectedCalendarDayProvider.notifier).state = DateTime(
                   selected.year,
                   selected.month,
                   selected.day,
                 );
+              },
+              onPageChanged: (focused) {
+                setState(() => _focusedMonth = focused);
               },
               headerStyle: HeaderStyle(
                 titleCentered: true,
@@ -117,6 +132,11 @@ class CalendarPage extends ConsumerWidget {
               ),
             ),
           ),
+          if (rangeState.isLoading)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: LinearProgressIndicator(minHeight: 2),
+            ),
           const SizedBox(height: 16),
           _SelectedDayPanel(
             day: selectedDay,

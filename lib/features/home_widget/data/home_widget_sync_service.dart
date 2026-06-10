@@ -20,10 +20,6 @@ class HomeWidgetSyncService {
         .join('\n');
 
     await HomeWidget.saveWidgetData<String>(
-      WidgetStorageContract.widgetTitleKey,
-      'QDone',
-    );
-    await HomeWidget.saveWidgetData<String>(
       WidgetStorageContract.widgetTasksTextKey,
       lines.isEmpty ? 'Нет ближайших задач' : lines,
     );

@@ -14,6 +14,9 @@ class UserSettings {
     this.widgetShowsCompleted = false,
     this.widgetTaskLimit = 5,
     this.compactWidget = false,
+    this.startupBackgroundPaths = const <String>[],
+    this.selectedStartupBackgroundPath,
+    this.startupUseCustomBackground = false,
   });
 
   final AppThemeMode themeMode;
@@ -28,6 +31,9 @@ class UserSettings {
   final bool widgetShowsCompleted;
   final int widgetTaskLimit;
   final bool compactWidget;
+  final List<String> startupBackgroundPaths;
+  final String? selectedStartupBackgroundPath;
+  final bool startupUseCustomBackground;
 
   UserSettings copyWith({
     AppThemeMode? themeMode,
@@ -42,6 +48,10 @@ class UserSettings {
     bool? widgetShowsCompleted,
     int? widgetTaskLimit,
     bool? compactWidget,
+    List<String>? startupBackgroundPaths,
+    String? selectedStartupBackgroundPath,
+    bool clearSelectedStartupBackgroundPath = false,
+    bool? startupUseCustomBackground,
   }) {
     return UserSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -59,6 +69,13 @@ class UserSettings {
       widgetShowsCompleted: widgetShowsCompleted ?? this.widgetShowsCompleted,
       widgetTaskLimit: widgetTaskLimit ?? this.widgetTaskLimit,
       compactWidget: compactWidget ?? this.compactWidget,
+      startupBackgroundPaths:
+          startupBackgroundPaths ?? this.startupBackgroundPaths,
+      selectedStartupBackgroundPath: clearSelectedStartupBackgroundPath
+          ? null
+          : selectedStartupBackgroundPath ?? this.selectedStartupBackgroundPath,
+      startupUseCustomBackground:
+          startupUseCustomBackground ?? this.startupUseCustomBackground,
     );
   }
 
@@ -75,6 +92,9 @@ class UserSettings {
     'widgetShowsCompleted': widgetShowsCompleted,
     'widgetTaskLimit': widgetTaskLimit,
     'compactWidget': compactWidget,
+    'startupBackgroundPaths': startupBackgroundPaths,
+    'selectedStartupBackgroundPath': selectedStartupBackgroundPath,
+    'startupUseCustomBackground': startupUseCustomBackground,
   };
 
   factory UserSettings.fromJson(Map<String, dynamic> json) {
@@ -96,8 +116,20 @@ class UserSettings {
       widgetShowsCompleted: json['widgetShowsCompleted'] as bool? ?? false,
       widgetTaskLimit: json['widgetTaskLimit'] as int? ?? 5,
       compactWidget: json['compactWidget'] as bool? ?? false,
+      startupBackgroundPaths: _stringList(json['startupBackgroundPaths']),
+      selectedStartupBackgroundPath:
+          json['selectedStartupBackgroundPath'] as String?,
+      startupUseCustomBackground:
+          json['startupUseCustomBackground'] as bool? ?? false,
     );
   }
+}
+
+List<String> _stringList(Object? value) {
+  if (value is! List) {
+    return const <String>[];
+  }
+  return value.whereType<String>().where((path) => path.isNotEmpty).toList();
 }
 
 T _enumByName<T extends Enum>(List<T> values, Object? name, T fallback) {

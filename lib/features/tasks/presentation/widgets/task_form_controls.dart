@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/core/widgets/neon_controls.dart';
+import 'package:qdone/core/widgets/qdone_tap_feedback.dart';
 import 'package:qdone/features/tasks/domain/entities/task_category.dart';
 import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
 import 'package:qdone/features/tasks/presentation/utils/task_haptics.dart';
@@ -20,41 +21,63 @@ class TaskFormPickerButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    Future<void> handleTap() async {
-      await TaskHaptics.tap();
+    void handleTap() {
+      TaskHaptics.tap();
       onTap();
     }
 
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        onTap: handleTap,
-        borderRadius: BorderRadius.circular(20),
-        splashColor: AppColors.cyan.withValues(alpha: 0.16),
-        highlightColor: AppColors.violet.withValues(alpha: 0.12),
-        child: Ink(
-          height: 54,
-          decoration: BoxDecoration(
-            color: isLight
-                ? Colors.white.withValues(alpha: 0.78)
-                : AppColors.violet.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.cyan.withValues(alpha: 0.34)),
-          ),
-          child: Padding(
+    final radius = BorderRadius.circular(20);
+    return QDoneTapFeedback(
+      onTap: handleTap,
+      borderRadius: radius,
+      builder: (context, tapped) {
+        final fill = isLight
+            ? Colors.white.withValues(alpha: tapped ? 0.94 : 0.78)
+            : Color.alphaBlend(
+                AppColors.cyan.withValues(alpha: tapped ? 0.16 : 0),
+                AppColors.violet.withValues(alpha: 0.10),
+              );
+        return AnimatedScale(
+          scale: tapped ? 0.98 : 1,
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutCubic,
+          child: AnimatedContainer(
+            height: 54,
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOutCubic,
+            decoration: BoxDecoration(
+              color: fill,
+              borderRadius: radius,
+              border: Border.all(
+                color: (tapped ? AppColors.cyan : AppColors.neonPurple)
+                    .withValues(alpha: tapped ? 0.72 : 0.34),
+              ),
+              boxShadow: tapped
+                  ? <BoxShadow>[
+                      BoxShadow(
+                        color: AppColors.cyan.withValues(alpha: 0.24),
+                        blurRadius: 18,
+                        offset: const Offset(0, 7),
+                      ),
+                    ]
+                  : const <BoxShadow>[],
+            ),
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                Icon(icon, size: 18, color: AppColors.neonPurple),
+                Icon(
+                  icon,
+                  size: 18,
+                  color: tapped ? AppColors.cyan : AppColors.neonPurple,
+                ),
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
                     label,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: AppColors.neonPurple,
+                      color: tapped ? AppColors.cyan : AppColors.neonPurple,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -62,8 +85,8 @@ class TaskFormPickerButton extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -477,42 +500,55 @@ class _TaskFormChip extends StatelessWidget {
         : isLight
         ? const Color(0xFF1E1B2E)
         : AppColors.softWhite;
-    Future<void> handleTap() async {
-      await TaskHaptics.tap();
+    void handleTap() {
+      TaskHaptics.tap();
       onTap();
     }
 
-    return AnimatedScale(
-      scale: selected ? 1.02 : 1,
-      duration: const Duration(milliseconds: 160),
-      curve: Curves.easeOutCubic,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: handleTap,
-          borderRadius: BorderRadius.circular(16),
+    final radius = BorderRadius.circular(16);
+    return QDoneTapFeedback(
+      onTap: handleTap,
+      borderRadius: radius,
+      builder: (context, tapped) {
+        final baseFill = selected
+            ? AppColors.cyan
+            : isLight
+            ? Colors.white.withValues(alpha: 0.72)
+            : Colors.white.withValues(alpha: 0.055);
+        final fill = tapped
+            ? Color.alphaBlend(
+                AppColors.neonPurple.withValues(alpha: 0.26),
+                baseFill,
+              )
+            : baseFill;
+        return AnimatedScale(
+          scale: tapped
+              ? 0.98
+              : selected
+              ? 1.02
+              : 1,
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOutCubic,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic,
             padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
             decoration: BoxDecoration(
-              color: selected
-                  ? AppColors.cyan
-                  : isLight
-                  ? Colors.white.withValues(alpha: 0.72)
-                  : Colors.white.withValues(alpha: 0.055),
-              borderRadius: BorderRadius.circular(16),
+              color: fill,
+              borderRadius: radius,
               border: Border.all(
-                color: selected
+                color: tapped
+                    ? AppColors.neonPurple
+                    : selected
                     ? AppColors.cyan
                     : Colors.white.withValues(alpha: 0.38),
               ),
-              boxShadow: selected
+              boxShadow: selected || tapped
                   ? <BoxShadow>[
                       BoxShadow(
-                        color: AppColors.cyan.withValues(alpha: 0.28),
-                        blurRadius: 18,
+                        color: (tapped ? AppColors.neonPurple : AppColors.cyan)
+                            .withValues(alpha: 0.28),
+                        blurRadius: tapped ? 22 : 18,
                         offset: const Offset(0, 8),
                       ),
                     ]
@@ -535,8 +571,8 @@ class _TaskFormChip extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

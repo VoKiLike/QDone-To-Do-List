@@ -7,7 +7,6 @@ class WidgetStorageContract {
   static const androidTasksKey = 'flutter.$tasksKey';
   static const androidSettingsKey = 'flutter.$settingsKey';
 
-  static const widgetTitleKey = 'widget_title';
   static const widgetTasksTextKey = 'widget_tasks';
   static const widgetTasksJsonKey = 'widget_tasks_json';
   static const widgetTransparencyKey = 'widget_transparency';

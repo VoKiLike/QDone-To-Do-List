@@ -1,36 +1,20 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/core/widgets/glass_panel.dart';
-import 'package:qdone/features/tasks/domain/entities/task.dart';
-import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
+import 'package:qdone/features/tasks/domain/repositories/task_repository.dart';
 
 class DailyPulseCard extends StatelessWidget {
-  const DailyPulseCard({super.key, required this.tasks});
+  const DailyPulseCard({super.key, required this.summary});
 
-  final List<Task> tasks;
+  final TaskDailySummary summary;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final now = DateTime.now();
-    final todayTasks = tasks
-        .where((task) => _sameDay(task.dueDate, now))
-        .toList();
-    final done = todayTasks
-        .where((task) => task.status == TaskStatus.completed)
-        .length;
-    final left = todayTasks.where((task) => !task.isCompleted).length;
-    final overdue = tasks
-        .where((task) => task.status == TaskStatus.overdue)
-        .length;
-    final next =
-        tasks
-            .where((task) => !task.isCompleted && task.dueDateTime.isAfter(now))
-            .toList()
-          ..sort((a, b) => a.dueDateTime.compareTo(b.dueDateTime));
-    final nextLabel = next.isEmpty
+    final next = summary.nextTask;
+    final nextLabel = next == null
         ? 'все спокойно'
-        : 'следующее в ${next.first.dueTime.hour.toString().padLeft(2, '0')}:${next.first.dueTime.minute.toString().padLeft(2, '0')}';
+        : 'следующее в ${next.dueTime.hour.toString().padLeft(2, '0')}:${next.dueTime.minute.toString().padLeft(2, '0')}';
 
     return GlassPanel(
       borderRadius: 30,
@@ -65,14 +49,16 @@ class DailyPulseCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  '$done выполнено · $left осталось · $overdue просрочено · $nextLabel',
+                  '${summary.completed} выполнено · '
+                  '${summary.remaining} осталось · '
+                  '${summary.overdue} просрочено · $nextLabel',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  left == 0
+                  summary.remaining == 0
                       ? 'День закрыт. Можно выдохнуть.'
                       : 'Выберите следующее спокойное действие.',
                   style: Theme.of(
@@ -86,7 +72,4 @@ class DailyPulseCard extends StatelessWidget {
       ),
     );
   }
-
-  bool _sameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
 }

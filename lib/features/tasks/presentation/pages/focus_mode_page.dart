@@ -16,20 +16,20 @@ class FocusModePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final task = ref
-        .watch(tasksControllerProvider)
-        .valueOrNull
-        ?.where((item) => item.id == taskId)
-        .firstOrNull;
+    final taskState = ref.watch(taskByIdProvider(taskId));
     return LiquidBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(18),
-            child: task == null
-                ? const Center(child: Text('Задача не найдена'))
-                : _FocusContent(task: task),
+            child: taskState.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stackTrace) => Center(child: Text('$error')),
+              data: (task) => task == null
+                  ? const Center(child: Text('Задача не найдена'))
+                  : _FocusContent(task: task),
+            ),
           ),
         ),
       ),
@@ -177,8 +177,4 @@ class _FocusContent extends ConsumerWidget {
   void _closeFocus(BuildContext context) {
     context.go('/tasks');
   }
-}
-
-extension _FirstOrNull<T> on Iterable<T> {
-  T? get firstOrNull => isEmpty ? null : first;
 }

@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:qdone/core/theme/app_colors.dart';
 
@@ -18,65 +16,51 @@ class ModalGlassSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final surfaceColor = isLight
-        ? const Color(0xFFF5F1FF).withValues(alpha: 0.96)
-        : const Color(0xFF0E0A16).withValues(alpha: 0.97);
-    final borderColor = isLight
-        ? AppColors.cyan.withValues(alpha: 0.32)
-        : AppColors.cyan.withValues(alpha: 0.22);
+    final surfaceColor = isLight ? Colors.white : AppColors.darkPanelSolid;
+    final lineColor = isLight ? AppColors.lightLine : AppColors.darkLine;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(borderRadius)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 34, sigmaY: 34),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: surfaceColor,
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(borderRadius),
-            ),
-            border: Border.all(color: borderColor),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: AppColors.violet.withValues(
-                  alpha: isLight ? 0.14 : 0.26,
-                ),
-                blurRadius: 34,
-                offset: const Offset(0, -10),
-              ),
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isLight ? 0.10 : 0.34),
-                blurRadius: 42,
-                offset: const Offset(0, -18),
-              ),
-            ],
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: surfaceColor.withValues(alpha: isLight ? 0.96 : 0.98),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(borderRadius)),
+        border: Border.all(color: lineColor.withValues(alpha: 0.78)),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isLight ? 0.12 : 0.36),
+            blurRadius: 26,
+            offset: const Offset(0, -12),
           ),
-          child: Stack(
-            children: <Widget>[
-              Positioned(
-                left: 22,
-                right: 22,
-                top: 0,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: <Color>[
-                        AppColors.cyan.withValues(alpha: 0),
-                        AppColors.cyan.withValues(alpha: isLight ? 0.42 : 0.34),
-                        AppColors.neonPurple.withValues(
-                          alpha: isLight ? 0.34 : 0.30,
-                        ),
-                        AppColors.neonPurple.withValues(alpha: 0),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(99),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(borderRadius)),
+        child: Stack(
+          children: <Widget>[
+            Positioned(
+              left: 22,
+              right: 22,
+              top: 0,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: <Color>[
+                      AppColors.electricBlue.withValues(alpha: 0),
+                      AppColors.electricBlue.withValues(
+                        alpha: isLight ? 0.34 : 0.30,
+                      ),
+                      AppColors.magenta.withValues(
+                        alpha: isLight ? 0.25 : 0.28,
+                      ),
+                      AppColors.magenta.withValues(alpha: 0),
+                    ],
                   ),
-                  child: const SizedBox(height: 2),
+                  borderRadius: BorderRadius.circular(99),
                 ),
+                child: const SizedBox(height: 2),
               ),
-              Padding(padding: padding, child: child),
-            ],
-          ),
+            ),
+            Padding(padding: padding, child: child),
+          ],
         ),
       ),
     );

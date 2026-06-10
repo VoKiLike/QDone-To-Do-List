@@ -2,5 +2,6 @@
 
 abstract interface class SettingsRepository {
   Future<UserSettings> read();
+  Future<void> reloadExternal();
   Future<void> save(UserSettings settings);
 }

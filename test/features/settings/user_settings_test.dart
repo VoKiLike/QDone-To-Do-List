@@ -15,6 +15,9 @@ void main() {
       widgetShowsCompleted: true,
       widgetTaskLimit: 7,
       compactWidget: true,
+      startupBackgroundPaths: <String>['/tmp/a.jpg', '/tmp/b.jpg'],
+      selectedStartupBackgroundPath: '/tmp/b.jpg',
+      startupUseCustomBackground: true,
     );
 
     final restored = UserSettings.fromJson(settings.toJson());
@@ -29,6 +32,12 @@ void main() {
     expect(restored.widgetShowsCompleted, isTrue);
     expect(restored.widgetTaskLimit, 7);
     expect(restored.compactWidget, isTrue);
+    expect(restored.startupBackgroundPaths, <String>[
+      '/tmp/a.jpg',
+      '/tmp/b.jpg',
+    ]);
+    expect(restored.selectedStartupBackgroundPath, '/tmp/b.jpg');
+    expect(restored.startupUseCustomBackground, isTrue);
   });
 
   test('keeps backward compatibility for old settings payloads', () {
@@ -44,5 +53,8 @@ void main() {
     expect(restored.calendarShowOverdue, isTrue);
     expect(restored.calendarShowRecurring, isTrue);
     expect(restored.widgetTaskLimit, 5);
+    expect(restored.startupBackgroundPaths, isEmpty);
+    expect(restored.selectedStartupBackgroundPath, isNull);
+    expect(restored.startupUseCustomBackground, isFalse);
   });
 }

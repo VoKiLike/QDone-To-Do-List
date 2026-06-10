@@ -1,52 +1,38 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 
 import 'package:qdone/features/home_widget/data/widget_storage_contract.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class TaskLocalDataSource {
-  const TaskLocalDataSource(this._preferences);
+  TaskLocalDataSource(this._preferences);
 
   static const _tasksKey = WidgetStorageContract.tasksKey;
 
   final SharedPreferences _preferences;
 
   Future<bool> hasSavedTasks() async {
-    await _preferences.reload();
     return _preferences.containsKey(_tasksKey);
   }
 
-  Future<List<Task>> readTasks() async {
-    await _preferences.reload();
+  List<Task> readTasksForMigration() {
     final raw = _preferences.getString(_tasksKey);
     if (raw == null || raw.isEmpty) {
       return const <Task>[];
     }
-    final Object? decoded;
-    try {
-      decoded = jsonDecode(raw);
-    } catch (_) {
-      return const <Task>[];
-    }
+    final decoded = jsonDecode(raw);
     if (decoded is! List) {
-      return const <Task>[];
+      throw const FormatException('Legacy task store is not a JSON list.');
     }
-    final tasks = <Task>[];
-    for (final item in decoded) {
+    return decoded.map((item) {
       if (item is! Map) {
-        continue;
+        throw const FormatException('Legacy task entry is not an object.');
       }
-      try {
-        tasks.add(Task.fromJson(Map<String, dynamic>.from(item)));
-      } catch (_) {
-        continue;
-      }
-    }
-    return tasks;
+      return Task.fromJson(Map<String, dynamic>.from(item));
+    }).toList();
   }
 
-  Future<void> writeTasks(List<Task> tasks) {
-    final raw = jsonEncode(tasks.map((task) => task.toJson()).toList());
-    return _preferences.setString(_tasksKey, raw);
+  Future<void> removeLegacyStore() async {
+    await _preferences.remove(_tasksKey);
   }
 }

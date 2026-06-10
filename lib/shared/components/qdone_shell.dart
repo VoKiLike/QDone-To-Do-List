@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qdone/core/localization/qdone_localizations.dart';
@@ -209,8 +207,8 @@ class _CurvedLiquidNavigationBarState extends State<_CurvedLiquidNavigationBar>
       _ => 0.55,
     };
     final inactiveColor = widget.isLight
-        ? const Color(0xFF383443)
-        : Colors.white.withValues(alpha: 0.74);
+        ? AppColors.lightText.withValues(alpha: 0.78)
+        : AppColors.darkText.withValues(alpha: 0.74);
     final labelStyle = TextStyle(
       color: inactiveColor,
       fontFamily: AppFonts.text,
@@ -220,11 +218,11 @@ class _CurvedLiquidNavigationBarState extends State<_CurvedLiquidNavigationBar>
       letterSpacing: 0,
     );
     final barColor = widget.isLight
-        ? const Color(0xFFE4E6EE).withValues(alpha: 0.88)
-        : const Color(0xFF0C0918).withValues(alpha: 0.70);
+        ? AppColors.lightIce.withValues(alpha: 0.94)
+        : AppColors.darkNavy.withValues(alpha: 0.94);
     final borderColor = widget.isLight
-        ? const Color(0xFFC3C7D4).withValues(alpha: 0.78)
-        : Colors.white.withValues(alpha: 0.18);
+        ? AppColors.lightLine.withValues(alpha: 0.86)
+        : AppColors.darkLine.withValues(alpha: 0.84);
     final bottomCornerRadius = widget.edgeToEdge ? 0.0 : 26.0;
 
     return SizedBox(
@@ -258,21 +256,18 @@ class _CurvedLiquidNavigationBarState extends State<_CurvedLiquidNavigationBar>
                       bottomFactor: bottomFactor,
                       bottomCornerRadius: bottomCornerRadius,
                     ),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: barColor,
-                          boxShadow: <BoxShadow>[
-                            BoxShadow(
-                              color: AppColors.violet.withValues(
-                                alpha: widget.isLight ? 0.11 : 0.24,
-                              ),
-                              blurRadius: 24,
-                              offset: const Offset(0, 14),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: barColor,
+                        boxShadow: <BoxShadow>[
+                          BoxShadow(
+                            color: Colors.black.withValues(
+                              alpha: widget.isLight ? 0.08 : 0.28,
                             ),
-                          ],
-                        ),
+                            blurRadius: 18,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -338,41 +333,38 @@ class _FloatingLiquidButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipOval(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: <Color>[
-                Colors.white.withValues(alpha: isLight ? 0.78 : 0.22),
-                AppColors.violet.withValues(alpha: isLight ? 0.92 : 0.82),
-                AppColors.cyan.withValues(alpha: isLight ? 0.72 : 0.46),
-              ],
-            ),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: isLight ? 0.72 : 0.34),
-              width: 1.2,
-            ),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: AppColors.violet.withValues(alpha: 0.42),
-                blurRadius: 22,
-                offset: const Offset(0, 10),
-              ),
-              BoxShadow(
-                color: AppColors.cyan.withValues(alpha: 0.20),
-                blurRadius: 14,
-                offset: const Offset(-5, -4),
-              ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: <Color>[
+              isLight ? AppColors.lightHighlight : AppColors.magenta,
+              isLight ? AppColors.lightBlue : AppColors.electricViolet,
+              AppColors.electricBlue,
             ],
           ),
-          child: SizedBox(
-            width: 58,
-            height: 58,
-            child: Icon(icon, color: Colors.white, size: 27),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: isLight ? 0.76 : 0.34),
+            width: 1.2,
+          ),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: (isLight ? AppColors.lightBlue : AppColors.electricViolet)
+                  .withValues(alpha: 0.34),
+              blurRadius: 18,
+              offset: const Offset(0, 9),
+            ),
+          ],
+        ),
+        child: SizedBox(
+          width: 58,
+          height: 58,
+          child: Icon(
+            icon,
+            color: isLight ? AppColors.darkText : Colors.white,
+            size: 27,
           ),
         ),
       ),

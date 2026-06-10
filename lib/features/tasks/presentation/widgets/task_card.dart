@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/core/widgets/glass_panel.dart';
+import 'package:qdone/core/widgets/qdone_tap_feedback.dart';
 import 'package:qdone/features/tasks/domain/entities/task.dart';
 import 'package:qdone/features/tasks/domain/entities/task_enums.dart';
 import 'package:qdone/features/tasks/presentation/utils/task_haptics.dart';
@@ -33,148 +34,165 @@ class TaskCard extends StatelessWidget {
     final isDistant = task.dueDateTime.isAfter(
       DateTime.now().add(const Duration(days: 1)),
     );
-    final panelOpacity = muted ? 0.07 : isDistant ? 0.08 : 0.13;
-    final accentShadowAlpha = muted ? 0.02 : 0.08;
+    final panelOpacity = muted
+        ? 0.07
+        : isDistant
+        ? 0.08
+        : 0.13;
     return GlassPanel(
       borderRadius: 24,
       opacity: panelOpacity,
       blurSigma: 0,
       shadowBlurRadius: 0,
       padding: const EdgeInsets.all(14),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: accent.withValues(alpha: accentShadowAlpha),
-              blurRadius: muted ? 4 : 8,
+      child: Stack(
+        children: <Widget>[
+          Positioned(
+            left: 0,
+            top: 4,
+            bottom: 4,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: muted ? 0.32 : 0.70),
+                borderRadius: BorderRadius.circular(99),
+              ),
+              child: const SizedBox(width: 3),
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  _StatusControl(
-                    task: task,
-                    accent: accent,
-                    onDone: onDone,
-                    onRestore: onRestore,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          task.title,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                decoration: muted
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                              ),
-                        ),
-                        if (task.description?.isNotEmpty ?? false) ...<Widget>[
-                          const SizedBox(height: 4),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    _StatusControl(
+                      task: task,
+                      accent: accent,
+                      onDone: onDone,
+                      onRestore: onRestore,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
                           Text(
-                            task.description!,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall
+                            task.title,
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w800,
+                                  decoration: muted
+                                      ? TextDecoration.lineThrough
+                                      : null,
                                 ),
                           ),
+                          if (task.description?.isNotEmpty ??
+                              false) ...<Widget>[
+                            const SizedBox(height: 4),
+                            Text(
+                              task.description!,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
-                  ),
-                  IconButton.filledTonal(
-                    tooltip: 'Режим фокуса',
-                    onPressed: () async {
-                      await TaskHaptics.tap();
-                      if (context.mounted) {
-                        context.push('/focus/${task.id}');
-                      }
-                    },
-                    icon: const Icon(Icons.center_focus_strong_rounded),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: <Widget>[
-                  _Chip(
-                    icon: Icons.schedule_rounded,
-                    label: _dateLabel(task),
-                    color: accent,
-                  ),
-                  _Chip(
-                    icon: Icons.flag_rounded,
-                    label: task.priority.label,
-                    color: _priorityColor(task.priority),
-                  ),
-                  _Chip(
-                    icon: Icons.category_rounded,
-                    label: task.category.name,
-                    color: Color(task.category.colorValue),
-                  ),
-                  _Chip(
-                    icon: Icons.battery_charging_full_rounded,
-                    label: task.energyLevel.label,
-                    color: _energyColor(task.energyLevel),
-                  ),
-                  _Chip(
-                    icon: Icons.repeat_rounded,
-                    label: task.recurrenceRule.summary,
-                    color: AppColors.neonPurple,
-                  ),
-                  _Chip(
-                    icon: task.reminders.isEmpty
-                        ? Icons.notifications_off_rounded
-                        : Icons.notifications_active_rounded,
-                    label: _reminderLabel(task),
-                    color: AppColors.cyan,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: <Widget>[
-                  _ActionButton(
-                    icon: Icons.edit_rounded,
-                    label: 'Изменить',
-                    onTap: onEdit,
-                  ),
-                  _ActionButton(
-                    icon: Icons.snooze_rounded,
-                    label: 'Отложить',
-                    onTap: onSnooze,
-                  ),
-                  _ActionButton(
-                    icon: Icons.event_repeat_rounded,
-                    label: 'Перенести',
-                    onTap: onReschedule,
-                  ),
-                  _ActionButton(
-                    icon: task.isCompleted
-                        ? Icons.delete_outline_rounded
-                        : Icons.archive_outlined,
-                    label: task.isCompleted ? 'Удалить' : 'В архив',
-                    onTap: onDelete,
-                  ),
-                ],
-              ),
-          ],
-        ),
+                    QDoneMaterialTapFeedback(
+                      onTap: () async {
+                        await TaskHaptics.tap();
+                        if (context.mounted) {
+                          context.push('/focus/${task.id}');
+                        }
+                      },
+                      semanticLabel: 'Режим фокуса',
+                      borderRadius: BorderRadius.circular(24),
+                      child: IconButton.filledTonal(
+                        tooltip: 'Режим фокуса',
+                        onPressed: () {},
+                        icon: const Icon(Icons.center_focus_strong_rounded),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: <Widget>[
+                    _Chip(
+                      icon: Icons.schedule_rounded,
+                      label: _dateLabel(task),
+                      color: accent,
+                    ),
+                    _Chip(
+                      icon: Icons.flag_rounded,
+                      label: task.priority.label,
+                      color: _priorityColor(task.priority),
+                    ),
+                    _Chip(
+                      icon: Icons.category_rounded,
+                      label: task.category.name,
+                      color: Color(task.category.colorValue),
+                    ),
+                    _Chip(
+                      icon: Icons.battery_charging_full_rounded,
+                      label: task.energyLevel.label,
+                      color: _energyColor(task.energyLevel),
+                    ),
+                    _Chip(
+                      icon: Icons.repeat_rounded,
+                      label: task.recurrenceRule.summary,
+                      color: AppColors.neonPurple,
+                    ),
+                    _Chip(
+                      icon: task.reminders.isEmpty
+                          ? Icons.notifications_off_rounded
+                          : Icons.notifications_active_rounded,
+                      label: _reminderLabel(task),
+                      color: AppColors.cyan,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: <Widget>[
+                    _ActionButton(
+                      icon: Icons.edit_rounded,
+                      label: 'Изменить',
+                      onTap: onEdit,
+                    ),
+                    _ActionButton(
+                      icon: Icons.snooze_rounded,
+                      label: 'Отложить',
+                      onTap: onSnooze,
+                    ),
+                    _ActionButton(
+                      icon: Icons.event_repeat_rounded,
+                      label: 'Перенести',
+                      onTap: onReschedule,
+                    ),
+                    _ActionButton(
+                      icon: task.isCompleted
+                          ? Icons.delete_outline_rounded
+                          : Icons.archive_outlined,
+                      label: task.isCompleted ? 'Удалить' : 'В архив',
+                      onTap: onDelete,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -189,7 +207,7 @@ class TaskCard extends StatelessWidget {
   }
 }
 
-class _StatusControl extends StatefulWidget {
+class _StatusControl extends StatelessWidget {
   const _StatusControl({
     required this.task,
     required this.accent,
@@ -202,39 +220,20 @@ class _StatusControl extends StatefulWidget {
   final VoidCallback onDone;
   final VoidCallback onRestore;
 
-  @override
-  State<_StatusControl> createState() => _StatusControlState();
-}
-
-class _StatusControlState extends State<_StatusControl> {
-  bool _pressed = false;
-
-  void _setPressed(bool value) {
-    if (!mounted) {
-      return;
-    }
-    setState(() => _pressed = value);
-  }
-
   void _handleTap() {
     TaskHaptics.tap();
-    _setPressed(true);
-    Future<void>.delayed(const Duration(milliseconds: 180), () {
-      _setPressed(false);
-    });
-    if (widget.task.isCompleted) {
-      widget.onRestore();
+    if (task.isCompleted) {
+      onRestore();
     } else {
-      widget.onDone();
+      onDone();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final completed = widget.task.isCompleted;
-    final archived =
-        widget.task.status == TaskStatus.archived || widget.task.isArchived;
-    final icon = switch (widget.task.status) {
+    final completed = task.isCompleted;
+    final archived = task.status == TaskStatus.archived || task.isArchived;
+    final icon = switch (task.status) {
       TaskStatus.completed => Icons.task_alt_rounded,
       TaskStatus.archived => Icons.unarchive_rounded,
       TaskStatus.overdue => Icons.priority_high_rounded,
@@ -248,18 +247,12 @@ class _StatusControlState extends State<_StatusControl> {
                 ? 'Вернуть из архива'
                 : 'Вернуть в активные'
           : 'Отметить выполненной',
-      child: Material(
-        color: Colors.transparent,
-        shape: const CircleBorder(),
-        child: InkWell(
-          onTap: _handleTap,
-          onTapDown: (_) => _setPressed(true),
-          onTapCancel: () => _setPressed(false),
-          borderRadius: BorderRadius.circular(22),
-          splashColor: widget.accent.withValues(alpha: 0.34),
-          highlightColor: widget.accent.withValues(alpha: 0.22),
-          child: AnimatedScale(
-            scale: _pressed ? 0.92 : 1,
+      child: QDoneTapFeedback(
+        onTap: _handleTap,
+        customBorder: const CircleBorder(),
+        builder: (context, tapped) {
+          return AnimatedScale(
+            scale: tapped ? 0.92 : 1,
             duration: const Duration(milliseconds: 120),
             curve: Curves.easeOutCubic,
             child: AnimatedContainer(
@@ -269,22 +262,20 @@ class _StatusControlState extends State<_StatusControl> {
               curve: Curves.easeOutCubic,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _pressed
-                    ? widget.accent.withValues(alpha: 0.34)
+                color: tapped
+                    ? accent.withValues(alpha: 0.34)
                     : completed
-                    ? widget.accent.withValues(alpha: 0.24)
-                    : widget.accent.withValues(alpha: 0.12),
+                    ? accent.withValues(alpha: 0.24)
+                    : accent.withValues(alpha: 0.12),
                 border: Border.all(
-                  color: widget.accent.withValues(alpha: _pressed ? 1 : 0.8),
-                  width: _pressed ? 2.2 : 1.5,
+                  color: accent.withValues(alpha: tapped ? 1 : 0.8),
+                  width: tapped ? 2.2 : 1.5,
                 ),
                 boxShadow: <BoxShadow>[
                   BoxShadow(
-                    color: widget.accent.withValues(
-                      alpha: _pressed ? 0.42 : 0.16,
-                    ),
-                    blurRadius: _pressed ? 20 : 10,
-                    spreadRadius: _pressed ? 2 : 0,
+                    color: accent.withValues(alpha: tapped ? 0.42 : 0.16),
+                    blurRadius: tapped ? 20 : 10,
+                    spreadRadius: tapped ? 2 : 0,
                   ),
                 ],
               ),
@@ -293,15 +284,11 @@ class _StatusControlState extends State<_StatusControl> {
                 transitionBuilder: (child, animation) {
                   return ScaleTransition(scale: animation, child: child);
                 },
-                child: Icon(
-                  icon,
-                  key: ValueKey<IconData>(icon),
-                  color: widget.accent,
-                ),
+                child: Icon(icon, key: ValueKey<IconData>(icon), color: accent),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -359,10 +346,15 @@ class _ActionButton extends StatelessWidget {
     }
 
     return Expanded(
-      child: IconButton(
-        tooltip: label,
-        onPressed: handlePressed,
-        icon: Icon(icon, size: 20),
+      child: QDoneMaterialTapFeedback(
+        onTap: handlePressed,
+        semanticLabel: label,
+        borderRadius: BorderRadius.circular(24),
+        child: IconButton(
+          tooltip: label,
+          onPressed: () {},
+          icon: Icon(icon, size: 20),
+        ),
       ),
     );
   }

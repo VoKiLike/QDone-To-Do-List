@@ -12,7 +12,7 @@ class QDoneLocalizations {
         const QDoneLocalizations(Locale('ru'));
   }
 
-  String get appName => 'QDone';
+  String get appName => 'QDONE';
 
   String text(String key) {
     final values = _localizedValues['ru']!;

@@ -34,7 +34,6 @@ void main() {
           dateTime: DateTime(2026, 5, 11, 9),
         ),
       ],
-      notificationIds: const <int>[42],
       energyLevel: EnergyLevel.low,
     );
 
@@ -44,7 +43,7 @@ void main() {
     expect(restored.status, TaskStatus.completed);
     expect(restored.completedAt, DateTime(2026, 5, 12));
     expect(restored.reminders.single.id, 'reminder');
-    expect(restored.notificationIds, <int>[42]);
+    expect(restored.toJson(), isNot(contains('notificationIds')));
   });
 
   test('task parser falls back for invalid persisted values', () {
@@ -78,7 +77,7 @@ void main() {
     expect(restored.recurrenceRule.type, RecurrenceType.none);
     expect(restored.recurrenceRule.timesOfDay.single.hour, 10);
     expect(restored.reminders.single.id, 'ok');
-    expect(restored.notificationIds, <int>[1]);
+    expect(restored.toJson(), isNot(contains('notificationIds')));
     expect(restored.energyLevel, EnergyLevel.medium);
   });
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qdone/core/theme/app_colors.dart';
+import 'package:qdone/core/widgets/qdone_tap_feedback.dart';
 
 enum NeonControlStyle { primary, secondary, danger, quiet }
 
@@ -31,7 +32,6 @@ class NeonActionButton extends StatefulWidget {
 
 class _NeonActionButtonState extends State<NeonActionButton>
     with SingleTickerProviderStateMixin {
-  bool _pressed = false;
   AnimationController? _attentionController;
 
   bool get _enabled => widget.onPressed != null && !widget.isLoading;
@@ -72,103 +72,114 @@ class _NeonActionButtonState extends State<NeonActionButton>
   @override
   Widget build(BuildContext context) {
     final theme = _NeonTokens.from(context, widget.style, _enabled);
-    final pressedTheme = theme.pressed();
-    final attentionActive = widget.attentionGlow && _enabled && !_pressed;
+    final tappedTheme = theme.tapped();
     final attentionController = _attentionController;
-    final currentTheme = _pressed && _enabled
-        ? pressedTheme
-        : attentionActive && attentionController != null
-        ? theme.attention(attentionController.value)
-        : theme;
     final radius = BorderRadius.circular(18);
-    final textStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
-      color: currentTheme.foreground,
-      fontWeight: FontWeight.w900,
-      letterSpacing: 0,
-    );
-    final buttonSurface = AnimatedScale(
-      scale: _pressed && _enabled ? 0.98 : 1,
-      duration: const Duration(milliseconds: 140),
-      curve: Curves.easeOutCubic,
-      child: AnimatedBuilder(
-        animation: attentionController ?? kAlwaysDismissedAnimation,
-        builder: (context, _) {
-          final animatedTheme = _pressed && _enabled
-              ? pressedTheme
-              : attentionActive && attentionController != null
-              ? theme.attention(attentionController.value)
-              : theme;
-          return DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: animatedTheme.gradient,
-              color: animatedTheme.fill,
-              borderRadius: radius,
-              border: Border.all(color: animatedTheme.border, width: 1.1),
-              boxShadow: animatedTheme.shadows,
-            ),
-            child: ClipRRect(
-              borderRadius: radius,
-              child: Stack(
-                children: <Widget>[
-                  ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minWidth: widget.fullWidth ? 0 : 96,
-                    ),
-                    child: SizedBox(
-                      width: widget.fullWidth ? double.infinity : null,
-                      height: widget.height,
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: _ButtonContent(
-                            label: widget.label,
-                            icon: widget.icon,
-                            isLoading: widget.isLoading,
-                            foreground: animatedTheme.foreground,
-                            textStyle: textStyle?.copyWith(
-                              color: animatedTheme.foreground,
+
+    return Semantics(
+      button: true,
+      enabled: _enabled,
+      child: QDoneTapFeedback(
+        onTap: _enabled ? widget.onPressed : null,
+        borderRadius: radius,
+        builder: (context, tapped) {
+          final attentionActive = widget.attentionGlow && _enabled && !tapped;
+          final textStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: tappedTheme.foreground,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0,
+          );
+          final buttonSurface = AnimatedScale(
+            scale: tapped && _enabled ? 0.98 : 1,
+            duration: const Duration(milliseconds: 140),
+            curve: Curves.easeOutCubic,
+            child: AnimatedBuilder(
+              animation: attentionController ?? kAlwaysDismissedAnimation,
+              builder: (context, _) {
+                final animatedTheme = tapped && _enabled
+                    ? tappedTheme
+                    : attentionActive && attentionController != null
+                    ? theme.attention(attentionController.value)
+                    : theme;
+                return DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: animatedTheme.gradient,
+                    color: animatedTheme.fill,
+                    borderRadius: radius,
+                    border: Border.all(color: animatedTheme.border, width: 1.1),
+                    boxShadow: animatedTheme.shadows,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: radius,
+                    child: Stack(
+                      children: <Widget>[
+                        ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minWidth: widget.fullWidth ? 0 : 96,
+                          ),
+                          child: SizedBox(
+                            width: widget.fullWidth ? double.infinity : null,
+                            height: widget.height,
+                            child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                child: _ButtonContent(
+                                  label: widget.label,
+                                  icon: widget.icon,
+                                  isLoading: widget.isLoading,
+                                  foreground: animatedTheme.foreground,
+                                  textStyle: textStyle?.copyWith(
+                                    color: animatedTheme.foreground,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                        if (attentionActive && attentionController != null)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: _AttentionSweep(
+                                value: attentionController.value,
+                              ),
+                            ),
+                          ),
+                        if (attentionActive && attentionController != null)
+                          Positioned(
+                            left: 16,
+                            right: 16,
+                            bottom: 0,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: <Color>[
+                                    AppColors.cyan.withValues(alpha: 0),
+                                    AppColors.cyan.withValues(alpha: 0.50),
+                                    AppColors.neonPurple.withValues(
+                                      alpha: 0.36,
+                                    ),
+                                    AppColors.neonPurple.withValues(alpha: 0),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(99),
+                              ),
+                              child: const SizedBox(height: 2),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                  if (attentionActive && attentionController != null)
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: _AttentionSweep(value: attentionController.value),
-                      ),
-                    ),
-                  if (attentionActive && attentionController != null)
-                    Positioned(
-                      left: 16,
-                      right: 16,
-                      bottom: 0,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: <Color>[
-                              AppColors.cyan.withValues(alpha: 0),
-                              AppColors.cyan.withValues(alpha: 0.50),
-                              AppColors.neonPurple.withValues(alpha: 0.36),
-                              AppColors.neonPurple.withValues(alpha: 0),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(99),
-                        ),
-                        child: const SizedBox(height: 2),
-                      ),
-                    ),
-                ],
-              ),
+                );
+              },
             ),
           );
-        },
-      ),
-    );
 
-    final content = widget.attentionGlow
-        ? AnimatedBuilder(
+          if (!widget.attentionGlow) {
+            return buttonSurface;
+          }
+          return AnimatedBuilder(
             animation: attentionController ?? kAlwaysDismissedAnimation,
             builder: (context, child) {
               final t = attentionController?.value ?? 0;
@@ -178,29 +189,14 @@ class _NeonActionButtonState extends State<NeonActionButton>
               return Transform.scale(scale: scale, child: child);
             },
             child: buttonSurface,
-          )
-        : buttonSurface;
-
-    return Semantics(
-      button: true,
-      enabled: _enabled,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: radius,
-        child: InkWell(
-          onTap: _enabled ? widget.onPressed : null,
-          onHighlightChanged: (value) => setState(() => _pressed = value),
-          borderRadius: radius,
-          splashColor: currentTheme.splash,
-          highlightColor: currentTheme.splash.withValues(alpha: 0.10),
-          child: content,
-        ),
+          );
+        },
       ),
     );
   }
 }
 
-class NeonIconButton extends StatefulWidget {
+class NeonIconButton extends StatelessWidget {
   const NeonIconButton({
     super.key,
     required this.icon,
@@ -219,59 +215,47 @@ class NeonIconButton extends StatefulWidget {
   final double radius;
 
   @override
-  State<NeonIconButton> createState() => _NeonIconButtonState();
-}
-
-class _NeonIconButtonState extends State<NeonIconButton> {
-  bool _pressed = false;
-
-  bool get _enabled => widget.onPressed != null;
-
-  @override
   Widget build(BuildContext context) {
-    final theme = _NeonTokens.from(context, widget.style, _enabled);
-    final pressedTheme = theme.pressed();
-    final currentTheme = _pressed && _enabled ? pressedTheme : theme;
-    final radius = BorderRadius.circular(widget.radius);
+    final enabled = onPressed != null;
+    final theme = _NeonTokens.from(context, style, enabled);
+    final tappedTheme = theme.tapped();
+    final borderRadius = BorderRadius.circular(radius);
     return Tooltip(
-      message: widget.tooltip,
+      message: tooltip,
       child: Semantics(
         button: true,
-        enabled: _enabled,
-        label: widget.tooltip,
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: radius,
-          child: InkWell(
-            onTap: widget.onPressed,
-            onHighlightChanged: (value) => setState(() => _pressed = value),
-            borderRadius: radius,
-            splashColor: currentTheme.splash,
-            child: AnimatedScale(
-              scale: _pressed && _enabled ? 0.94 : 1,
+        enabled: enabled,
+        label: tooltip,
+        child: QDoneTapFeedback(
+          onTap: onPressed,
+          borderRadius: borderRadius,
+          builder: (context, tapped) {
+            final currentTheme = tapped && enabled ? tappedTheme : theme;
+            return AnimatedScale(
+              scale: tapped && enabled ? 0.94 : 1,
               duration: const Duration(milliseconds: 130),
               curve: Curves.easeOutCubic,
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: currentTheme.gradient,
                   color: currentTheme.fill,
-                  borderRadius: radius,
+                  borderRadius: borderRadius,
                   border: Border.all(color: currentTheme.border, width: 1.05),
                   boxShadow: currentTheme.shadows,
                 ),
                 child: SizedBox.square(
-                  dimension: widget.size,
+                  dimension: size,
                   child: IconTheme.merge(
                     data: IconThemeData(
                       color: currentTheme.foreground,
                       size: 22,
                     ),
-                    child: widget.icon,
+                    child: icon,
                   ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
@@ -298,10 +282,11 @@ class NeonSwitchTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
     final border = value ? AppColors.cyan : AppColors.neonPurple;
-    return _PressableScale(
-      enabled: true,
-      builder: (context, pressed) {
-        final activeBorder = pressed ? AppColors.cyan : border;
+    return QDoneTapFeedback(
+      onTap: () => onChanged(!value),
+      borderRadius: BorderRadius.circular(20),
+      builder: (context, tapped) {
+        final activeBorder = tapped ? AppColors.cyan : border;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 160),
           curve: Curves.easeOutCubic,
@@ -310,14 +295,14 @@ class NeonSwitchTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: isLight
                 ? Colors.white.withValues(
-                    alpha: pressed
+                    alpha: tapped
                         ? 0.90
                         : value
                         ? 0.80
                         : 0.58,
                   )
                 : Colors.white.withValues(
-                    alpha: pressed
+                    alpha: tapped
                         ? 0.105
                         : value
                         ? 0.075
@@ -326,18 +311,18 @@ class NeonSwitchTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: activeBorder.withValues(
-                alpha: pressed
+                alpha: tapped
                     ? 0.58
                     : value
                     ? 0.42
                     : 0.20,
               ),
             ),
-            boxShadow: pressed || value
+            boxShadow: tapped || value
                 ? <BoxShadow>[
                     BoxShadow(
                       color: activeBorder.withValues(
-                        alpha: pressed
+                        alpha: tapped
                             ? isLight
                                   ? 0.18
                                   : 0.26
@@ -345,7 +330,7 @@ class NeonSwitchTile extends StatelessWidget {
                             ? 0.13
                             : 0.18,
                       ),
-                      blurRadius: pressed ? 20 : 16,
+                      blurRadius: tapped ? 20 : 16,
                       offset: const Offset(0, 7),
                     ),
                   ]
@@ -356,7 +341,7 @@ class NeonSwitchTile extends StatelessWidget {
               DecoratedBox(
                 decoration: BoxDecoration(
                   color: activeBorder.withValues(
-                    alpha: pressed
+                    alpha: tapped
                         ? 0.22
                         : value
                         ? 0.17
@@ -364,9 +349,7 @@ class NeonSwitchTile extends StatelessWidget {
                   ),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: activeBorder.withValues(
-                      alpha: pressed ? 0.40 : 0.28,
-                    ),
+                    color: activeBorder.withValues(alpha: tapped ? 0.40 : 0.28),
                   ),
                 ),
                 child: SizedBox.square(
@@ -398,16 +381,16 @@ class NeonSwitchTile extends StatelessWidget {
               IgnorePointer(
                 child: Switch.adaptive(
                   value: value,
-                  activeColor: AppColors.cyan,
+                  activeThumbColor: AppColors.cyan,
                   activeTrackColor: AppColors.cyan.withValues(
-                    alpha: pressed ? 0.46 : 0.34,
+                    alpha: tapped ? 0.46 : 0.34,
                   ),
-                  inactiveThumbColor: pressed
+                  inactiveThumbColor: tapped
                       ? AppColors.neonPurple
                       : isLight
                       ? const Color(0xFF6D7182)
                       : Colors.white.withValues(alpha: 0.72),
-                  inactiveTrackColor: pressed
+                  inactiveTrackColor: tapped
                       ? AppColors.neonPurple.withValues(alpha: 0.24)
                       : isLight
                       ? const Color(0xFFD8DCE8)
@@ -419,47 +402,6 @@ class NeonSwitchTile extends StatelessWidget {
           ),
         );
       },
-      onTap: () => onChanged(!value),
-    );
-  }
-}
-
-class _PressableScale extends StatefulWidget {
-  const _PressableScale({
-    required this.enabled,
-    required this.builder,
-    required this.onTap,
-  });
-
-  final bool enabled;
-  final Widget Function(BuildContext context, bool pressed) builder;
-  final VoidCallback onTap;
-
-  @override
-  State<_PressableScale> createState() => _PressableScaleState();
-}
-
-class _PressableScaleState extends State<_PressableScale> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedScale(
-      scale: _pressed && widget.enabled ? 0.99 : 1,
-      duration: const Duration(milliseconds: 130),
-      curve: Curves.easeOutCubic,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          onTap: widget.enabled ? widget.onTap : null,
-          onHighlightChanged: (value) => setState(() => _pressed = value),
-          borderRadius: BorderRadius.circular(20),
-          splashColor: AppColors.cyan.withValues(alpha: 0.16),
-          highlightColor: AppColors.cyan.withValues(alpha: 0.08),
-          child: widget.builder(context, _pressed && widget.enabled),
-        ),
-      ),
     );
   }
 }
@@ -516,10 +458,7 @@ class _ButtonContent extends StatelessWidget {
     if (isLoading) {
       return SizedBox.square(
         dimension: 18,
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          color: foreground,
-        ),
+        child: CircularProgressIndicator(strokeWidth: 2, color: foreground),
       );
     }
 
@@ -569,7 +508,7 @@ class _NeonTokens {
   final List<BoxShadow> shadows;
   final bool isDanger;
 
-  _NeonTokens pressed() {
+  _NeonTokens tapped() {
     final pressAccent = isDanger ? _dangerRed : AppColors.cyan;
     final pressShadow = isDanger ? _dangerRed : AppColors.neonPurple;
     return _NeonTokens(
@@ -583,10 +522,7 @@ class _NeonTokens {
               end: Alignment.bottomRight,
               colors: <Color>[
                 Color.alphaBlend(pressAccent.withValues(alpha: 0.24), fill),
-                Color.alphaBlend(
-                  pressShadow.withValues(alpha: 0.18),
-                  fill,
-                ),
+                Color.alphaBlend(pressShadow.withValues(alpha: 0.18), fill),
               ],
             )
           : const LinearGradient(
@@ -598,30 +534,31 @@ class _NeonTokens {
                 AppColors.neonPurple,
               ],
             ),
-      shadows: shadows
-          .map(
-            (shadow) => BoxShadow(
-              color: shadow.color.withValues(alpha: 0.52),
-              blurRadius: shadow.blurRadius + 10,
-              spreadRadius: shadow.spreadRadius,
-              offset: shadow.offset,
+      shadows:
+          shadows
+              .map(
+                (shadow) => BoxShadow(
+                  color: shadow.color.withValues(alpha: 0.52),
+                  blurRadius: shadow.blurRadius + 10,
+                  spreadRadius: shadow.spreadRadius,
+                  offset: shadow.offset,
+                ),
+              )
+              .toList()
+            ..add(
+              BoxShadow(
+                color: pressAccent.withValues(alpha: 0.34),
+                blurRadius: 24,
+                offset: const Offset(0, 7),
+              ),
+            )
+            ..add(
+              BoxShadow(
+                color: pressShadow.withValues(alpha: 0.20),
+                blurRadius: 18,
+                offset: const Offset(0, 4),
+              ),
             ),
-          )
-          .toList()
-        ..add(
-          BoxShadow(
-            color: pressAccent.withValues(alpha: 0.34),
-            blurRadius: 24,
-            offset: const Offset(0, 7),
-          ),
-        )
-        ..add(
-          BoxShadow(
-            color: pressShadow.withValues(alpha: 0.20),
-            blurRadius: 18,
-            offset: const Offset(0, 4),
-          ),
-        ),
       isDanger: isDanger,
     );
   }
@@ -660,13 +597,14 @@ class _NeonTokens {
     if (!enabled) {
       return _NeonTokens(
         fill: isLight
-            ? Colors.white.withValues(alpha: 0.44)
+            ? Colors.white.withValues(alpha: 0.68)
             : Colors.white.withValues(alpha: 0.045),
-        border: Colors.white.withValues(alpha: isLight ? 0.24 : 0.10),
-        foreground: Theme.of(context)
-            .colorScheme
-            .onSurface
-            .withValues(alpha: isLight ? 0.34 : 0.30),
+        border: isLight
+            ? AppColors.lightLine.withValues(alpha: 0.82)
+            : Colors.white.withValues(alpha: 0.10),
+        foreground: Theme.of(
+          context,
+        ).colorScheme.onSurface.withValues(alpha: isLight ? 0.52 : 0.30),
         splash: Colors.transparent,
         gradient: null,
         shadows: const <BoxShadow>[],
@@ -675,71 +613,69 @@ class _NeonTokens {
 
     return switch (style) {
       NeonControlStyle.primary => _NeonTokens(
-          fill: AppColors.violet,
-          border: Colors.white.withValues(alpha: isLight ? 0.62 : 0.36),
-          foreground: Colors.white,
-          splash: AppColors.cyan.withValues(alpha: 0.20),
-          gradient: AppColors.liquidGradient,
-          shadows: <BoxShadow>[
-            BoxShadow(
-              color: AppColors.cyan.withValues(alpha: isLight ? 0.20 : 0.26),
-              blurRadius: 16,
-              offset: const Offset(0, 7),
-            ),
-            BoxShadow(
-              color: AppColors.violet.withValues(alpha: isLight ? 0.14 : 0.22),
-              blurRadius: 22,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-      NeonControlStyle.secondary => _NeonTokens(
-          fill: isLight
-              ? Colors.white.withValues(alpha: 0.76)
-              : Colors.white.withValues(alpha: 0.065),
-          border: AppColors.cyan.withValues(alpha: isLight ? 0.48 : 0.34),
-          foreground: isLight ? const Color(0xFF1F2440) : AppColors.softWhite,
-          splash: AppColors.cyan.withValues(alpha: 0.18),
-          gradient: null,
-          shadows: <BoxShadow>[
-            BoxShadow(
-              color: AppColors.cyan.withValues(alpha: isLight ? 0.10 : 0.14),
-              blurRadius: 14,
-              offset: const Offset(0, 7),
-            ),
-          ],
-        ),
-      NeonControlStyle.danger => _NeonTokens(
-          fill: _NeonTokens._dangerRed.withValues(alpha: isLight ? 0.11 : 0.10),
-          border: _NeonTokens._dangerRed.withValues(
-            alpha: isLight ? 0.50 : 0.44,
+        fill: AppColors.violet,
+        border: Colors.white.withValues(alpha: isLight ? 0.62 : 0.36),
+        foreground: Colors.white,
+        splash: AppColors.cyan.withValues(alpha: 0.20),
+        gradient: AppColors.liquidGradient,
+        shadows: <BoxShadow>[
+          BoxShadow(
+            color: AppColors.cyan.withValues(alpha: isLight ? 0.20 : 0.26),
+            blurRadius: 16,
+            offset: const Offset(0, 7),
           ),
-          foreground: isLight
-              ? _NeonTokens._dangerDeepRed
-              : _NeonTokens._dangerRed,
-          splash: _NeonTokens._dangerRed.withValues(alpha: 0.20),
-          gradient: null,
-          shadows: <BoxShadow>[
-            BoxShadow(
-              color: _NeonTokens._dangerRed.withValues(
-                alpha: isLight ? 0.10 : 0.15,
-              ),
-              blurRadius: 14,
-              offset: const Offset(0, 7),
+          BoxShadow(
+            color: AppColors.violet.withValues(alpha: isLight ? 0.14 : 0.22),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      NeonControlStyle.secondary => _NeonTokens(
+        fill: isLight
+            ? Colors.white.withValues(alpha: 0.76)
+            : Colors.white.withValues(alpha: 0.065),
+        border: AppColors.cyan.withValues(alpha: isLight ? 0.48 : 0.34),
+        foreground: isLight ? const Color(0xFF1F2440) : AppColors.softWhite,
+        splash: AppColors.cyan.withValues(alpha: 0.18),
+        gradient: null,
+        shadows: <BoxShadow>[
+          BoxShadow(
+            color: AppColors.cyan.withValues(alpha: isLight ? 0.10 : 0.14),
+            blurRadius: 14,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      NeonControlStyle.danger => _NeonTokens(
+        fill: _NeonTokens._dangerRed.withValues(alpha: isLight ? 0.11 : 0.10),
+        border: _NeonTokens._dangerRed.withValues(alpha: isLight ? 0.50 : 0.44),
+        foreground: isLight
+            ? _NeonTokens._dangerDeepRed
+            : _NeonTokens._dangerRed,
+        splash: _NeonTokens._dangerRed.withValues(alpha: 0.20),
+        gradient: null,
+        shadows: <BoxShadow>[
+          BoxShadow(
+            color: _NeonTokens._dangerRed.withValues(
+              alpha: isLight ? 0.10 : 0.15,
             ),
-          ],
-          isDanger: true,
-        ),
+            blurRadius: 14,
+            offset: const Offset(0, 7),
+          ),
+        ],
+        isDanger: true,
+      ),
       NeonControlStyle.quiet => _NeonTokens(
-          fill: isLight
-              ? Colors.white.withValues(alpha: 0.58)
-              : Colors.white.withValues(alpha: 0.040),
-          border: AppColors.neonPurple.withValues(alpha: isLight ? 0.32 : 0.24),
-          foreground: isLight ? const Color(0xFF2E2944) : AppColors.softWhite,
-          splash: AppColors.neonPurple.withValues(alpha: 0.16),
-          gradient: null,
-          shadows: const <BoxShadow>[],
-        ),
+        fill: isLight
+            ? Colors.white.withValues(alpha: 0.58)
+            : Colors.white.withValues(alpha: 0.040),
+        border: AppColors.neonPurple.withValues(alpha: isLight ? 0.32 : 0.24),
+        foreground: isLight ? const Color(0xFF2E2944) : AppColors.softWhite,
+        splash: AppColors.neonPurple.withValues(alpha: 0.16),
+        gradient: null,
+        shadows: const <BoxShadow>[],
+      ),
     };
   }
 }

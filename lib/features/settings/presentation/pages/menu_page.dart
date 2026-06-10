@@ -1,15 +1,22 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qdone/app/app_providers.dart';
 import 'package:qdone/core/constants/app_constants.dart';
 import 'package:qdone/core/localization/qdone_localizations.dart';
+import 'package:qdone/core/notifications/notification_scheduler.dart';
+import 'package:qdone/core/notifications/notification_service.dart';
 import 'package:qdone/core/theme/app_colors.dart';
 import 'package:qdone/core/widgets/glass_panel.dart';
 import 'package:qdone/core/widgets/liquid_background.dart';
 import 'package:qdone/core/widgets/modal_glass_surface.dart';
 import 'package:qdone/core/widgets/neon_controls.dart';
+import 'package:qdone/core/widgets/qdone_brand_text.dart';
 import 'package:qdone/core/widgets/qdone_modal_presenter.dart';
+import 'package:qdone/core/widgets/qdone_tap_feedback.dart';
+import 'package:qdone/features/settings/data/backup_file_service.dart';
 import 'package:qdone/features/settings/domain/qdone_backup.dart';
 import 'package:qdone/features/settings/domain/user_settings.dart';
 import 'package:qdone/features/settings/presentation/controllers/settings_controller.dart';
@@ -26,9 +33,10 @@ class MenuPage extends ConsumerWidget {
     final settings =
         ref.watch(settingsControllerProvider).valueOrNull ??
         const UserSettings();
-    final tasks =
-        ref.watch(tasksControllerProvider).valueOrNull ?? const <Task>[];
-    final completed = tasks.where((task) => task.isCompleted).toList();
+    final feed = ref.watch(tasksControllerProvider).valueOrNull;
+    final completed =
+        ref.watch(completedTasksPageProvider).valueOrNull ?? const <Task>[];
+    final completedCount = feed?.counts.completed ?? completed.length;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -50,15 +58,23 @@ class MenuPage extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 14),
+          _StartupScreenSettings(
+            settings: settings,
+            completedCount: completedCount,
+          ),
+          const SizedBox(height: 14),
           _NotificationSettings(settings: settings),
           const SizedBox(height: 14),
           _CalendarSettings(settings: settings),
           const SizedBox(height: 14),
-          _WidgetSettings(settings: settings, tasks: tasks),
+          _WidgetSettings(settings: settings),
           const SizedBox(height: 14),
           const _KnowledgeBaseSettings(),
           const SizedBox(height: 14),
-          _HistorySettings(completed: completed),
+          _HistorySettings(
+            completed: completed,
+            completedCount: completedCount,
+          ),
           const SizedBox(height: 14),
           const _DataManagementSettings(),
           const SizedBox(height: 14),
@@ -86,7 +102,7 @@ class _ThemeSelector extends ConsumerWidget {
           runSpacing: 8,
           children: AppThemeMode.values
               .map(
-                (mode) => ChoiceChip(
+                (mode) => _QDoneOptionChip(
                   selected: settings.themeMode == mode,
                   label: Text(mode.label),
                   onSelected: (_) => ref
@@ -113,6 +129,240 @@ class _LanguageInfo extends StatelessWidget {
         SizedBox(height: 10),
         _ReadonlyChip(icon: Icons.translate_rounded, label: 'Русский'),
       ],
+    );
+  }
+}
+
+class _StartupScreenSettings extends ConsumerWidget {
+  const _StartupScreenSettings({
+    required this.settings,
+    required this.completedCount,
+  });
+
+  final UserSettings settings;
+  final int completedCount;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedPath = settings.selectedStartupBackgroundPath;
+    final hasCustom =
+        settings.startupUseCustomBackground && selectedPath != null;
+    return _SettingsSection(
+      children: <Widget>[
+        const _SectionTitle(
+          icon: Icons.auto_awesome_motion_rounded,
+          title: 'Экран запуска',
+        ),
+        const SizedBox(height: 8),
+        QDoneBrandRichText(
+          'Атмосферная подготовка QDONE: цитаты, факты и спокойный вход в задачи без полос загрузки.',
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: AppColors.subdued(context)),
+        ),
+        const SizedBox(height: 12),
+        _StartupPreview(
+          path: hasCustom ? selectedPath : null,
+          completedCount: completedCount,
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: <Widget>[
+            NeonActionButton(
+              onPressed: () => _pickBackground(context, ref),
+              icon: const Icon(Icons.add_photo_alternate_rounded),
+              label: const Text('Выбрать фон'),
+            ),
+            NeonActionButton(
+              onPressed: hasCustom
+                  ? () => ref
+                        .read(settingsControllerProvider.notifier)
+                        .resetStartupBackground()
+                  : null,
+              icon: const Icon(Icons.wallpaper_rounded),
+              style: NeonControlStyle.quiet,
+              label: const Text('Стандартный фон'),
+            ),
+            NeonActionButton(
+              onPressed: hasCustom
+                  ? () => _removeBackground(context, ref, selectedPath)
+                  : null,
+              icon: const Icon(Icons.delete_outline_rounded),
+              style: NeonControlStyle.danger,
+              label: const Text('Удалить фон'),
+            ),
+          ],
+        ),
+        if (settings.startupBackgroundPaths.length > 1) ...<Widget>[
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: settings.startupBackgroundPaths
+                .take(6)
+                .map(
+                  (path) => _QDoneOptionChip(
+                    selected: path == selectedPath && hasCustom,
+                    icon: Icons.image_rounded,
+                    label: Text(
+                      'Фон ${settings.startupBackgroundPaths.indexOf(path) + 1}',
+                    ),
+                    onSelected: (_) => ref
+                        .read(settingsControllerProvider.notifier)
+                        .selectStartupBackground(path),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _pickBackground(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref
+          .read(settingsControllerProvider.notifier)
+          .addStartupBackground();
+      if (context.mounted) {
+        _showSnack(context, 'Фон экрана запуска обновлён');
+      }
+    } catch (_) {
+      if (context.mounted) {
+        _showSnack(context, 'Не удалось выбрать изображение');
+      }
+    }
+  }
+
+  Future<void> _removeBackground(
+    BuildContext context,
+    WidgetRef ref,
+    String path,
+  ) async {
+    await ref
+        .read(settingsControllerProvider.notifier)
+        .removeStartupBackground(path);
+    if (context.mounted) {
+      _showSnack(context, 'Фон удалён');
+    }
+  }
+}
+
+class _StartupPreview extends StatelessWidget {
+  const _StartupPreview({required this.path, required this.completedCount});
+
+  final String? path;
+  final int completedCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final hasImage = path != null;
+    final useDarkText = isLight && !hasImage;
+    final previewForeground = useDarkText
+        ? AppColors.lightText
+        : AppColors.white;
+    final previewMuted = useDarkText
+        ? AppColors.lightMuted
+        : AppColors.white.withValues(alpha: 0.78);
+    final badgeFill = useDarkText
+        ? AppColors.white.withValues(alpha: 0.70)
+        : AppColors.white.withValues(alpha: 0.18);
+    final badgeBorder = useDarkText
+        ? AppColors.lightText.withValues(alpha: 0.10)
+        : AppColors.white.withValues(alpha: 0.24);
+    final cacheWidth =
+        (MediaQuery.sizeOf(context).width *
+                MediaQuery.devicePixelRatioOf(context))
+            .clamp(540, 1080)
+            .round();
+    return SizedBox(
+      width: double.infinity,
+      height: 112,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: isLight
+                    ? AppColors.lightAuroraGradient
+                    : AppColors.darkAuroraGradient,
+              ),
+            ),
+            if (hasImage)
+              Image.file(
+                File(path!),
+                fit: BoxFit.cover,
+                cacheWidth: cacheWidth,
+                filterQuality: FilterQuality.low,
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: hasImage
+                    ? Colors.black.withValues(alpha: 0.38)
+                    : useDarkText
+                    ? AppColors.white.withValues(alpha: 0.18)
+                    : Colors.transparent,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: <Widget>[
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: badgeFill,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: badgeBorder),
+                    ),
+                    child: Icon(
+                      Icons.auto_awesome_rounded,
+                      color: previewForeground,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          'Один ясный шаг сильнее длинного списка.',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: previewForeground,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Выполнено задач: $completedCount',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: previewMuted,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -152,7 +402,7 @@ class _NotificationSettings extends ConsumerWidget {
           spacing: 8,
           runSpacing: 8,
           children: <int>[0, 15, 30, 60].map((minutes) {
-            return ChoiceChip(
+            return _QDoneOptionChip(
               selected: settings.defaultReminderMinutes == minutes,
               label: Text(minutes == 0 ? 'В срок' : 'За $minutes мин'),
               onSelected: (_) => ref
@@ -167,6 +417,8 @@ class _NotificationSettings extends ConsumerWidget {
           icon: const Icon(Icons.verified_user_rounded),
           label: const Text('Запросить разрешение'),
         ),
+        const SizedBox(height: 10),
+        const _NotificationDiagnostics(),
       ],
     );
   }
@@ -186,6 +438,12 @@ class _NotificationSettings extends ConsumerWidget {
       await ref
           .read(settingsControllerProvider.notifier)
           .setNotificationsEnabled(allowed);
+      await ref
+          .read(notificationBackgroundWorkerProvider)
+          .configure(enabled: allowed);
+      if (allowed) {
+        await ref.read(notificationSchedulerProvider).reconcile();
+      }
       if (!context.mounted) {
         return;
       }
@@ -195,6 +453,10 @@ class _NotificationSettings extends ConsumerWidget {
       );
       return;
     }
+    await ref.read(tasksControllerProvider.notifier).cancelAllNotifications();
+    await ref
+        .read(notificationBackgroundWorkerProvider)
+        .configure(enabled: false);
     await ref
         .read(settingsControllerProvider.notifier)
         .setNotificationsEnabled(false);
@@ -210,12 +472,208 @@ class _NotificationSettings extends ConsumerWidget {
     await ref
         .read(settingsControllerProvider.notifier)
         .setNotificationsEnabled(allowed);
+    await ref
+        .read(notificationBackgroundWorkerProvider)
+        .configure(enabled: allowed);
+    if (allowed) {
+      await ref.read(notificationSchedulerProvider).reconcile();
+    }
     if (!context.mounted) {
       return;
     }
     _showSnack(
       context,
       allowed ? 'Разрешение на уведомления получено' : 'Разрешение не выдано',
+    );
+  }
+}
+
+class _NotificationDiagnostics extends ConsumerStatefulWidget {
+  const _NotificationDiagnostics();
+
+  @override
+  ConsumerState<_NotificationDiagnostics> createState() =>
+      _NotificationDiagnosticsState();
+}
+
+class _NotificationDiagnosticsState
+    extends ConsumerState<_NotificationDiagnostics> {
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<_NotificationDiagnosticsData>(
+      future: _load(ref),
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        final capability = data?.capability;
+        final scheduler = data?.scheduler;
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.electricBlue.withValues(alpha: 0.075),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: AppColors.electricBlue.withValues(alpha: 0.18),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                _DiagnosticLine(
+                  icon: Icons.notifications_rounded,
+                  label: 'Системные уведомления',
+                  value: _permissionLabel(capability?.notificationsEnabled),
+                ),
+                const SizedBox(height: 6),
+                _DiagnosticLine(
+                  icon: Icons.alarm_on_rounded,
+                  label: 'Точные будильники Android',
+                  value: _permissionLabel(capability?.exactAlarmsEnabled),
+                ),
+                const SizedBox(height: 6),
+                _DiagnosticLine(
+                  icon: Icons.schedule_rounded,
+                  label: 'Запланировано',
+                  value: scheduler == null
+                      ? 'проверяем'
+                      : '${scheduler.scheduledCount}/'
+                            '${scheduler.maxScheduledCount}',
+                ),
+                const SizedBox(height: 6),
+                _DiagnosticLine(
+                  icon: Icons.sync_rounded,
+                  label: 'Последняя синхронизация',
+                  value: _formatSyncTime(scheduler?.lastSyncedAt),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: <Widget>[
+                    NeonActionButton(
+                      onPressed: () => _repair(context, ref),
+                      icon: const Icon(Icons.settings_backup_restore_rounded),
+                      label: const Text('Восстановить расписание'),
+                    ),
+                    if (capability?.exactAlarmsEnabled == false)
+                      NeonActionButton(
+                        onPressed: () => _requestExact(context, ref),
+                        icon: const Icon(Icons.alarm_add_rounded),
+                        style: NeonControlStyle.quiet,
+                        label: const Text('Разрешить точные'),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<_NotificationDiagnosticsData> _load(WidgetRef ref) async {
+    return _NotificationDiagnosticsData(
+      capability: await ref
+          .read(notificationServiceProvider)
+          .capabilityStatus(),
+      scheduler: await ref.read(notificationSchedulerProvider).status(),
+    );
+  }
+
+  Future<void> _repair(BuildContext context, WidgetRef ref) async {
+    final status = await ref
+        .read(notificationSchedulerProvider)
+        .reconcile(forceReset: true);
+    if (mounted) {
+      setState(() {});
+    }
+    if (context.mounted) {
+      _showSnack(
+        context,
+        'Расписание восстановлено: ${status.scheduledCount}/'
+        '${status.maxScheduledCount}',
+      );
+    }
+  }
+
+  Future<void> _requestExact(BuildContext context, WidgetRef ref) async {
+    final allowed = await ref
+        .read(notificationServiceProvider)
+        .requestExactAlarmPermission();
+    if (allowed) {
+      await ref.read(notificationSchedulerProvider).reconcile();
+    }
+    if (mounted) {
+      setState(() {});
+    }
+    if (context.mounted) {
+      _showSnack(
+        context,
+        allowed
+            ? 'Точные уведомления разрешены'
+            : 'Будет использован неточный безопасный режим',
+      );
+    }
+  }
+
+  String _permissionLabel(bool? value) {
+    if (value == null) {
+      return 'проверяем';
+    }
+    return value ? 'доступно' : 'требует разрешения';
+  }
+
+  String _formatSyncTime(DateTime? value) {
+    if (value == null) {
+      return 'ещё не запускалась';
+    }
+    final local = value.toLocal();
+    return '${local.day.toString().padLeft(2, '0')}.'
+        '${local.month.toString().padLeft(2, '0')} '
+        '${local.hour.toString().padLeft(2, '0')}:'
+        '${local.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class _NotificationDiagnosticsData {
+  const _NotificationDiagnosticsData({
+    required this.capability,
+    required this.scheduler,
+  });
+
+  final NotificationCapabilityStatus capability;
+  final NotificationSchedulerStatus scheduler;
+}
+
+class _DiagnosticLine extends StatelessWidget {
+  const _DiagnosticLine({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        Icon(icon, size: 18, color: AppColors.electricBlue),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(label, style: Theme.of(context).textTheme.labelLarge),
+        ),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: AppColors.subdued(context),
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -262,10 +720,9 @@ class _CalendarSettings extends ConsumerWidget {
 }
 
 class _WidgetSettings extends ConsumerWidget {
-  const _WidgetSettings({required this.settings, required this.tasks});
+  const _WidgetSettings({required this.settings});
 
   final UserSettings settings;
-  final List<Task> tasks;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -282,10 +739,9 @@ class _WidgetSettings extends ConsumerWidget {
           value: settings.widgetTaskLimit,
           min: 1,
           max: 10,
-          onChanged: (value) =>
-              _updateWidgetSetting(context, ref, tasks, () async {
-                await controller.setWidgetTaskLimit(value);
-              }),
+          onChanged: (value) => _updateWidgetSetting(context, ref, () async {
+            await controller.setWidgetTaskLimit(value);
+          }),
         ),
         const SizedBox(height: 14),
         _SwitchRow(
@@ -293,20 +749,18 @@ class _WidgetSettings extends ConsumerWidget {
           title: 'Показывать выполненные',
           subtitle: 'Добавлять архивные задачи в список виджета',
           value: settings.widgetShowsCompleted,
-          onChanged: (value) =>
-              _updateWidgetSetting(context, ref, tasks, () async {
-                await controller.setWidgetShowsCompleted(value);
-              }),
+          onChanged: (value) => _updateWidgetSetting(context, ref, () async {
+            await controller.setWidgetShowsCompleted(value);
+          }),
         ),
         _SwitchRow(
           icon: Icons.compress_rounded,
           title: 'Компактный режим',
           subtitle: 'Меньше воздуха, больше задач на экране',
           value: settings.compactWidget,
-          onChanged: (value) =>
-              _updateWidgetSetting(context, ref, tasks, () async {
-                await controller.setCompactWidget(value);
-              }),
+          onChanged: (value) => _updateWidgetSetting(context, ref, () async {
+            await controller.setCompactWidget(value);
+          }),
         ),
         const SizedBox(height: 8),
         NeonActionButton(
@@ -320,6 +774,9 @@ class _WidgetSettings extends ConsumerWidget {
 
   Future<void> _syncWidget(BuildContext context, WidgetRef ref) async {
     try {
+      final tasks = await ref
+          .read(taskRepositoryProvider)
+          .readForDay(DateTime.now());
       await ref
           .read(homeWidgetSyncServiceProvider)
           .sync(tasks: tasks, settings: settings);
@@ -336,7 +793,6 @@ class _WidgetSettings extends ConsumerWidget {
   Future<void> _updateWidgetSetting(
     BuildContext context,
     WidgetRef ref,
-    List<Task> tasks,
     Future<void> Function() update,
   ) async {
     await update();
@@ -344,6 +800,9 @@ class _WidgetSettings extends ConsumerWidget {
         ref.read(settingsControllerProvider).valueOrNull ??
         const UserSettings();
     try {
+      final tasks = await ref
+          .read(taskRepositoryProvider)
+          .readForDay(DateTime.now());
       await ref
           .read(homeWidgetSyncServiceProvider)
           .sync(tasks: tasks, settings: settings);
@@ -356,9 +815,13 @@ class _WidgetSettings extends ConsumerWidget {
 }
 
 class _HistorySettings extends ConsumerWidget {
-  const _HistorySettings({required this.completed});
+  const _HistorySettings({
+    required this.completed,
+    required this.completedCount,
+  });
 
   final List<Task> completed;
+  final int completedCount;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -370,9 +833,10 @@ class _HistorySettings extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          completed.isEmpty
+          completedCount == 0
               ? 'Архив выполненных задач пуст'
-              : 'В архиве задач: ${completed.length}',
+              : 'В архиве задач: $completedCount '
+                    '(показаны последние ${completed.length})',
         ),
         const SizedBox(height: 10),
         Wrap(
@@ -385,7 +849,7 @@ class _HistorySettings extends ConsumerWidget {
               label: const Text('Открыть историю'),
             ),
             NeonActionButton(
-              onPressed: completed.isEmpty
+              onPressed: completedCount == 0
                   ? null
                   : () => _clearCompleted(context, ref),
               icon: const Icon(Icons.cleaning_services_rounded),
@@ -433,8 +897,8 @@ class _KnowledgeBaseSettings extends StatelessWidget {
           title: 'Библиотека знаний',
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Краткие объяснения значков и состояний QDone, чтобы быстрее разобраться в интерфейсе.',
+        const QDoneBrandRichText(
+          'Краткие объяснения значков и состояний QDONE, чтобы быстрее разобраться в интерфейсе.',
         ),
         const SizedBox(height: 10),
         NeonActionButton(
@@ -576,12 +1040,22 @@ class _KnowledgeBasePage extends StatelessWidget {
         _KnowledgeItem(
           Icons.import_export_rounded,
           'Экспорт и импорт',
-          'Сохраняет задачи и настройки в JSON или восстанавливает их из JSON.',
+          'Сохраняет задачи и настройки в JSON-файл или буфер обмена, а также восстанавливает данные из выбранного файла или вставленного JSON.',
         ),
         _KnowledgeItem(
           Icons.verified_user_rounded,
           'Разрешение',
           'Запрашивает системный доступ к локальным уведомлениям.',
+        ),
+      ],
+    ),
+    _KnowledgeGroup(
+      title: 'Android и Huawei',
+      items: <_KnowledgeItem>[
+        _KnowledgeItem(
+          Icons.battery_saver_rounded,
+          'Huawei Pura 70',
+          'Если напоминания приходят нестабильно, проверьте автозапуск QDONE и работу в фоне в настройках батареи Huawei. Это системное ограничение Android/HarmonyOS, а не отдельная настройка внутри приложения.',
         ),
       ],
     ),
@@ -609,10 +1083,15 @@ class _KnowledgeBasePage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  IconButton(
-                    tooltip: 'Закрыть',
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded),
+                  QDoneMaterialTapFeedback(
+                    onTap: () => Navigator.pop(context),
+                    semanticLabel: 'Закрыть',
+                    borderRadius: BorderRadius.circular(24),
+                    child: IconButton(
+                      tooltip: 'Закрыть',
+                      onPressed: () {},
+                      icon: const Icon(Icons.close_rounded),
+                    ),
                   ),
                 ],
               ),
@@ -677,7 +1156,7 @@ class _KnowledgeTile extends StatelessWidget {
             item.title,
             style: const TextStyle(fontWeight: FontWeight.w800),
           ),
-          subtitle: Text(item.description),
+          subtitle: QDoneBrandRichText(item.description),
         ),
       ),
     );
@@ -711,8 +1190,9 @@ class _DataManagementSettings extends ConsumerWidget {
           title: 'Управление данными',
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Экспортируйте локальные задачи и настройки или восстановите их из JSON QDone.',
+        const QDoneBrandRichText(
+          'Экспортируйте локальные задачи и настройки или восстановите их '
+          'из JSON QDONE. Поддерживаются backup v1, v2 и старый массив задач.',
         ),
         const SizedBox(height: 10),
         Wrap(
@@ -736,42 +1216,151 @@ class _DataManagementSettings extends ConsumerWidget {
     );
   }
 
-  Future<void> _exportData(BuildContext context, WidgetRef ref) async {
-    final tasks = await ref.read(taskRepositoryProvider).watchAll();
+  Future<String> _buildBackup(WidgetRef ref) async {
+    final tasks = await ref.read(taskRepositoryProvider).readAll();
     final settings =
         ref.read(settingsControllerProvider).valueOrNull ??
         const UserSettings();
-    final backup = QDoneBackup.encode(tasks: tasks, settings: settings);
-    await Clipboard.setData(ClipboardData(text: backup));
-    if (context.mounted) {
-      _showSnack(context, 'JSON экспортирован в буфер обмена');
+    return QDoneBackup.encode(tasks: tasks, settings: settings);
+  }
+
+  Future<void> _exportData(BuildContext context, WidgetRef ref) async {
+    final backup = await _buildBackup(ref);
+    if (!context.mounted) {
+      return;
+    }
+    final action = await QDoneModalPresenter.showAppDialog<_ExportAction>(
+      context: context,
+      builder: (context) => _ExportDialog(backup: backup),
+    );
+    if (action == null || !context.mounted) {
+      return;
+    }
+    switch (action) {
+      case _ExportAction.copy:
+        await Clipboard.setData(ClipboardData(text: backup));
+        if (context.mounted) {
+          _showSnack(context, 'JSON экспортирован в буфер обмена');
+        }
+        break;
+      case _ExportAction.file:
+        await _saveBackupFile(context, ref, backup);
+        break;
+    }
+  }
+
+  Future<void> _saveBackupFile(
+    BuildContext context,
+    WidgetRef ref,
+    String backup,
+  ) async {
+    try {
+      final savedFile = await ref
+          .read(backupFileServiceProvider)
+          .exportBackupJson(backup);
+      if (!context.mounted) {
+        return;
+      }
+      _showSnack(context, 'Файл экспорта сохранён: $savedFile');
+    } catch (error) {
+      if (context.mounted) {
+        _showSnack(context, 'Не удалось сохранить файл: $error');
+      }
     }
   }
 
   Future<void> _importData(BuildContext context, WidgetRef ref) async {
-    final payload = await QDoneModalPresenter.showAppDialog<QDoneBackupPayload>(
+    final result = await QDoneModalPresenter.showAppDialog<_ImportResult>(
       context: context,
-      builder: (context) => const _ImportDialog(),
+      builder: (context) =>
+          _ImportDialog(fileService: ref.read(backupFileServiceProvider)),
     );
-    if (payload == null || !context.mounted) {
+    if (result == null || !context.mounted) {
       return;
     }
+    await _applyImport(context, ref, result.payload, source: result.source);
+  }
+
+  Future<void> _applyImport(
+    BuildContext context,
+    WidgetRef ref,
+    QDoneBackupPayload payload, {
+    required String source,
+  }) async {
     final confirmed = await _confirm(
       context,
       title: 'Импортировать данные?',
-      message:
-          'Текущие задачи и настройки будут заменены данными из импортированного JSON.',
+      message: 'Текущие задачи и настройки будут заменены данными из $source.',
     );
     if (!confirmed) {
       return;
     }
-    await ref.read(taskRepositoryProvider).saveAll(payload.tasks);
-    await ref
-        .read(settingsControllerProvider.notifier)
-        .update(payload.settings);
-    await ref.read(tasksControllerProvider.notifier).load();
-    if (context.mounted) {
-      _showSnack(context, 'Данные импортированы');
+    final repository = ref.read(taskRepositoryProvider);
+    final settingsController = ref.read(settingsControllerProvider.notifier);
+    final previousTasks = await repository.readAll();
+    final previousSettings =
+        ref.read(settingsControllerProvider).valueOrNull ??
+        const UserSettings();
+    final importedSettings = payload.includesSettings
+        ? payload.settings
+        : previousSettings;
+    final importedTasks = payload.tasks;
+
+    try {
+      await ref.read(tasksControllerProvider.notifier).cancelAllNotifications();
+      await repository.saveAll(importedTasks);
+      final verifiedTasks = await repository.readAll();
+      final expectedIds = importedTasks.map((task) => task.id).toSet();
+      final actualIds = verifiedTasks.map((task) => task.id).toSet();
+      if (verifiedTasks.length != importedTasks.length ||
+          expectedIds.length != actualIds.length ||
+          !actualIds.containsAll(expectedIds)) {
+        throw StateError(
+          'Проверка импорта не пройдена: '
+          '${verifiedTasks.length}/${importedTasks.length}.',
+        );
+      }
+      await settingsController.update(importedSettings);
+      await ref
+          .read(notificationBackgroundWorkerProvider)
+          .configure(enabled: importedSettings.notificationsEnabled);
+      await ref.read(notificationSchedulerProvider).reconcile(forceReset: true);
+      await ref.read(tasksControllerProvider.notifier).load();
+      await _syncWidgetAfterImport(ref, importedSettings);
+      if (context.mounted) {
+        _showSnack(
+          context,
+          'Импортировано задач: ${importedTasks.length}. '
+          'Расписание уведомлений восстановлено.',
+        );
+      }
+    } catch (error) {
+      await repository.saveAll(previousTasks);
+      await settingsController.update(previousSettings);
+      await ref
+          .read(notificationBackgroundWorkerProvider)
+          .configure(enabled: previousSettings.notificationsEnabled);
+      await ref.read(notificationSchedulerProvider).reconcile(forceReset: true);
+      await ref.read(tasksControllerProvider.notifier).load();
+      if (context.mounted) {
+        _showSnack(context, 'Импорт отменён, исходные данные восстановлены.');
+      }
+    }
+  }
+
+  Future<void> _syncWidgetAfterImport(
+    WidgetRef ref,
+    UserSettings settings,
+  ) async {
+    try {
+      final tasks = await ref
+          .read(taskRepositoryProvider)
+          .readForDay(DateTime.now());
+      await ref
+          .read(homeWidgetSyncServiceProvider)
+          .sync(tasks: tasks, settings: settings);
+    } catch (_) {
+      // Import is valid even on platforms without an Android home widget.
     }
   }
 }
@@ -788,8 +1377,8 @@ class _AboutPanel extends StatelessWidget {
           title: 'О приложении',
         ),
         const SizedBox(height: 8),
-        const Text(
-          'QDone - умный планировщик с календарем, повторяющимися задачами, напоминаниями, локальной историей и поддержкой Android-виджета.',
+        const QDoneBrandRichText(
+          'QDONE - умный планировщик с календарем, повторяющимися задачами, напоминаниями, локальной историей и поддержкой Android-виджета.',
         ),
         const SizedBox(height: 14),
         Text(
@@ -854,9 +1443,8 @@ class _CompletedTasksSheet extends ConsumerWidget {
                     trailing: Wrap(
                       spacing: 4,
                       children: <Widget>[
-                        IconButton(
-                          tooltip: 'Восстановить',
-                          onPressed: () async {
+                        QDoneMaterialTapFeedback(
+                          onTap: () async {
                             await ref
                                 .read(tasksControllerProvider.notifier)
                                 .restore(task);
@@ -864,11 +1452,16 @@ class _CompletedTasksSheet extends ConsumerWidget {
                               QDoneModalPresenter.close(context);
                             }
                           },
-                          icon: const Icon(Icons.restore_rounded),
+                          semanticLabel: 'Восстановить',
+                          borderRadius: BorderRadius.circular(24),
+                          child: IconButton(
+                            tooltip: 'Восстановить',
+                            onPressed: () {},
+                            icon: const Icon(Icons.restore_rounded),
+                          ),
                         ),
-                        IconButton(
-                          tooltip: 'Удалить',
-                          onPressed: () async {
+                        QDoneMaterialTapFeedback(
+                          onTap: () async {
                             await ref
                                 .read(tasksControllerProvider.notifier)
                                 .delete(task);
@@ -876,7 +1469,13 @@ class _CompletedTasksSheet extends ConsumerWidget {
                               QDoneModalPresenter.close(context);
                             }
                           },
-                          icon: const Icon(Icons.delete_outline_rounded),
+                          semanticLabel: 'Удалить',
+                          borderRadius: BorderRadius.circular(24),
+                          child: IconButton(
+                            tooltip: 'Удалить',
+                            onPressed: () {},
+                            icon: const Icon(Icons.delete_outline_rounded),
+                          ),
                         ),
                       ],
                     ),
@@ -890,8 +1489,89 @@ class _CompletedTasksSheet extends ConsumerWidget {
   }
 }
 
+enum _ExportAction { copy, file }
+
+class _ImportResult {
+  const _ImportResult({required this.payload, required this.source});
+
+  final QDoneBackupPayload payload;
+  final String source;
+}
+
+class _ExportDialog extends StatefulWidget {
+  const _ExportDialog({required this.backup});
+
+  final String backup;
+
+  @override
+  State<_ExportDialog> createState() => _ExportDialogState();
+}
+
+class _ExportDialogState extends State<_ExportDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.backup);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Экспорт JSON'),
+      content: SizedBox(
+        width: 420,
+        child: TextField(
+          controller: _controller,
+          readOnly: true,
+          minLines: 6,
+          maxLines: 10,
+          decoration: const InputDecoration(
+            label: QDoneBrandRichText('JSON QDONE'),
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ),
+      actions: <Widget>[
+        QDoneMaterialTapFeedback(
+          onTap: () => QDoneModalPresenter.close(context),
+          semanticLabel: 'Отмена',
+          child: TextButton(onPressed: () {}, child: const Text('Отмена')),
+        ),
+        QDoneMaterialTapFeedback(
+          onTap: () => QDoneModalPresenter.close(context, _ExportAction.file),
+          semanticLabel: 'Сохранить файл',
+          child: TextButton.icon(
+            onPressed: () {},
+            icon: const Icon(Icons.save_alt_rounded),
+            label: const Text('Сохранить файл'),
+          ),
+        ),
+        QDoneMaterialTapFeedback(
+          onTap: () => QDoneModalPresenter.close(context, _ExportAction.copy),
+          semanticLabel: 'Копировать',
+          child: FilledButton.icon(
+            onPressed: () {},
+            icon: const Icon(Icons.copy_rounded),
+            label: const Text('Копировать'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _ImportDialog extends StatefulWidget {
-  const _ImportDialog();
+  const _ImportDialog({required this.fileService});
+
+  final BackupFileService fileService;
 
   @override
   State<_ImportDialog> createState() => _ImportDialogState();
@@ -900,6 +1580,7 @@ class _ImportDialog extends StatefulWidget {
 class _ImportDialogState extends State<_ImportDialog> {
   final _controller = TextEditingController();
   String? _error;
+  bool _isPickingFile = false;
 
   @override
   void dispose() {
@@ -918,34 +1599,142 @@ class _ImportDialogState extends State<_ImportDialog> {
           minLines: 6,
           maxLines: 10,
           decoration: InputDecoration(
-            labelText: 'Вставьте JSON QDone',
+            label: const QDoneBrandRichText('Вставьте JSON QDONE'),
             errorText: _error,
             border: const OutlineInputBorder(),
           ),
         ),
       ),
       actions: <Widget>[
-        TextButton(
-          onPressed: () => QDoneModalPresenter.close(context),
-          child: const Text('Отмена'),
+        QDoneMaterialTapFeedback(
+          onTap: () => QDoneModalPresenter.close(context),
+          semanticLabel: 'Отмена',
+          child: TextButton(onPressed: () {}, child: const Text('Отмена')),
         ),
-        FilledButton(
-          onPressed: () {
+        QDoneMaterialTapFeedback(
+          onTap: _isPickingFile ? null : _pickFile,
+          semanticLabel: _isPickingFile ? 'Открываем файл' : 'Выбрать файл',
+          child: TextButton.icon(
+            onPressed: _isPickingFile ? null : () {},
+            icon: const Icon(Icons.file_open_rounded),
+            label: Text(_isPickingFile ? 'Открываем...' : 'Выбрать файл'),
+          ),
+        ),
+        QDoneMaterialTapFeedback(
+          onTap: _isPickingFile ? null : _pickLatestLocalExport,
+          semanticLabel: 'Последний экспорт',
+          child: TextButton.icon(
+            onPressed: _isPickingFile ? null : () {},
+            icon: const Icon(Icons.history_rounded),
+            label: const Text('Последний экспорт'),
+          ),
+        ),
+        QDoneMaterialTapFeedback(
+          onTap: () {
             try {
               QDoneModalPresenter.close(
                 context,
-                QDoneBackup.decode(_controller.text),
+                _ImportResult(
+                  payload: QDoneBackup.decode(_controller.text),
+                  source: 'вставленного JSON',
+                ),
               );
             } on FormatException catch (error) {
               setState(() => _error = error.message);
             } catch (_) {
-              setState(() => _error = 'Не удалось прочитать JSON QDone');
+              setState(() => _error = 'Не удалось прочитать файл');
             }
           },
-          child: const Text('Импортировать'),
+          semanticLabel: 'Импортировать',
+          child: FilledButton(
+            onPressed: () {},
+            child: const Text('Импортировать'),
+          ),
         ),
       ],
     );
+  }
+
+  Future<void> _pickFile() async {
+    if (!widget.fileService.supportsSystemFileDialogs) {
+      setState(() => _error = 'Файловый импорт доступен на Android');
+      return;
+    }
+    setState(() {
+      _isPickingFile = true;
+      _error = null;
+    });
+    try {
+      final raw = await widget.fileService.pickBackupJson();
+      if (!mounted) {
+        return;
+      }
+      if (raw == null || raw.trim().isEmpty) {
+        setState(() => _error = 'Выбор файла отменён');
+        return;
+      }
+      QDoneModalPresenter.close(
+        context,
+        _ImportResult(
+          payload: QDoneBackup.decode(raw),
+          source: 'выбранного файла',
+        ),
+      );
+    } on FormatException catch (error) {
+      if (mounted) {
+        setState(() => _error = error.message);
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(
+          () => _error =
+              'Системный выбор файла недоступен: $error. '
+              'Можно вставить JSON вручную или выбрать последний экспорт.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isPickingFile = false);
+      }
+    }
+  }
+
+  Future<void> _pickLatestLocalExport() async {
+    setState(() {
+      _isPickingFile = true;
+      _error = null;
+    });
+    try {
+      final raw = await widget.fileService.readLatestLocalBackupJson();
+      if (!mounted) {
+        return;
+      }
+      if (raw == null || raw.trim().isEmpty) {
+        setState(() => _error = 'Локальных файлов экспорта пока нет');
+        return;
+      }
+      QDoneModalPresenter.close(
+        context,
+        _ImportResult(
+          payload: QDoneBackup.decode(raw),
+          source: 'последнего локального экспорта',
+        ),
+      );
+    } on FormatException catch (error) {
+      if (mounted) {
+        setState(() => _error = error.message);
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(
+          () => _error = 'Не удалось прочитать последний экспорт: $error',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isPickingFile = false);
+      }
+    }
   }
 }
 
@@ -1067,9 +1856,112 @@ class _ReadonlyChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Chip(
-      avatar: Icon(icon, size: 18, color: AppColors.cyan),
-      label: Text(label),
+    return _QDoneOptionChip(selected: false, icon: icon, label: Text(label));
+  }
+}
+
+class _QDoneOptionChip extends StatelessWidget {
+  const _QDoneOptionChip({
+    required this.selected,
+    required this.label,
+    this.icon,
+    this.onSelected,
+  });
+
+  final bool selected;
+  final Widget label;
+  final IconData? icon;
+  final ValueChanged<bool>? onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onSelected != null;
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final radius = BorderRadius.circular(16);
+    final baseFill = selected
+        ? (isLight ? AppColors.lightViolet : AppColors.neonPurple)
+        : isLight
+        ? AppColors.white.withValues(alpha: 0.68)
+        : AppColors.white.withValues(alpha: 0.055);
+    final baseBorder = selected
+        ? AppColors.neonPurple.withValues(alpha: isLight ? 0.52 : 0.42)
+        : AppColors.line(context).withValues(alpha: isLight ? 0.72 : 0.50);
+    final foreground = selected
+        ? AppColors.white
+        : enabled
+        ? AppColors.foreground(context)
+        : AppColors.subdued(context).withValues(alpha: isLight ? 0.78 : 0.60);
+    final labelStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
+      color: foreground,
+      fontWeight: FontWeight.w900,
+      letterSpacing: 0,
+    );
+
+    return QDoneTapFeedback(
+      onTap: enabled ? () => onSelected?.call(!selected) : null,
+      borderRadius: radius,
+      builder: (context, tapped) {
+        final fill = tapped
+            ? Color.alphaBlend(
+                AppColors.cyan.withValues(alpha: isLight ? 0.20 : 0.26),
+                baseFill,
+              )
+            : baseFill;
+        final border = tapped ? AppColors.cyan : baseBorder;
+        return AnimatedScale(
+          scale: tapped && enabled ? 0.98 : 1,
+          duration: const Duration(milliseconds: 130),
+          curve: Curves.easeOutCubic,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOutCubic,
+            constraints: const BoxConstraints(minHeight: 42),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: fill,
+              borderRadius: radius,
+              border: Border.all(color: border, width: 1.05),
+              boxShadow: selected || tapped
+                  ? <BoxShadow>[
+                      BoxShadow(
+                        color: (tapped ? AppColors.cyan : AppColors.neonPurple)
+                            .withValues(
+                              alpha: tapped
+                                  ? isLight
+                                        ? 0.20
+                                        : 0.28
+                                  : isLight
+                                  ? 0.18
+                                  : 0.22,
+                            ),
+                        blurRadius: tapped ? 22 : 18,
+                        offset: const Offset(0, 8),
+                      ),
+                    ]
+                  : const <BoxShadow>[],
+            ),
+            child: DefaultTextStyle.merge(
+              style: labelStyle,
+              child: IconTheme.merge(
+                data: IconThemeData(color: foreground, size: 18),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    if (selected) ...<Widget>[
+                      const Icon(Icons.check_rounded, size: 18),
+                      const SizedBox(width: 7),
+                    ] else if (icon != null) ...<Widget>[
+                      Icon(icon, size: 18),
+                      const SizedBox(width: 7),
+                    ],
+                    Flexible(child: label),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -1085,13 +1977,18 @@ Future<bool> _confirm(
           title: Text(title),
           content: Text(message),
           actions: <Widget>[
-            TextButton(
-              onPressed: () => QDoneModalPresenter.close(context, false),
-              child: const Text('Отмена'),
+            QDoneMaterialTapFeedback(
+              onTap: () => QDoneModalPresenter.close(context, false),
+              semanticLabel: 'Отмена',
+              child: TextButton(onPressed: () {}, child: const Text('Отмена')),
             ),
-            FilledButton(
-              onPressed: () => QDoneModalPresenter.close(context, true),
-              child: const Text('Продолжить'),
+            QDoneMaterialTapFeedback(
+              onTap: () => QDoneModalPresenter.close(context, true),
+              semanticLabel: 'Продолжить',
+              child: FilledButton(
+                onPressed: () {},
+                child: const Text('Продолжить'),
+              ),
             ),
           ],
         ),

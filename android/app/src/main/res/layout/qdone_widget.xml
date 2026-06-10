@@ -17,16 +17,15 @@
         android:paddingStart="10dp"
         android:paddingEnd="8dp">
 
-        <TextView
+        <ImageView
             android:id="@+id/widget_title"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="center_vertical"
-            android:text="QDone"
-            android:textColor="#FFFFFFFF"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:adjustViewBounds="false"
+            android:contentDescription="QDONE"
+            android:scaleType="fitStart"
+            android:src="@drawable/qdone_widget_brand" />
 
         <TextView
             android:id="@+id/widget_open_menu"

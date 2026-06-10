@@ -27,8 +27,12 @@ void main() {
       ),
     );
 
-    final createButton = find.widgetWithText(FilledButton, 'Создать задачу');
-    await tester.ensureVisible(createButton);
+    final createButton = find.text('Создать задачу');
+    await tester.scrollUntilVisible(
+      createButton,
+      400,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(createButton);
     await tester.pumpAndSettle();
 

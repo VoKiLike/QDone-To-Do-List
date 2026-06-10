@@ -3,12 +3,15 @@ import 'package:qdone/features/settings/domain/settings_repository.dart';
 import 'package:qdone/features/settings/domain/user_settings.dart';
 
 class LocalSettingsRepository implements SettingsRepository {
-  const LocalSettingsRepository(this._dataSource);
+  LocalSettingsRepository(this._dataSource);
 
   final SettingsLocalDataSource _dataSource;
 
   @override
   Future<UserSettings> read() => _dataSource.readSettings();
+
+  @override
+  Future<void> reloadExternal() => _dataSource.reloadExternal();
 
   @override
   Future<void> save(UserSettings settings) =>

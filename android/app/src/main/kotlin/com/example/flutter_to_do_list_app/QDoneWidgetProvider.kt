@@ -12,7 +12,6 @@ import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetBackgroundIntent
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetProvider
-import java.time.LocalDateTime
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -33,9 +32,9 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
         widgetData: SharedPreferences?
     ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.qdone_widget)
-        views.setTextViewText(
+        views.setImageViewResource(
             R.id.widget_title,
-            widgetData?.getString(WIDGET_TITLE_KEY, "QDone") ?: "QDone"
+            R.drawable.qdone_widget_brand
         )
 
         views.setOnClickPendingIntent(
@@ -73,7 +72,6 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
             showCompleted = settings.showCompleted,
             taskLimit = settings.taskLimit
         )
-            ?: readWidgetTasks(prefs, settings)
             ?: emptyList()
 
         if (rows.isEmpty()) {
@@ -83,6 +81,7 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
             emptyRow.setTextViewText(R.id.widget_task_title, "\u041D\u0435\u0442 \u0431\u043B\u0438\u0436\u0430\u0439\u0448\u0438\u0445 \u0437\u0430\u0434\u0430\u0447")
             emptyRow.setTextViewText(R.id.widget_task_done, "")
             emptyRow.setViewVisibility(R.id.widget_task_done, View.INVISIBLE)
+            emptyRow.setBoolean(R.id.widget_task_done, "setEnabled", false)
             views.addView(R.id.widget_rows, emptyRow)
             return
         }
@@ -126,6 +125,11 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
                 "setBackgroundResource",
                 if (done) R.drawable.qdone_widget_restore_button else R.drawable.qdone_widget_done_button
             )
+            row.setViewVisibility(
+                R.id.widget_task_done,
+                if (item.canToggle) View.VISIBLE else View.INVISIBLE
+            )
+            row.setBoolean(R.id.widget_task_done, "setEnabled", item.canToggle)
             setStrike(row, R.id.widget_task_time, done)
             setStrike(row, R.id.widget_task_category, done)
             setStrike(row, R.id.widget_task_title, done)
@@ -149,54 +153,25 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
     }
 
     private fun readWidgetTasks(
-        prefs: SharedPreferences,
-        settings: WidgetSettings
-    ): List<WidgetTask>? {
-        val raw = prefs.getString(TASKS_KEY, null) ?: return null
-        return readWidgetTasks(
-            raw = raw,
-            compact = settings.compact,
-            showCompleted = settings.showCompleted,
-            taskLimit = settings.taskLimit,
-            fromTaskStore = true
-        )
-    }
-
-    private fun readWidgetTasks(
         raw: String?,
         compact: Boolean,
         showCompleted: Boolean = true,
-        taskLimit: Int = if (compact) 6 else 4,
-        fromTaskStore: Boolean = false
+        taskLimit: Int = if (compact) 6 else 4
     ): List<WidgetTask>? {
         if (raw.isNullOrBlank()) return null
 
         val source = runCatching { JSONArray(raw) }.getOrNull() ?: return null
         val tasks = mutableListOf<WidgetTask>()
-        val now = LocalDateTime.now()
         for (index in 0 until source.length()) {
             val item = source.optJSONObject(index) ?: continue
-            val task = if (fromTaskStore) {
-                WidgetTask.fromTaskJson(item)
-            } else {
-                WidgetTask.fromWidgetJson(item)
-            }
-            val visible = if (fromTaskStore) {
-                task.isVisibleToday(showCompleted, now)
-            } else {
-                showCompleted || !task.isCompleted
-            }
+            val task = WidgetTask.fromWidgetJson(item)
+            val visible = showCompleted || !task.isCompleted
             if (visible) {
                 tasks.add(task)
             }
         }
 
-        return tasks
-            .sortedWith(
-                compareBy<WidgetTask> { if (it.isCompleted) 1 else 0 }
-                    .thenBy { it.dueDateTime ?: LocalDateTime.MAX }
-            )
-            .take(taskLimit.coerceIn(1, 10))
+        return tasks.take(taskLimit.coerceIn(1, 10))
     }
 
     private fun readSettings(
@@ -270,25 +245,8 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
         val category: String,
         val status: String,
         val isCompleted: Boolean,
-        val dueDateTime: LocalDateTime?,
-        val completedAt: LocalDateTime?,
         val canToggle: Boolean = true
     ) {
-        fun isVisibleToday(showCompleted: Boolean, now: LocalDateTime): Boolean {
-            val dueToday = isSameDay(dueDateTime, now)
-            if (!isCompleted) {
-                return dueToday
-            }
-            if (!showCompleted) {
-                return false
-            }
-            return if (completedAt == null) dueToday else isSameDay(completedAt, now)
-        }
-
-        private fun isSameDay(value: LocalDateTime?, now: LocalDateTime): Boolean {
-            return value != null && value.year == now.year && value.dayOfYear == now.dayOfYear
-        }
-
         companion object {
             fun fromWidgetJson(json: JSONObject): WidgetTask {
                 val status = json.optString("status", STATUS_ACTIVE)
@@ -302,67 +260,15 @@ class QDoneWidgetProvider : HomeWidgetProvider() {
                         "isCompleted",
                         status == STATUS_COMPLETED || status == STATUS_ARCHIVED
                     ),
-                    dueDateTime = null,
-                    completedAt = null,
                     canToggle = json.optBoolean("canToggle", true)
                 )
-            }
-
-            fun fromTaskJson(json: JSONObject): WidgetTask {
-                val dueDateTime = dueDateTimeOf(json)
-                val storedStatus = json.optString("status", STATUS_ACTIVE)
-                val completed = json.optBoolean("isArchived", false) ||
-                    storedStatus == STATUS_COMPLETED ||
-                    storedStatus == STATUS_ARCHIVED
-                val status = when {
-                    json.optBoolean("isArchived", false) -> STATUS_ARCHIVED
-                    storedStatus == STATUS_COMPLETED -> STATUS_COMPLETED
-                    dueDateTime?.isBefore(LocalDateTime.now()) == true -> STATUS_OVERDUE
-                    else -> STATUS_ACTIVE
-                }
-                return WidgetTask(
-                    id = json.optString("id"),
-                    title = json.optString("title"),
-                    time = if (status == STATUS_OVERDUE) {
-                        "\u041F\u0440\u043E\u0441\u0440."
-                    } else {
-                        formatTime(json.optString("dueTime", "9:0"))
-                    },
-                    category = json.optJSONObject("category")?.optString("name").orEmpty(),
-                    status = status,
-                    isCompleted = completed,
-                    dueDateTime = dueDateTime,
-                    completedAt = parseDateTime(json.optString("completedAt"))
-                )
-            }
-
-            fun dueDateTimeOf(json: JSONObject): LocalDateTime? {
-                val dueDate = parseDateTime(json.optString("dueDate")) ?: return null
-                val parts = json.optString("dueTime", "9:0").split(":")
-                val hour = parts.getOrNull(0)?.toIntOrNull() ?: 9
-                val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
-                return dueDate.withHour(hour).withMinute(minute).withSecond(0).withNano(0)
-            }
-
-            private fun parseDateTime(value: String): LocalDateTime? {
-                if (value.isBlank() || value == "null") return null
-                return runCatching { LocalDateTime.parse(value.removeSuffix("Z")) }.getOrNull()
-            }
-
-            private fun formatTime(value: String): String {
-                val parts = value.split(":")
-                val hour = parts.getOrNull(0)?.toIntOrNull() ?: 9
-                val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
-                return "%02d:%02d".format(hour, minute)
             }
         }
     }
 
     companion object {
         private const val FLUTTER_PREFS = "FlutterSharedPreferences"
-        private const val TASKS_KEY = "flutter.qdone.tasks.v1"
         private const val SETTINGS_KEY = "flutter.qdone.settings.v1"
-        private const val WIDGET_TITLE_KEY = "widget_title"
         private const val WIDGET_TASKS_JSON_KEY = "widget_tasks_json"
         private const val WIDGET_SHOW_COMPLETED_KEY = "widget_show_completed"
         private const val WIDGET_TASK_LIMIT_KEY = "widget_task_limit"

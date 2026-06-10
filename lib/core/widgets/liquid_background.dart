@@ -11,68 +11,63 @@ class LiquidBackground extends StatelessWidget {
     final isLight = Theme.of(context).brightness == Brightness.light;
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isLight
-              ? const <Color>[
-                  Color(0xFFF8FAFC),
-                  Color(0xFFEFF6FF),
-                  Color(0xFFF7F7FF),
-                ]
-              : const <Color>[
-                  AppColors.darkVoid,
-                  Color(0xFF080818),
-                  Color(0xFF071417),
-                ],
-        ),
+        gradient: isLight
+            ? AppColors.lightAuroraGradient
+            : AppColors.darkAuroraGradient,
       ),
-      child: Stack(
-        children: <Widget>[
-          Positioned(
-            top: -120,
-            right: -80,
-            child: _Glow(
-              color: AppColors.violet.withValues(alpha: isLight ? 0.18 : 0.32),
-              size: 260,
-            ),
-          ),
-          Positioned(
-            bottom: -100,
-            left: -70,
-            child: _Glow(
-              color: AppColors.turquoise.withValues(
-                alpha: isLight ? 0.18 : 0.28,
-              ),
-              size: 240,
-            ),
-          ),
-          child,
-        ],
-      ),
+      child: CustomPaint(painter: _AuroraRibbonPainter(isLight), child: child),
     );
   }
 }
 
-class _Glow extends StatelessWidget {
-  const _Glow({required this.color, required this.size});
+class _AuroraRibbonPainter extends CustomPainter {
+  const _AuroraRibbonPainter(this.isLight);
 
-  final Color color;
-  final double size;
+  final bool isLight;
 
   @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          boxShadow: <BoxShadow>[
-            BoxShadow(color: color, blurRadius: 140, spreadRadius: 54),
-          ],
-        ),
-      ),
-    );
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 46
+      ..strokeCap = StrokeCap.round
+      ..shader = LinearGradient(
+        colors: isLight
+            ? <Color>[
+                AppColors.lightViolet.withValues(alpha: 0.14),
+                AppColors.lightSky.withValues(alpha: 0.18),
+                AppColors.lightHighlight.withValues(alpha: 0.12),
+              ]
+            : <Color>[
+                AppColors.electricViolet.withValues(alpha: 0.14),
+                AppColors.electricBlue.withValues(alpha: 0.16),
+                AppColors.magenta.withValues(alpha: 0.10),
+              ],
+      ).createShader(Offset.zero & size);
+
+    final path = Path()
+      ..moveTo(size.width * 0.92, -32)
+      ..cubicTo(
+        size.width * 0.78,
+        size.height * 0.22,
+        size.width * 0.24,
+        size.height * 0.26,
+        size.width * 0.38,
+        size.height * 0.54,
+      )
+      ..cubicTo(
+        size.width * 0.52,
+        size.height * 0.78,
+        size.width * 0.92,
+        size.height * 0.80,
+        size.width * 0.72,
+        size.height + 36,
+      );
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _AuroraRibbonPainter oldDelegate) {
+    return oldDelegate.isLight != isLight;
   }
 }
